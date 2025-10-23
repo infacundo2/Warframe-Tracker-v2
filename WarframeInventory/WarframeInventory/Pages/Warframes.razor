@@ -1,0 +1,65 @@
+@page "/warframes"
+@inject WarframeApiService Api
+
+<MudText Typo="Typo.h4" Class="mb-4">Warframes</MudText>
+
+<MudPaper Class="p-4">
+
+    @if (loading)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (warframes?.Count == 0)
+    {
+        <MudText>No se encontraron Warframes.</MudText>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var wf in warframes)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard Class="mb-4">
+                        <img src="@GetImageUrl(wf.ImageName)" alt="@wf.Name" style="width:100%;height:200px;object-fit:cover;" />
+                        <MudCardContent>
+                            <MudText Typo="Typo.subtitle1">@wf.Name</MudText>
+                            <MudText Typo="Typo.body2">@wf.Description</MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudCheckBox T="bool" @bind-Checked="wf.Owned" Label="Lo tengo" Color="Color.Success" />
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+
+
+    }
+
+</MudPaper>
+
+@code {
+    private List<WarframeInventory.Models.Warframe>? warframes;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            warframes = await Api.GetWarframesAsync();
+        }
+        catch
+        {
+            warframes = new();
+        }
+        loading = false;
+    }
+
+    private string GetImageUrl(string? imageName)
+    {
+        if (string.IsNullOrWhiteSpace(imageName))
+            return "_content/MudBlazor/images/placeholder.png";
+
+        return $"https://cdn.warframestat.us/img/{imageName}";
+    }
+}

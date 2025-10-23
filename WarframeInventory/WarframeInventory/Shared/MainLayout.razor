@@ -1,33 +1,37 @@
 ﻿@inherits LayoutComponentBase
-
-<MudThemeProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+@using MudBlazor
 
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-            OnClick="@((e) => DrawerToggle())" />
-        <MudAppBarSpacer />
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
-    </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="2">
-        <MudDrawerHeader>
-            <MudText Typo="Typo.h5">WarframeInventory</MudText>
-        </MudDrawerHeader>
-        <MudDivider />
-        <NavMenu />
-    </MudDrawer>
-    <MudMainContent Class="px-8" MaxWidth="MaxWidth.False">
-        @Body
-    </MudMainContent>
+    <MudDrawerContainer>
+
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+            <MudNavMenu>
+                <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home">Inicio</MudNavLink>
+                <MudNavLink Href="/warframes" Icon="@Icons.Material.Filled.Android">Warframes</MudNavLink>
+                <MudNavLink Href="/weapons" Icon="@Icons.Material.Filled.Gavel">Armas</MudNavLink>
+                <MudNavLink Href="/mods" Icon="@Icons.Material.Filled.Extension">Mods</MudNavLink>
+                <MudNavLink Href="/relics" Icon="@Icons.Material.Filled.Inventory">Reliquias</MudNavLink>
+            </MudNavMenu>
+        </MudDrawer>
+
+        <MudMainContent>
+            <MudAppBar Color="Color.Primary" Elevation="4">
+                <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                               Color="Color.Inherit"
+                               Edge="Edge.Start"
+                               OnClick="@ToggleDrawer" />
+                <MudText Typo="Typo.h6" Class="ml-2">Warframe Inventory</MudText>
+            </MudAppBar>
+
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+
+    </MudDrawerContainer>
 </MudLayout>
 
 @code {
-    bool _drawerOpen = true;
-
-    void DrawerToggle()
-    {
-        _drawerOpen = !_drawerOpen;
-    }
+    private bool _drawerOpen = true;
+    void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 }
