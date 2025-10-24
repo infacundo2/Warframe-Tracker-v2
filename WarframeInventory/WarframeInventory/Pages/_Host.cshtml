@@ -1,9 +1,7 @@
 @page "/"
 @namespace WarframeInventory.Pages
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-@{
-    Layout = null;
-}
+@using WarframeInventory
 
 <!DOCTYPE html>
 <html lang="es">
@@ -12,16 +10,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Warframe Inventory</title>
     <base href="~/" />
-    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
-    <link href="css/site.css" rel="stylesheet" />
-    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <!-- MudBlazor -->
+    <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+
+    <!-- Custom CSS (si agregas estilos propios) -->
+    <link rel="stylesheet" href="css/site.css" />
 </head>
 <body>
     <app>
-        <component type="typeof(App)" render-mode="ServerPrerendered" />
+        @(await Html.RenderComponentAsync<App>(RenderMode.ServerPrerendered))
     </app>
 
     <script src="_framework/blazor.server.js"></script>
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
 </html>

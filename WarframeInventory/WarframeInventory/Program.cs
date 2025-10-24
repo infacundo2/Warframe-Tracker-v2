@@ -45,21 +45,32 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// clave: habilitar archivos estáticos ANTES del routing
 app.UseStaticFiles();
 app.UseRouting();
 
 // =======================================================
-// SINCRONIZACIÓN INICIAL CON LA API (ETAPA 3)
+// SINCRONIZACIÓN INICIAL CON LA API
 // =======================================================
 using (var scope = app.Services.CreateScope())
 {
-    var sync = scope.ServiceProvider.GetRequiredService<DataSyncService>();
-    await sync.SyncWarframesAsync();
+    try
+    {
+        var sync = scope.ServiceProvider.GetRequiredService<DataSyncService>();
+        await sync.SyncAllAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[WARN] Error sincronizando datos iniciales: {ex.Message}");
+    }
 }
 
 // =======================================================
 // MAPEO DE PÁGINAS Y EJECUCIÓN
 // =======================================================
+app.MapControllers();           // ← agregado por buenas prácticas
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
+
 app.Run();

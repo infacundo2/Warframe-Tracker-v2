@@ -4,11 +4,12 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>WarframeInventory</RootNamespace>
+    <AssemblyName>WarframeInventory</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Blazor y MudBlazor -->
-    <PackageReference Include="MudBlazor" Version="5.2.0" />
 
 
     <!-- Entity Framework Core para MySQL -->
@@ -18,6 +19,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.10" />
+    <PackageReference Include="MudBlazor" Version="6.2.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
 
     <!-- Otras utilidades -->
@@ -25,5 +27,7 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="System.Net.Http.Json" Version="8.0.0" />
   </ItemGroup>
+
+  
 
 </Project>

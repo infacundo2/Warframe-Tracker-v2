@@ -38,6 +38,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV2FyZnJhbWVzLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Wagner/Documents/Warframe-Tracker-v2/WarframeInventory/WarframeInventory/Pages/WarframesDetail.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV2FyZnJhbWVzRGV0YWlsLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Wagner/Documents/Warframe-Tracker-v2/WarframeInventory/WarframeInventory/Pages/Weapons.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV2VhcG9ucy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 

@@ -1,10 +1,10 @@
 @page "/warframes"
-@inject WarframeApiService Api
+@using Microsoft.EntityFrameworkCore
+@inject WarframeInventory.Data.ApplicationDbContext Db
 
 <MudText Typo="Typo.h4" Class="mb-4">Warframes</MudText>
 
 <MudPaper Class="p-4">
-
     @if (loading)
     {
         <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
@@ -27,15 +27,16 @@
                         </MudCardContent>
                         <MudCardActions>
                             <MudCheckBox T="bool" @bind-Checked="wf.Owned" Label="Lo tengo" Color="Color.Success" />
+                            <MudButton Variant="Variant.Text" Color="Color.Primary"
+                                    Href="@($"/warframes/{Uri.EscapeDataString(wf.UniqueName)}")">
+                                Ver detalle
+                            </MudButton>
                         </MudCardActions>
                     </MudCard>
                 </MudItem>
             }
         </MudGrid>
-
-
     }
-
 </MudPaper>
 
 @code {
@@ -46,7 +47,9 @@
     {
         try
         {
-            warframes = await Api.GetWarframesAsync();
+            warframes = await Db.Warframes
+                .OrderBy(w => w.Name)
+                .ToListAsync();
         }
         catch
         {
@@ -55,11 +58,8 @@
         loading = false;
     }
 
-    private string GetImageUrl(string? imageName)
-    {
-        if (string.IsNullOrWhiteSpace(imageName))
-            return "_content/MudBlazor/images/placeholder.png";
-
-        return $"https://cdn.warframestat.us/img/{imageName}";
-    }
+    private static string GetImageUrl(string? imageName)
+        => string.IsNullOrWhiteSpace(imageName)
+            ? "_content/MudBlazor/images/placeholder.png"
+            : $"https://cdn.warframestat.us/img/{imageName}";
 }

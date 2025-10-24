@@ -1,6 +1,20 @@
 ﻿@page "/"
+@using MudBlazor
 
-<MudText Typo="Typo.h4">Bienvenido a Warframe Inventory</MudText>
-<MudText Typo="Typo.body1" Class="mt-2">
-    Usa el menú lateral para explorar tus Warframes, armas, mods y reliquias.
-</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-10 text-center">
+    <MudPaper Class="p-6">
+        <MudText Typo="Typo.h4" Color="Color.Primary">
+            Bienvenido a Warframe Inventory
+        </MudText>
+
+        <MudText Typo="Typo.body1" Class="mt-3 mb-4">
+            Usa el menú lateral para explorar tus Warframes, armas, mods y reliquias.
+        </MudText>
+
+        <MudDivider Class="mb-4" />
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/warframes">
+            Ver Warframes
+        </MudButton>
+    </MudPaper>
+</MudContainer>

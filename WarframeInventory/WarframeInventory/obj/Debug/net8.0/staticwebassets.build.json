@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "xQrldF69ppkkmkipU5j7QnXBZQOggdkwbr6DbkYga84=",
+  "Hash": "egSsJk8Uie0LcPJ/vrfJ+LbkzmqmU2VsvtNbV6zjHTM=",
   "Source": "WarframeInventory",
   "BasePath": "_content/WarframeInventory",
   "Mode": "Default",
@@ -17,10 +17,10 @@
   ],
   "Assets": [
     {
-      "Identity": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\5.2.0\\staticwebassets\\MudBlazor.min.css",
+      "Identity": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\6.2.0\\staticwebassets\\MudBlazor.min.css",
       "SourceId": "MudBlazor",
       "SourceType": "Package",
-      "ContentRoot": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\5.2.0\\staticwebassets\\",
+      "ContentRoot": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\6.2.0\\staticwebassets\\",
       "BasePath": "_content/MudBlazor",
       "RelativePath": "MudBlazor.min.css",
       "AssetKind": "All",
@@ -33,13 +33,13 @@
       "AssetTraitValue": "",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\5.2.0\\staticwebassets\\MudBlazor.min.css"
+      "OriginalItemSpec": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\6.2.0\\staticwebassets\\MudBlazor.min.css"
     },
     {
-      "Identity": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\5.2.0\\staticwebassets\\MudBlazor.min.js",
+      "Identity": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\6.2.0\\staticwebassets\\MudBlazor.min.js",
       "SourceId": "MudBlazor",
       "SourceType": "Package",
-      "ContentRoot": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\5.2.0\\staticwebassets\\",
+      "ContentRoot": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\6.2.0\\staticwebassets\\",
       "BasePath": "_content/MudBlazor",
       "RelativePath": "MudBlazor.min.js",
       "AssetKind": "All",
@@ -52,7 +52,7 @@
       "AssetTraitValue": "",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\5.2.0\\staticwebassets\\MudBlazor.min.js"
+      "OriginalItemSpec": "C:\\Users\\Wagner\\.nuget\\packages\\mudblazor\\6.2.0\\staticwebassets\\MudBlazor.min.js"
     },
     {
       "Identity": "C:\\Users\\Wagner\\Documents\\Warframe-Tracker-v2\\WarframeInventory\\WarframeInventory\\wwwroot\\css\\site.css",

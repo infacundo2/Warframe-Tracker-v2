@@ -1,0 +1,100 @@
+@page "/relics"
+@inject WarframeInventory.Services.WarframeApiService Api
+@using System.Text.Json
+
+<MudText Typo="Typo.h4" Class="mb-4">Reliquias</MudText>
+
+<MudPaper Class="p-4">
+    @if (loading)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (relics?.Count == 0)
+    {
+        <MudText>No se encontraron Reliquias.</MudText>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var r in relics)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard Class="mb-4">
+                        <img src="@GetImageUrl(r.ImageName)" alt="@r.Name" style="width:100%;height:200px;object-fit:cover;" />
+                        <MudCardContent>
+                            <MudText Typo="Typo.subtitle1">@r.Name</MudText>
+                            <MudText Typo="Typo.caption">
+                                @($"{(r.Vaulted ? "Vaulted" : "Disponible")} · {(r.Tradable ? "Tradeable" : "No Trade")}")
+                            </MudText>
+                            @if (!string.IsNullOrWhiteSpace(r.RewardsJson))
+                            {
+                                <MudExpansionPanels Dense="true">
+                                    <MudExpansionPanel Text="Recompensas">
+                                        @{
+                                            try
+                                            {
+                                                var rewards = JsonSerializer.Deserialize<List<JsonElement>>(r.RewardsJson!);
+                                                if (rewards != null)
+                                                {
+                                                    <MudList Dense="true">
+                                                        @foreach (var item in rewards)
+                                                        {
+                                                            string rarity = item.TryGetProperty("rarity", out var rar) ? rar.GetString() ?? "Desconocido" : "Desconocido";
+                                                            double chance = item.TryGetProperty("chance", out var ch) ? ch.GetDouble() : 0.0;
+
+                                                            string name = "?";
+                                                            if (item.TryGetProperty("item", out var it))
+                                                            {
+                                                                if (it.TryGetProperty("name", out var n))
+                                                                    name = n.GetString() ?? "?";
+                                                            }
+
+                                                            <MudListItem>
+                                                                <MudText Typo="Typo.body2">
+                                                                    @($"{rarity} · {chance}% · {name}")
+                                                                </MudText>
+                                                            </MudListItem>
+                                                        }
+                                                    </MudList>
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.caption">No hay recompensas disponibles.</MudText>
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                <MudText Typo="Typo.caption">Error leyendo recompensas: @ex.Message</MudText>
+                                            }
+                                        }
+                                    </MudExpansionPanel>
+                                </MudExpansionPanels>
+
+                            }
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudCheckBox T="bool" @bind-Checked="r.Owned" Label="La tengo" Color="Color.Success" />
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudPaper>
+
+@code {
+    private List<WarframeInventory.Models.Relic>? relics;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { relics = await Api.GetRelicsAsync(); }
+        catch { relics = new(); }
+        loading = false;
+    }
+
+    private static string GetImageUrl(string? imageName)
+        => string.IsNullOrWhiteSpace(imageName)
+            ? "_content/MudBlazor/images/placeholder.png"
+            : $"https://cdn.warframestat.us/img/{imageName}";
+}
