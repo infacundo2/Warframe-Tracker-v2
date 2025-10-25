@@ -1,0 +1,186 @@
+@page "/mods/{uniqueName}"
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@using WarframeInventory.Models
+@inject WarframeInventory.Data.ApplicationDbContext Db
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
+    @if (loading)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (mod == null)
+    {
+        <MudText Typo="Typo.h6" Color="Color.Error">No se encontró el mod solicitado.</MudText>
+    }
+    else
+    {
+        <MudPaper Class="p-6">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <img src="@GetImageUrl(mod.ImageName)" alt="@mod.Name"
+                         style="width:100%;border-radius:8px;" />
+                </MudItem>
+
+                <MudItem xs="12" md="8">
+                    <MudText Typo="Typo.h4" Color="Color.Primary">@mod.Name</MudText>
+                    <MudText Typo="Typo.body1" Class="mt-2 mb-3">@mod.Description</MudText>
+
+                    <MudList Dense="true">
+                        <MudListItem>Rareza: @mod.Rarity</MudListItem>
+                        <MudListItem>Polaridad: @mod.Polarity</MudListItem>
+                        <MudListItem>Compatibilidad: @mod.CompatName</MudListItem>
+                        <MudListItem>Base Drain: @mod.BaseDrain</MudListItem>
+                        <MudListItem>Límite de Fusión: @mod.FusionLimit</MudListItem>
+                        <MudListItem>¿Augment?: @(mod.IsAugment ? "Sí" : "No")</MudListItem>
+                        <MudListItem>¿Prime?: @(mod.IsPrime ? "Sí" : "No")</MudListItem>
+                    </MudList>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.h6" Class="mb-2">Niveles</MudText>
+
+            @if (levelStats == null || levelStats.Count == 0)
+            {
+                <MudText Typo="Typo.caption">Sin estadísticas de niveles.</MudText>
+            }
+            else
+            {
+                <MudTable Items="levelStats" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Nivel</MudTh>
+                        <MudTh>Bonos</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Nivel">@context.Level</MudTd>
+                        <MudTd DataLabel="Bonos">@context.Stats</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.h6" Class="mb-2">Drops</MudText>
+
+            @if (drops == null || drops.Count == 0)
+            {
+                <MudText Typo="Typo.caption">Sin datos de drop.</MudText>
+            }
+            else
+            {
+                <MudList Dense="true">
+                    @foreach (var d in drops)
+                    {
+                        <MudListItem>
+                            <MudText Typo="Typo.body2">
+                                <b>@d.Location</b>
+                                (<i>@d.Rarity</i>) — @d.Type
+                                @if (d.Chance > 0)
+                                {
+                                    <text> — Prob: @d.Chance.ToString("0.##")%</text>
+                                }
+                            </MudText>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public string? uniqueName { get; set; }
+
+    private Mod? mod;
+    private List<ModLevel>? levelStats;
+    private List<ModDrop>? drops;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(uniqueName))
+                return;
+
+            var decodedName = Uri.UnescapeDataString(uniqueName);
+            mod = await Db.Mods.FirstOrDefaultAsync(m => m.UniqueName == decodedName);
+
+            // 🔹 Niveles
+            if (mod != null && !string.IsNullOrWhiteSpace(mod.LevelStatsJson))
+            {
+                try
+                {
+                    var doc = JsonDocument.Parse(mod.LevelStatsJson);
+                    levelStats = new();
+
+                    int lvl = 0;
+                    foreach (var lvlEntry in doc.RootElement.EnumerateArray())
+                    {
+                        lvl++;
+                        var desc = lvlEntry.TryGetProperty("stats", out var s)
+                            ? string.Join(", ", s.EnumerateArray().Select(e => e.GetString()))
+                            : "";
+                        levelStats.Add(new ModLevel { Level = lvl, Stats = desc });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error deserializando niveles del mod: {ex.Message}");
+                }
+            }
+
+            // 🔹 Drops
+            if (mod != null && !string.IsNullOrWhiteSpace(mod.DropsJson))
+            {
+                try
+                {
+                    var doc = JsonDocument.Parse(mod.DropsJson);
+                    drops = new List<ModDrop>();
+
+                    foreach (var drop in doc.RootElement.EnumerateArray())
+                    {
+                        drops.Add(new ModDrop
+                        {
+                            Location = drop.TryGetProperty("location", out var loc) ? loc.GetString() ?? "" : "",
+                            Rarity = drop.TryGetProperty("rarity", out var rar) ? rar.GetString() ?? "" : "",
+                            Type = drop.TryGetProperty("type", out var typ) ? typ.GetString() ?? "" : "",
+                            Chance = drop.TryGetProperty("chance", out var ch) ? ch.GetDouble() : 0
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error deserializando drops del mod: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando detalle del mod: {ex.Message}");
+        }
+
+        loading = false;
+    }
+
+    private static string GetImageUrl(string? imageName)
+        => string.IsNullOrWhiteSpace(imageName)
+            ? "_content/MudBlazor/images/placeholder.png"
+            : $"https://cdn.warframestat.us/img/{imageName}";
+
+    private class ModLevel
+    {
+        public int Level { get; set; }
+        public string Stats { get; set; } = "";
+    }
+
+    private class ModDrop
+    {
+        public double Chance { get; set; }
+        public string Location { get; set; } = "";
+        public string Rarity { get; set; } = "";
+        public string Type { get; set; } = "";
+    }
+}

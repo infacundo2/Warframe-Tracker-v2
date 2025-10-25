@@ -1,5 +1,6 @@
 @page "/weapons"
-@inject WarframeInventory.Services.WarframeApiService Api
+@using Microsoft.EntityFrameworkCore
+@inject WarframeInventory.Data.ApplicationDbContext Db
 
 <MudText Typo="Typo.h4" Class="mb-4">Armas</MudText>
 
@@ -10,7 +11,7 @@
     }
     else if (weapons?.Count == 0)
     {
-        <MudText>No se encontraron Armas.</MudText>
+        <MudText>No se encontraron armas.</MudText>
     }
     else
     {
@@ -19,19 +20,20 @@
             {
                 <MudItem xs="12" sm="6" md="4" lg="3">
                     <MudCard Class="mb-4">
-                        <img src="@GetImageUrl(w.ImageName)" alt="@w.Name" style="width:100%;height:200px;object-fit:cover;" />
+                        <img src="@GetImageUrl(w.ImageName)" alt="@w.Name"
+                             style="width:100%;height:200px;object-fit:cover;" />
+
                         <MudCardContent>
                             <MudText Typo="Typo.subtitle1">@w.Name</MudText>
-                            <MudText Typo="Typo.caption">
-                                @($"Tipo: {w.Type ?? "-"} · MR: {w.MasteryReq?.ToString() ?? "-"} · {(w.IsPrime ? "Prime" : "Normal")}")
-                            </MudText>
-                            @if (!string.IsNullOrWhiteSpace(w.Description))
-                            {
-                                <MudText Typo="Typo.body2">@w.Description</MudText>
-                            }
+                            <MudText Typo="Typo.caption">@w.Type</MudText>
+                            <MudText Typo="Typo.body2">@w.Description</MudText>
                         </MudCardContent>
+
                         <MudCardActions>
-                            <MudCheckBox T="bool" @bind-Checked="w.Owned" Label="Lo tengo" Color="Color.Success" />
+                            <MudButton Variant="Variant.Text" Color="Color.Primary"
+                                       Href="@($"/weapons/{Uri.EscapeDataString(w.UniqueName)}")">
+                                Ver detalle
+                            </MudButton>
                         </MudCardActions>
                     </MudCard>
                 </MudItem>
@@ -46,8 +48,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try { weapons = await Api.GetWeaponsAsync(); }
-        catch { weapons = new(); }
+        try
+        {
+            weapons = await Db.Weapons
+                .OrderBy(w => w.Name)
+                .ToListAsync();
+        }
+        catch
+        {
+            weapons = new();
+        }
         loading = false;
     }
 

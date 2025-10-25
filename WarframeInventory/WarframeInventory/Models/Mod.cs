@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace WarframeInventory.Models
 {
@@ -17,12 +16,11 @@ namespace WarframeInventory.Models
         public string? Rarity { get; set; }
         public int? BaseDrain { get; set; }
         public int? FusionLimit { get; set; }
-
-        // Descripción puede venir como string o estructura. Guardamos texto plano.
         public string? Description { get; set; }
-
-        // Nivel -> lista de textos. Lo persistimos como JSON por simplicidad.
         public string? LevelStatsJson { get; set; }
+
+        // 🔹 NUEVO CAMPO
+        public string? DropsJson { get; set; }
 
         public bool Owned { get; set; } = false;
 

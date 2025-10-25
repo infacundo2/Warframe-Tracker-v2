@@ -12,8 +12,8 @@ using WarframeInventory.Data;
 namespace WarframeInventory.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251024172133_Init")]
-    partial class Init
+    [Migration("20251025020942_AddDropJson")]
+    partial class AddDropJson
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -44,6 +44,9 @@ namespace WarframeInventory.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("Description")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("DropsJson")
                         .HasColumnType("longtext");
 
                     b.Property<int?>("FusionLimit")

@@ -43,6 +43,9 @@ namespace WarframeInventory.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("DropsJson")
+                        .HasColumnType("longtext");
+
                     b.Property<int?>("FusionLimit")
                         .HasColumnType("int");
 

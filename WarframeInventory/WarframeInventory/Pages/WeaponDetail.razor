@@ -1,0 +1,158 @@
+@page "/weapons/{uniqueName}"
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@using WarframeInventory.Models
+@inject WarframeInventory.Data.ApplicationDbContext Db
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
+    @if (loading)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (weapon == null)
+    {
+        <MudText Typo="Typo.h6" Color="Color.Error">No se encontró el arma solicitada.</MudText>
+    }
+    else
+    {
+        <MudPaper Class="p-6">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <img src="@GetImageUrl(weapon.ImageName)" alt="@weapon.Name"
+                         style="width:100%;border-radius:8px;" />
+                </MudItem>
+
+                <MudItem xs="12" md="8">
+                    <MudText Typo="Typo.h4" Color="Color.Primary">@weapon.Name</MudText>
+                    <MudText Typo="Typo.body1" Class="mt-2 mb-3">@weapon.Description</MudText>
+
+                    <MudList Dense="true">
+                        <MudListItem>Tipo: @weapon.Type</MudListItem>
+                        <MudListItem>Requisito de maestría: @weapon.MasteryReq</MudListItem>
+                        <MudListItem>¿Prime?: @(weapon.IsPrime ? "Sí" : "No")</MudListItem>
+                    </MudList>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.h6" Class="mb-2">Componentes</MudText>
+
+            @if (components == null || components.Count == 0)
+            {
+                <MudText Typo="Typo.caption">Sin componentes registrados.</MudText>
+            }
+            else
+            {
+                @foreach (var c in components)
+                {
+                    <MudPaper Class="p-3 mb-3" Elevation="1">
+                        <MudGrid>
+                            <MudItem xs="12" md="4">
+                                <img src="@GetImageUrl(c.ImageName)" alt="@c.Name"
+                                     style="width:100%;border-radius:8px;" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="8">
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">@c.Name</MudText>
+
+                                @if (c.Drops != null && c.Drops.Count > 0)
+                                {
+                                    <MudList Dense="true">
+                                        @foreach (var drop in c.Drops)
+                                        {
+                                            <MudListItem>
+                                                <MudText Typo="Typo.body2">
+                                                    <b>@drop.Location</b>
+                                                    (<i>@drop.Rarity</i>) —
+                                                    Prob: @drop.Chance.ToString("0.##")%
+                                                </MudText>
+                                            </MudListItem>
+                                        }
+                                    </MudList>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.caption">Sin drops registrados.</MudText>
+                                }
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                }
+            }
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public string? uniqueName { get; set; }
+
+    private Weapon? weapon;
+    private List<WarframeComponent>? components;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(uniqueName))
+                return;
+
+            var decodedName = Uri.UnescapeDataString(uniqueName);
+
+            weapon = await Db.Weapons.FirstOrDefaultAsync(w => w.UniqueName == decodedName);
+
+            if (weapon != null && !string.IsNullOrWhiteSpace(weapon.ComponentsJson))
+            {
+                try
+                {
+                    // deserializa componentes
+                    var doc = JsonDocument.Parse(weapon.ComponentsJson);
+                    components = new List<WarframeComponent>();
+
+                    foreach (var element in doc.RootElement.EnumerateArray())
+                    {
+                        var comp = new WarframeComponent
+                        {
+                            Name = element.GetProperty("name").GetString() ?? "",
+                            ImageName = element.TryGetProperty("imageName", out var img) ? img.GetString() : null,
+                            Drops = new List<DropLocation>()
+                        };
+
+                        if (element.TryGetProperty("drops", out var dropsArray) && dropsArray.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var drop in dropsArray.EnumerateArray())
+                            {
+                                comp.Drops.Add(new DropLocation
+                                {
+                                    Location = drop.TryGetProperty("location", out var loc) ? loc.GetString() ?? "" : "",
+                                    Rarity = drop.TryGetProperty("rarity", out var rar) ? rar.GetString() ?? "" : "",
+                                    Type = drop.TryGetProperty("type", out var typ) ? typ.GetString() ?? "" : "",
+                                    Chance = drop.TryGetProperty("chance", out var ch) ? ch.GetDouble() : 0
+                                });
+                            }
+                        }
+
+                        components.Add(comp);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error al deserializar componentes de arma: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando detalle de arma: {ex.Message}");
+        }
+
+        loading = false;
+    }
+
+
+    private static string GetImageUrl(string? imageName)
+        => string.IsNullOrWhiteSpace(imageName)
+            ? "_content/MudBlazor/images/placeholder.png"
+            : $"https://cdn.warframestat.us/img/{imageName}";
+}

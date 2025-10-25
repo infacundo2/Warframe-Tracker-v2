@@ -1,5 +1,7 @@
 @page "/mods"
-@inject WarframeInventory.Services.WarframeApiService Api
+@using Microsoft.EntityFrameworkCore
+@inject WarframeInventory.Data.ApplicationDbContext Db
+@using WarframeInventory.Models
 
 <MudText Typo="Typo.h4" Class="mb-4">Mods</MudText>
 
@@ -8,9 +10,9 @@
     {
         <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
     }
-    else if (mods?.Count == 0)
+    else if (mods == null || mods.Count == 0)
     {
-        <MudText>No se encontraron Mods.</MudText>
+        <MudText>No se encontraron mods.</MudText>
     }
     else
     {
@@ -19,23 +21,24 @@
             {
                 <MudItem xs="12" sm="6" md="4" lg="3">
                     <MudCard Class="mb-4">
-                        <img src="@GetImageUrl(m.ImageName)" alt="@m.Name" style="width:100%;height:200px;object-fit:cover;" />
+                        <img src="@GetImageUrl(m.ImageName)"
+                             alt="@m.Name"
+                             style="width:100%;height:200px;object-fit:contain;background-color:#111;border-radius:8px;" />
                         <MudCardContent>
-                            <MudText Typo="Typo.subtitle1">@m.Name</MudText>
-                            <MudText Typo="Typo.caption">
-                                @if (!string.IsNullOrWhiteSpace(m.CompatName))
-                                {
-                                    @($"Compat: {m.CompatName} · ")
-                                }
-                                @($"Pol: {m.Polarity ?? "-"} · Rareza: {m.Rarity ?? "-"}")
-                            </MudText>
+                            <MudText Typo="Typo.subtitle1" Color="Color.Primary">@m.Name</MudText>
+                            <MudText Typo="Typo.caption">@m.Polarity • @m.Rarity</MudText>
                             @if (!string.IsNullOrWhiteSpace(m.Description))
                             {
-                                <MudText Typo="Typo.body2">@m.Description</MudText>
+                                <MudText Typo="Typo.body2" Class="mt-1">
+                                    @((m.Description.Length > 100 ? m.Description[..100] + "..." : m.Description))
+                                </MudText>
                             }
                         </MudCardContent>
                         <MudCardActions>
-                            <MudCheckBox T="bool" @bind-Checked="m.Owned" Label="Lo tengo" Color="Color.Success" />
+                            <MudButton Variant="Variant.Text" Color="Color.Primary"
+                                       Href="@($"/mods/{Uri.EscapeDataString(m.UniqueName)}")">
+                                Ver detalle
+                            </MudButton>
                         </MudCardActions>
                     </MudCard>
                 </MudItem>
@@ -45,13 +48,23 @@
 </MudPaper>
 
 @code {
-    private List<WarframeInventory.Models.Mod>? mods;
+    private List<Mod>? mods;
     private bool loading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        try { mods = await Api.GetModsAsync(); }
-        catch { mods = new(); }
+        try
+        {
+            mods = await Db.Mods
+                .OrderBy(m => m.Name)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando mods: {ex.Message}");
+            mods = new();
+        }
+
         loading = false;
     }
 

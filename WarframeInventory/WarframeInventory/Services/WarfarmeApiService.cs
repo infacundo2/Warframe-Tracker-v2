@@ -103,28 +103,32 @@ namespace WarframeInventory.Services
             {
                 var levelStats = n["levelStats"];
                 string? levelStatsJson = levelStats == null ? null : levelStats.ToJsonString();
+                string? dropsJson = n["drops"]?.ToJsonString(); // 🔹 nuevo
+
                 var descText = AsStringFlexible(n["description"]);
 
                 list.Add(new Mod
                 {
-                    UniqueName = n["uniqueName"]?.GetValue<string?>() ?? "",
-                    Name = n["name"]?.GetValue<string?>() ?? "",
-                    Category = n["category"]?.GetValue<string?>() ?? "Mods",
-                    CompatName = n["compatName"]?.GetValue<string?>(),
-                    ImageName = n["imageName"]?.GetValue<string?>(),
-                    IsAugment = n["isAugment"]?.GetValue<bool?>() ?? false,
-                    IsPrime = n["isPrime"]?.GetValue<bool?>() ?? false,
-                    Polarity = n["polarity"]?.GetValue<string?>(),
-                    Rarity = n["rarity"]?.GetValue<string?>(),
-                    BaseDrain = n["baseDrain"]?.GetValue<int?>(),
-                    FusionLimit = n["fusionLimit"]?.GetValue<int?>(),
-                    Description = descText,
+                    UniqueName   = n["uniqueName"]?.GetValue<string?>() ?? "",
+                    Name         = n["name"]?.GetValue<string?>() ?? "",
+                    Category     = n["category"]?.GetValue<string?>() ?? "Mods",
+                    CompatName   = n["compatName"]?.GetValue<string?>(),
+                    ImageName    = n["imageName"]?.GetValue<string?>(),
+                    IsAugment    = n["isAugment"]?.GetValue<bool?>() ?? false,
+                    IsPrime      = n["isPrime"]?.GetValue<bool?>() ?? false,
+                    Polarity     = n["polarity"]?.GetValue<string?>(),
+                    Rarity       = n["rarity"]?.GetValue<string?>(),
+                    BaseDrain    = n["baseDrain"]?.GetValue<int?>(),
+                    FusionLimit  = n["fusionLimit"]?.GetValue<int?>(),
+                    Description  = descText,
                     LevelStatsJson = levelStatsJson,
+                    DropsJson    = dropsJson, // 🔹 guardamos drops
                     Owned = false
                 });
             }
             return list;
         }
+
 
         // -------------------------------
         // 🔹 WEAPONS
@@ -172,10 +176,15 @@ namespace WarframeInventory.Services
 
             foreach (var n in array.OfType<JsonObject>())
             {
+                // ✅ solo reliquias (Lith, Meso, Neo, Axi, Requiem)
                 var category = n["category"]?.GetValue<string?>();
-
                 if (category is not ("Relics" or "Requiem Relics"))
                     continue;
+
+                // 🔹 algunos registros traen "rewards" y otros "drops"
+                JsonNode? rewardsNode = n["rewards"] ?? n["drops"];
+
+                string? rewardsJson = rewardsNode != null ? rewardsNode.ToJsonString() : null;
 
                 list.Add(new Relic
                 {
@@ -185,13 +194,14 @@ namespace WarframeInventory.Services
                     ImageName = n["imageName"]?.GetValue<string?>(),
                     Vaulted = n["vaulted"]?.GetValue<bool?>() ?? false,
                     Tradable = n["tradable"]?.GetValue<bool?>() ?? false,
-                    RewardsJson = n["drops"]?.ToJsonString(),
+                    RewardsJson = rewardsJson,
                     Owned = false
                 });
             }
 
             return list;
         }
+
     }
 }
                 
