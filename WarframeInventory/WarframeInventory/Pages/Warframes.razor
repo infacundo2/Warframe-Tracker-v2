@@ -1,65 +1,126 @@
 @page "/warframes"
 @using Microsoft.EntityFrameworkCore
 @inject WarframeInventory.Data.ApplicationDbContext Db
+@using MudBlazor
 
-<MudText Typo="Typo.h4" Class="mb-4">Warframes</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="px-6 py-4">
+    <MudStack Spacing="3">
+        <MudText Typo="Typo.h4" Color="Color.Primary">Warframes</MudText>
 
-<MudPaper Class="p-4">
-    @if (loading)
-    {
-        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-    }
-    else if (warframes?.Count == 0)
-    {
-        <MudText>No se encontraron Warframes.</MudText>
-    }
-    else
-    {
-        <MudGrid>
-            @foreach (var wf in warframes)
-            {
-                <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudCard Class="mb-4">
-                        <img src="@GetImageUrl(wf.ImageName)" alt="@wf.Name" style="width:100%;height:200px;object-fit:cover;" />
-                        <MudCardContent>
-                            <MudText Typo="Typo.subtitle1">@wf.Name</MudText>
-                            <MudText Typo="Typo.body2">@wf.Description</MudText>
-                        </MudCardContent>
-                        <MudCardActions>
-                            <MudCheckBox T="bool" @bind-Checked="wf.Owned" Label="Lo tengo" Color="Color.Success" />
-                            <MudButton Variant="Variant.Text" Color="Color.Primary"
-                                    Href="@($"/warframes/{Uri.EscapeDataString(wf.UniqueName)}")">
-                                Ver detalle
-                            </MudButton>
-                        </MudCardActions>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
-    }
-</MudPaper>
+        <!-- 🔍 Barra de búsqueda -->
+        <MudTextField @bind-Value="searchTerm"
+                      Placeholder="Buscar Warframe..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="w-full sm:w-1/2"
+                      Immediate="true"
+                      OnKeyUp="@(async (_) => await LoadPageAsync(1))" />
+
+        <!-- 🔄 Contenido principal -->
+        @if (loading)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Class="mx-auto my-8" />
+        }
+        else if (pagedWarframes.Count == 0)
+        {
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="mt-4">No se encontraron Warframes.</MudText>
+        }
+        else
+        {
+            <MudGrid GutterSize="3">
+                @foreach (var wf in pagedWarframes)
+                {
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <MudCard Class="hover:shadow-lg transition-shadow duration-300 mb-4">
+                            <img src="@GetImageUrl(wf.ImageName)" alt="@wf.Name"
+                                 style="width:100%;height:200px;object-fit:cover;border-top-left-radius:8px;border-top-right-radius:8px;" />
+
+                            <MudCardContent>
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">@wf.Name</MudText>
+                                <MudText Typo="Typo.body2" Class="line-clamp-3 text-gray-400">@wf.Description</MudText>
+                            </MudCardContent>
+
+                            <MudCardActions Class="d-flex justify-between">
+                                <MudCheckBox T="bool" @bind-Checked="wf.Owned" Label="Lo tengo" Color="Color.Success" />
+                                <MudButton Variant="Variant.Text" Color="Color.Primary"
+                                           Href="@($"/warframes/{Uri.EscapeDataString(wf.UniqueName)}")">
+                                    Ver detalle
+                                </MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <!-- 📄 Paginador -->
+            <div class="d-flex justify-center mt-6">
+                <MudPagination Selected="@currentPage"
+                            Count="@totalPages"
+                            SelectedChanged="OnPageChanged"
+                            Color="Color.Primary"
+                            Size="Size.Medium"
+                            Class="mt-4" />
+            </div>
+        }
+    </MudStack>
+</MudContainer>
 
 @code {
-    private List<WarframeInventory.Models.Warframe>? warframes;
+    private List<WarframeInventory.Models.Warframe> pagedWarframes = new();
     private bool loading = true;
+    private string? searchTerm = "";
+    private int currentPage = 1;
+    private int totalPages = 1;
+    private const int pageSize = 20;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadPageAsync(1);
+
+    private async Task LoadPageAsync(int page)
     {
-        try
+        loading = true;
+        StateHasChanged();
+
+        var query = Db.Warframes.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            warframes = await Db.Warframes
-                .OrderBy(w => w.Name)
-                .ToListAsync();
+            string term = searchTerm.ToLower();
+            query = query.Where(w => w.Name.ToLower().Contains(term));
         }
-        catch
-        {
-            warframes = new();
-        }
+
+        // 🔹 Total de elementos antes del paginado
+        int totalCount = await query.CountAsync();
+        totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+
+        // 🔹 Validar página actual
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+
+        // 🔹 Obtener elementos visibles
+        pagedWarframes = await query
+            .OrderBy(w => w.Name)
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
         loading = false;
+        StateHasChanged(); // ⚠️ Forzar actualización de UI
+
     }
+
+
+    // 🔹 Detectar cambio de página desde el componente de MudPagination
+   private async Task OnPageChanged(int page)
+    {
+        currentPage = page;
+        await LoadPageAsync(page);
+    }
+
 
     private static string GetImageUrl(string? imageName)
         => string.IsNullOrWhiteSpace(imageName)
             ? "_content/MudBlazor/images/placeholder.png"
             : $"https://cdn.warframestat.us/img/{imageName}";
 }
+
