@@ -62,7 +62,21 @@
                                 <MudStack Spacing="1">
                                     <MudText Typo="Typo.subtitle1" Color="Color.Primary">@c.Name</MudText>
 
-                                    <!-- 🔹 Reliquias relacionadas -->
+                                    <!-- ✅ Primero: control de propiedad del componente -->
+                                    <MudStack Direction="Row" AlignItems="@AlignItems.Center" Spacing="2">
+                                        <MudCheckBox @bind-Checked="c.Owned"
+                                                     Label="Tengo este componente"
+                                                     Color="Color.Success" />
+                                        <MudNumericField @bind-Value="c.Quantity"
+                                                         Label="Cantidad"
+                                                         Min="0" Max="99"
+                                                         Immediate="true"
+                                                         Class="w-24" />
+                                    </MudStack>
+
+                                    <MudDivider Class="my-2" />
+
+                                    <!-- ✅ Solo lista de reliquias (sin repetir ubicación) -->
                                     @if (c.RelicLinks != null && c.RelicLinks.Count > 0)
                                     {
                                         <MudText Typo="Typo.caption"><b>Reliquias que lo dropean:</b></MudText>
@@ -73,7 +87,9 @@
                                                     <MudLink Href="@($"/relics/{Uri.EscapeDataString(rel.UniqueName)}")">
                                                         @rel.Name
                                                     </MudLink>
-                                                    — <i>@(rel.Vaulted ? "Vaulted" : "Disponible")</i>
+                                                    — <i style="color:@(rel.Vaulted ? "red" : "green")">
+                                                        @(rel.Vaulted ? "Vaulted" : "Disponible")
+                                                      </i>
                                                 </MudText>
                                                 <MudNumericField @bind-Value="rel.Quantity"
                                                                  Label="Cantidad"
@@ -88,49 +104,6 @@
                                         <MudText Typo="Typo.caption">No hay reliquias registradas.</MudText>
                                     }
 
-                                    <MudDivider Class="my-2" />
-
-                                    <MudCheckBox @bind-Checked="c.Owned"
-                                                 Label="Tengo este componente"
-                                                 Color="Color.Success" />
-
-                                    <MudNumericField @bind-Value="c.Quantity"
-                                                     Label="Cantidad"
-                                                     Min="0" Max="99"
-                                                     Immediate="true"
-                                                     Class="w-24" />
-
-                                    @if (c.Drops != null && c.Drops.Count > 0)
-                                    {
-                                        <MudText Typo="Typo.caption" Class="mt-2"><b>Ubicaciones:</b></MudText>
-                                        <MudList Dense="true">
-                                            @foreach (var drop in c.Drops)
-                                            {
-                                                var linkedRelic = c.RelicLinks?.FirstOrDefault(r =>
-                                                    drop.Location.Contains(r.Name, StringComparison.OrdinalIgnoreCase));
-
-                                                <MudListItem>
-                                                    <MudText Typo="Typo.body2">
-                                                        <b>@drop.Location</b> (<i>@drop.Rarity</i>) — Prob: @drop.Chance.ToString("0.##")%
-
-                                                        @if (linkedRelic != null)
-                                                        {
-                                                            <span style="margin-left:8px; font-weight:bold;
-                                                                         color:@(linkedRelic.Vaulted ? "red" : "green")">
-                                                                @(linkedRelic.Vaulted ? "Vaulted" : "Disponible")
-                                                            </span>
-
-                                                            <MudNumericField @bind-Value="linkedRelic.Quantity"
-                                                                            Min="0" Max="99"
-                                                                            HideSpinButtons="true"
-                                                                            Class="ml-3 w-20"
-                                                                            Label="Cant." />
-                                                        }
-                                                    </MudText>
-                                                </MudListItem>
-                                            }
-                                        </MudList>
-                                    }
                                 </MudStack>
                             </MudItem>
                         </MudGrid>
@@ -171,6 +144,7 @@
                     {
                         if (comp.Drops == null) continue;
 
+                        // 🔹 Detectar las reliquias mencionadas
                         var relicNames = comp.Drops
                             .Where(d => !string.IsNullOrWhiteSpace(d.Location) && d.Location.Contains("Relic"))
                             .Select(d => d.Location)
@@ -189,15 +163,13 @@
                                 .Replace(" (Exceptional)", "", StringComparison.OrdinalIgnoreCase)
                                 .Trim();
 
-                            var core = cleanName.ToLower().Trim(); // ej: "axi i3"
+                            var core = cleanName.ToLower();
 
-                            // Busca coincidencia flexible en ambos idiomas
                             var found = await Db.Relics
                                 .AsNoTracking()
                                 .FirstOrDefaultAsync(r =>
                                     r.Name.ToLower().Contains(core) ||
                                     r.UniqueName.ToLower().Contains(core));
-
 
                             if (found != null)
                                 relics.Add(found);
@@ -215,11 +187,7 @@
                         }
 
                         Console.WriteLine($"Componente {comp.Name}: {relics.Count} reliquias encontradas.");
-                        foreach (var r in relics)
-                            Console.WriteLine($"   → {r.Name} | Vaulted: {r.Vaulted}");
                     }
-
-                    Console.WriteLine($"Total componentes con reliquias: {components.Count(c => c.RelicLinks?.Count > 0)}");
                 }
             }
         }
