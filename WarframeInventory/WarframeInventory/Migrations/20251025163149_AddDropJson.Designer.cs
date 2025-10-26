@@ -12,7 +12,7 @@ using WarframeInventory.Data;
 namespace WarframeInventory.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251025020942_AddDropJson")]
+    [Migration("20251025163149_AddDropJson")]
     partial class AddDropJson
     {
         /// <inheritdoc />

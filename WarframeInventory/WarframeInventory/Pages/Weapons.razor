@@ -1,64 +1,110 @@
 @page "/weapons"
 @using Microsoft.EntityFrameworkCore
 @inject WarframeInventory.Data.ApplicationDbContext Db
+@using WarframeInventory.Models
+@using MudBlazor
 
-<MudText Typo="Typo.h4" Class="mb-4">Armas</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="px-6 py-4">
+    <MudStack Spacing="3">
+        <MudText Typo="Typo.h4" Color="Color.Primary">Armas</MudText>
 
-<MudPaper Class="p-4">
-    @if (loading)
-    {
-        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-    }
-    else if (weapons?.Count == 0)
-    {
-        <MudText>No se encontraron armas.</MudText>
-    }
-    else
-    {
-        <MudGrid>
-            @foreach (var w in weapons)
-            {
-                <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudCard Class="mb-4">
-                        <img src="@GetImageUrl(w.ImageName)" alt="@w.Name"
-                             style="width:100%;height:200px;object-fit:cover;" />
+        <MudTextField @bind-Value="searchTerm"
+                      Placeholder="Buscar arma..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="w-full sm:w-1/2"
+                      Immediate="true"
+                      OnKeyUp="@(async (_) => await LoadPageAsync(1))" />
 
-                        <MudCardContent>
-                            <MudText Typo="Typo.subtitle1">@w.Name</MudText>
-                            <MudText Typo="Typo.caption">@w.Type</MudText>
-                            <MudText Typo="Typo.body2">@w.Description</MudText>
-                        </MudCardContent>
+        @if (loading)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Class="mx-auto my-8" />
+        }
+        else if (pagedWeapons.Count == 0)
+        {
+            <MudText Typo="Typo.body1" Align="Align.Center">No se encontraron armas.</MudText>
+        }
+        else
+        {
+            <MudGrid GutterSize="3">
+                @foreach (var w in pagedWeapons)
+                {
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <MudCard Class="hover:shadow-lg mb-4">
+                            <img src="https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS0103)@GetImageUrl(w.ImageName)"
+                                    loading="lazy"
+                                    alt="@w.Name"
+                                    style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
 
-                        <MudCardActions>
-                            <MudButton Variant="Variant.Text" Color="Color.Primary"
-                                       Href="@($"/weapons/{Uri.EscapeDataString(w.UniqueName)}")">
-                                Ver detalle
-                            </MudButton>
-                        </MudCardActions>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
-    }
-</MudPaper>
+                            <MudCardContent>
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">@w.Name</MudText>
+                                <MudText Typo="Typo.caption">@w.Type</MudText>
+                                <MudText Typo="Typo.body2" Class="line-clamp-3">@w.Description</MudText>
+                            </MudCardContent>
+                            <MudCardActions>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary"
+                                           Href="@($"/weapons/{Uri.EscapeDataString(w.UniqueName)}")">
+                                    Ver detalle
+                                </MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <div class="d-flex justify-center mt-6">
+                <MudPagination Selected="@currentPage"
+                               Count="@totalPages"
+                               SelectedChanged="OnPageChanged"
+                               Color="Color.Primary"
+                               Size="Size.Medium" />
+            </div>
+        }
+    </MudStack>
+</MudContainer>
 
 @code {
-    private List<WarframeInventory.Models.Weapon>? weapons;
+    private List<Weapon> pagedWeapons = new();
     private bool loading = true;
+    private string? searchTerm = "";
+    private int currentPage = 1;
+    private int totalPages = 1;
+    private const int pageSize = 10;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadPageAsync(1);
+
+    private async Task LoadPageAsync(int page)
     {
-        try
+        loading = true;
+        StateHasChanged();
+
+        var query = Db.Weapons.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            weapons = await Db.Weapons
-                .OrderBy(w => w.Name)
-                .ToListAsync();
+            string term = searchTerm.ToLower();
+            query = query.Where(w => w.Name.ToLower().Contains(term));
         }
-        catch
-        {
-            weapons = new();
-        }
+
+        int totalCount = await query.CountAsync();
+        totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+
+        pagedWeapons = await query
+            .OrderBy(w => w.Name)
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
         loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OnPageChanged(int newPage)
+    {
+        currentPage = newPage;
+        await LoadPageAsync(newPage);
     }
 
     private static string GetImageUrl(string? imageName)

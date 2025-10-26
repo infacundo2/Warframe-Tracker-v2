@@ -2,70 +2,108 @@
 @using Microsoft.EntityFrameworkCore
 @inject WarframeInventory.Data.ApplicationDbContext Db
 @using WarframeInventory.Models
+@using MudBlazor
 
-<MudText Typo="Typo.h4" Class="mb-4">Mods</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="px-6 py-4">
+    <MudStack Spacing="3">
+        <MudText Typo="Typo.h4" Color="Color.Primary">Mods</MudText>
 
-<MudPaper Class="p-4">
-    @if (loading)
-    {
-        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-    }
-    else if (mods == null || mods.Count == 0)
-    {
-        <MudText>No se encontraron mods.</MudText>
-    }
-    else
-    {
-        <MudGrid>
-            @foreach (var m in mods)
-            {
-                <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudCard Class="mb-4">
-                        <img src="@GetImageUrl(m.ImageName)"
-                             alt="@m.Name"
-                             style="width:100%;height:200px;object-fit:contain;background-color:#111;border-radius:8px;" />
-                        <MudCardContent>
-                            <MudText Typo="Typo.subtitle1" Color="Color.Primary">@m.Name</MudText>
-                            <MudText Typo="Typo.caption">@m.Polarity • @m.Rarity</MudText>
-                            @if (!string.IsNullOrWhiteSpace(m.Description))
-                            {
-                                <MudText Typo="Typo.body2" Class="mt-1">
-                                    @((m.Description.Length > 100 ? m.Description[..100] + "..." : m.Description))
-                                </MudText>
-                            }
-                        </MudCardContent>
-                        <MudCardActions>
-                            <MudButton Variant="Variant.Text" Color="Color.Primary"
-                                       Href="@($"/mods/{Uri.EscapeDataString(m.UniqueName)}")">
-                                Ver detalle
-                            </MudButton>
-                        </MudCardActions>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
-    }
-</MudPaper>
+        <MudTextField @bind-Value="searchTerm"
+                      Placeholder="Buscar mod..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="w-full sm:w-1/2"
+                      Immediate="true"
+                      OnKeyUp="@(async (_) => await LoadPageAsync(1))" />
+
+        @if (loading)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Class="mx-auto my-8" />
+        }
+        else if (pagedMods.Count == 0)
+        {
+            <MudText Typo="Typo.body1" Align="Align.Center">No se encontraron mods.</MudText>
+        }
+        else
+        {
+            <MudGrid GutterSize="3">
+                @foreach (var m in pagedMods)
+                {
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <MudCard Class="hover:shadow-lg mb-4">
+                            <img src="https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS0103)@GetImageUrl(m.ImageName)"
+                                    loading="lazy"
+                                    alt="@m.Name"
+                                    style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
+                            <MudCardContent>
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">@m.Name</MudText>
+                                <MudText Typo="Typo.caption">@m.Polarity • @m.Rarity</MudText>
+                                <MudText Typo="Typo.body2" Class="line-clamp-3 mt-1">@m.Description</MudText>
+                            </MudCardContent>
+                            <MudCardActions>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary"
+                                           Href="@($"/mods/{Uri.EscapeDataString(m.UniqueName)}")">
+                                    Ver detalle
+                                </MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <div class="d-flex justify-center mt-6">
+                <MudPagination Selected="@currentPage"
+                               Count="@totalPages"
+                               SelectedChanged="OnPageChanged"
+                               Color="Color.Primary"
+                               Size="Size.Medium" />
+            </div>
+        }
+    </MudStack>
+</MudContainer>
 
 @code {
-    private List<Mod>? mods;
+    private List<Mod> pagedMods = new();
     private bool loading = true;
+    private string? searchTerm = "";
+    private int currentPage = 1;
+    private int totalPages = 1;
+    private const int pageSize = 10;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadPageAsync(1);
+
+    private async Task LoadPageAsync(int page)
     {
-        try
+        loading = true;
+        StateHasChanged();
+
+        var query = Db.Mods.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            mods = await Db.Mods
-                .OrderBy(m => m.Name)
-                .ToListAsync();
+            string term = searchTerm.ToLower();
+            query = query.Where(m => m.Name.ToLower().Contains(term));
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error cargando mods: {ex.Message}");
-            mods = new();
-        }
+
+        int totalCount = await query.CountAsync();
+        totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+
+        pagedMods = await query
+            .OrderBy(m => m.Name)
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
         loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OnPageChanged(int newPage)
+    {
+        currentPage = newPage;
+        await LoadPageAsync(newPage);
     }
 
     private static string GetImageUrl(string? imageName)

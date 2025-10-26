@@ -165,7 +165,7 @@ namespace WarframeInventory.Services
         // -------------------------------
         // 🔹 RELICS
         // -------------------------------
-        public async Task<List<Relic>> GetRelicsAsync()
+         public async Task<List<Relic>> GetRelicsAsync()
         {
             var url = "https://api.warframestat.us/items/?language=es";
             using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
@@ -176,16 +176,30 @@ namespace WarframeInventory.Services
 
             foreach (var n in array.OfType<JsonObject>())
             {
-                // ✅ solo reliquias (Lith, Meso, Neo, Axi, Requiem)
                 var category = n["category"]?.GetValue<string?>();
+
+                // 🔹 Solo procesar reliquias normales o requiem
                 if (category is not ("Relics" or "Requiem Relics"))
                     continue;
 
-                // 🔹 algunos registros traen "rewards" y otros "drops"
-                JsonNode? rewardsNode = n["rewards"] ?? n["drops"];
+                // 🔹 Leer correctamente el campo 'rewards' (no 'drops')
+                var rewardsArray = n["rewards"] as JsonArray;
+                string? rewardsJson = null;
 
-                string? rewardsJson = rewardsNode != null ? rewardsNode.ToJsonString() : null;
+                if (rewardsArray != null)
+                {
+                    try
+                    {
+                        rewardsJson = rewardsArray.ToJsonString();
+                    }
+                    catch
+                    {
+                        // Si hay problema en serialización, lo deja en null
+                        rewardsJson = null;
+                    }
+                }
 
+                // 🔹 Crear y agregar la reliquia
                 list.Add(new Relic
                 {
                     UniqueName = n["uniqueName"]?.GetValue<string?>() ?? "",
@@ -201,6 +215,8 @@ namespace WarframeInventory.Services
 
             return list;
         }
+
+
 
     }
 }
