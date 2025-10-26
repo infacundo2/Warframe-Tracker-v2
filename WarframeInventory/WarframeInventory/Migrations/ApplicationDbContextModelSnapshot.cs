@@ -97,6 +97,9 @@ namespace WarframeInventory.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("DropsJson")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("ImageName")
                         .HasColumnType("longtext");
 

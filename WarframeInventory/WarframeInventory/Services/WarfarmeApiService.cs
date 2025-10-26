@@ -165,7 +165,7 @@ namespace WarframeInventory.Services
         // -------------------------------
         // 🔹 RELICS
         // -------------------------------
-         public async Task<List<Relic>> GetRelicsAsync()
+        public async Task<List<Relic>> GetRelicsAsync()
         {
             var url = "https://api.warframestat.us/items/?language=es";
             using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
@@ -174,45 +174,75 @@ namespace WarframeInventory.Services
             var array = await resp.Content.ReadFromJsonAsync<JsonArray>(_jsonOpts) ?? [];
             var list = new List<Relic>();
 
+            Console.WriteLine($"📦 Total elementos en API: {array.Count}");
+
             foreach (var n in array.OfType<JsonObject>())
             {
                 var category = n["category"]?.GetValue<string?>();
-
-                // 🔹 Solo procesar reliquias normales o requiem
                 if (category is not ("Relics" or "Requiem Relics"))
                     continue;
 
-                // 🔹 Leer correctamente el campo 'rewards' (no 'drops')
-                var rewardsArray = n["rewards"] as JsonArray;
-                string? rewardsJson = null;
+                var name = n["name"]?.GetValue<string?>() ?? "(sin nombre)";
+                Console.WriteLine($"\n🔹 Procesando: {name}");
 
-                if (rewardsArray != null)
+                // --- Recompensas ---
+                List<object>? rewards = null;
+                if (n["rewards"] is JsonArray rewardsArray)
                 {
-                    try
-                    {
-                        rewardsJson = rewardsArray.ToJsonString();
-                    }
-                    catch
-                    {
-                        // Si hay problema en serialización, lo deja en null
-                        rewardsJson = null;
-                    }
+                    rewards = new List<object>();
+                    Console.WriteLine($"   → Recompensas: {rewardsArray.Count}");
+                }
+                else
+                {
+                    Console.WriteLine($"   ⚠️ No hay campo 'rewards'");
                 }
 
-                // 🔹 Crear y agregar la reliquia
+                // --- Drops (ubicaciones) ---
+                List<object>? drops = null;
+                if (n["drops"] is JsonArray dropsArray)
+                {
+                    drops = new List<object>();
+                    Console.WriteLine($"   ✅ Encontrado campo 'drops' con {dropsArray.Count} ubicaciones");
+
+                    foreach (var drop in dropsArray.OfType<JsonObject>())
+                    {
+                        var loc = drop["location"]?.GetValue<string?>();
+                        if (loc != null)
+                        {
+                            drops.Add(new
+                            {
+                                location = loc,
+                                rarity = drop["rarity"]?.GetValue<string?>(),
+                                chance = drop["chance"]?.GetValue<double?>(),
+                                type = drop["type"]?.GetValue<string?>(),
+                                rotation = drop["rotation"]?.GetValue<string?>()
+                            });
+                        }
+                    }
+
+                    Console.WriteLine($"   → Total procesadas: {drops.Count}");
+                }
+                else
+                {
+                    Console.WriteLine($"   ⚠️ No existe 'drops' en JSON de esta reliquia");
+                }
+
+                // --- Agregar ---
                 list.Add(new Relic
                 {
                     UniqueName = n["uniqueName"]?.GetValue<string?>() ?? "",
-                    Name = n["name"]?.GetValue<string?>() ?? "",
+                    Name = name,
                     Category = category ?? "Relics",
                     ImageName = n["imageName"]?.GetValue<string?>(),
                     Vaulted = n["vaulted"]?.GetValue<bool?>() ?? false,
                     Tradable = n["tradable"]?.GetValue<bool?>() ?? false,
-                    RewardsJson = rewardsJson,
+                    RewardsJson = rewards != null ? JsonSerializer.Serialize(rewards) : null,
+                    DropsJson = drops != null ? JsonSerializer.Serialize(drops) : null,
                     Owned = false
                 });
             }
 
+            Console.WriteLine($"✅ Total reliquias guardadas: {list.Count}");
             return list;
         }
 

@@ -12,8 +12,8 @@ using WarframeInventory.Data;
 namespace WarframeInventory.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251025163149_AddDropJson")]
-    partial class AddDropJson
+    [Migration("20251026155038_RebuildRelics")]
+    partial class RebuildRelics
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -98,6 +98,9 @@ namespace WarframeInventory.Migrations
 
                     b.Property<string>("Category")
                         .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("DropsJson")
                         .HasColumnType("longtext");
 
                     b.Property<string>("ImageName")

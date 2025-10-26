@@ -14,6 +14,9 @@ namespace WarframeInventory.Models
         // 🔹 Guardamos las recompensas (reliquias abren ítems)
         public string? RewardsJson { get; set; }
 
+        // Donde dropean las reliquias (misiones)
+        public string? DropsJson { get; set; }
+
         public bool Owned { get; set; } = false;
     }
 }

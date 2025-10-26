@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace WarframeInventory.Migrations
 {
     /// <inheritdoc />
-    public partial class AddDropJson : Migration
+    public partial class RebuildRelics : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -69,6 +69,8 @@ namespace WarframeInventory.Migrations
                     Vaulted = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Tradable = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     RewardsJson = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    DropsJson = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Owned = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
