@@ -2,6 +2,7 @@
 @using Microsoft.EntityFrameworkCore
 @using System.Text.Json
 @using WarframeInventory.Models
+@using MudBlazor
 @inject WarframeInventory.Data.ApplicationDbContext Db
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
@@ -11,14 +12,17 @@
     }
     else if (weapon == null)
     {
-        <MudText Typo="Typo.h6" Color="Color.Error">No se encontró el arma solicitada.</MudText>
+        <MudText Typo="Typo.h6" Color="Color.Error">
+            No se encontró el arma solicitada.
+        </MudText>
     }
     else
     {
         <MudPaper Class="p-6">
             <MudGrid>
                 <MudItem xs="12" md="4">
-                    <img src="@GetImageUrl(weapon.ImageName)" alt="@weapon.Name"
+                    <img src="@GetImageUrl(weapon.ImageName)"
+                         alt="@weapon.Name"
                          style="width:100%;border-radius:8px;" />
                 </MudItem>
 
@@ -26,6 +30,7 @@
                     <MudText Typo="Typo.h4" Color="Color.Primary">@weapon.Name</MudText>
                     <MudText Typo="Typo.body1" Class="mt-2 mb-3">@weapon.Description</MudText>
 
+                    <MudText Typo="Typo.subtitle2">Detalles</MudText>
                     <MudList Dense="true">
                         <MudListItem>Tipo: @weapon.Type</MudListItem>
                         <MudListItem>Requisito de maestría: @weapon.MasteryReq</MudListItem>
@@ -49,32 +54,65 @@
                     <MudPaper Class="p-3 mb-3" Elevation="1">
                         <MudGrid>
                             <MudItem xs="12" md="4">
-                                <img src="@GetImageUrl(c.ImageName)" alt="@c.Name"
+                                <img src="@GetImageUrl(c.ImageName)"
+                                     alt="@c.Name"
                                      style="width:100%;border-radius:8px;" />
                             </MudItem>
 
                             <MudItem xs="12" md="8">
-                                <MudText Typo="Typo.subtitle1" Color="Color.Primary">@c.Name</MudText>
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">@c.Name</MudText>
 
-                                @if (c.Drops != null && c.Drops.Count > 0)
-                                {
-                                    <MudList Dense="true">
-                                        @foreach (var drop in c.Drops)
+                                    <MudStack Direction="Row" AlignItems="@AlignItems.Center" Spacing="2">
+                                        <MudCheckBox @bind-Checked="c.Owned"
+                                                     Label="Tengo este componente"
+                                                     Color="Color.Success" />
+                                        <MudNumericField @bind-Value="c.Quantity"
+                                                         Label="Cantidad"
+                                                         Min="0" Max="99"
+                                                         Immediate="true"
+                                                         Class="w-24" />
+                                    </MudStack>
+
+                                    <MudDivider Class="my-2" />
+
+                                    @if (c.RelicLinks != null && c.RelicLinks.Count > 0)
+                                    {
+                                        <MudText Typo="Typo.caption"><b>Reliquias que lo dropean:</b></MudText>
+                                        @foreach (var rel in c.RelicLinks)
                                         {
-                                            <MudListItem>
+                                            <MudPaper Class="p-2 mb-1" Elevation="0">
                                                 <MudText Typo="Typo.body2">
-                                                    <b>@drop.Location</b>
-                                                    (<i>@drop.Rarity</i>) —
-                                                    Prob: @drop.Chance.ToString("0.##")%
+                                                    <MudLink Href="@($"/relics/{Uri.EscapeDataString(rel.UniqueName)}")">
+                                                        @rel.Name
+                                                    </MudLink>
+                                                    — <i style="color:@(rel.Vaulted ? "red" : "green")">
+                                                        @(rel.Vaulted ? "Vaulted" : "Disponible")
+                                                      </i>
                                                 </MudText>
-                                            </MudListItem>
+                                                <MudNumericField @bind-Value="rel.Quantity"
+                                                                 Label="Cantidad"
+                                                                 Min="0" Max="99"
+                                                                 Immediate="true"
+                                                                 Class="w-24 mt-1" />
+                                            </MudPaper>
                                         }
-                                    </MudList>
-                                }
-                                else
-                                {
-                                    <MudText Typo="Typo.caption">Sin drops registrados.</MudText>
-                                }
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption">No hay reliquias registradas.</MudText>
+                                    }
+
+                                    <MudDivider Class="my-2" />
+
+                                    @if (c.Drops != null && c.Drops.Count > 0)
+                                    {
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption">Sin drops registrados.</MudText>
+                                    }
+                                </MudStack>
                             </MudItem>
                         </MudGrid>
                     </MudPaper>
@@ -100,47 +138,90 @@
 
             var decodedName = Uri.UnescapeDataString(uniqueName);
 
-            weapon = await Db.Weapons.FirstOrDefaultAsync(w => w.UniqueName == decodedName);
+            weapon = await Db.Weapons
+                .AsNoTracking()
+                .FirstOrDefaultAsync(w => w.UniqueName == decodedName);
 
             if (weapon != null && !string.IsNullOrWhiteSpace(weapon.ComponentsJson))
             {
-                try
+                components = JsonSerializer.Deserialize<List<WarframeComponent>>(weapon.ComponentsJson);
+
+                if (components != null)
                 {
-                    // deserializa componentes
-                    var doc = JsonDocument.Parse(weapon.ComponentsJson);
-                    components = new List<WarframeComponent>();
-
-                    foreach (var element in doc.RootElement.EnumerateArray())
+                    foreach (var comp in components)
                     {
-                        var comp = new WarframeComponent
-                        {
-                            Name = element.GetProperty("name").GetString() ?? "",
-                            ImageName = element.TryGetProperty("imageName", out var img) ? img.GetString() : null,
-                            Drops = new List<DropLocation>()
-                        };
+                        if (comp.Drops == null) continue;
 
-                        if (element.TryGetProperty("drops", out var dropsArray) && dropsArray.ValueKind == JsonValueKind.Array)
+                        if (!weapon.IsPrime)
                         {
-                            foreach (var drop in dropsArray.EnumerateArray())
+                            comp.RelicLinks = null;
+                            Console.WriteLine($"⚙️ Arma normal: {weapon.Name} → solo drops normales");
+                            continue;
+                        }
+
+                        var relicNames = comp.Drops
+                            .Where(d => !string.IsNullOrWhiteSpace(d.Location) && d.Location.Contains("Relic", StringComparison.OrdinalIgnoreCase))
+                            .Select(d => d.Location)
+                            .Distinct()
+                            .ToList();
+
+                        var relics = new List<Relic>();
+
+                        foreach (var relicNameRaw in relicNames)
+                        {
+                            var cleanName = relicNameRaw
+                                .Replace("Reliquia", "", StringComparison.OrdinalIgnoreCase)
+                                .Replace("Relic", "", StringComparison.OrdinalIgnoreCase)
+                                .Replace(" (Radiant)", "", StringComparison.OrdinalIgnoreCase)
+                                .Replace(" (Flawless)", "", StringComparison.OrdinalIgnoreCase)
+                                .Replace(" (Exceptional)", "", StringComparison.OrdinalIgnoreCase)
+                                .Trim();
+
+                            var core = cleanName.ToLower()
+                                .Replace("reliquia", "")
+                                .Replace("relic", "")
+                                .Trim();
+
+                            //Console.WriteLine($"🔍 Buscando reliquia para: '{relicNameRaw}' → limpio: '{core}'");
+
+                            var found = await Db.Relics
+                                .AsNoTracking()
+                                .FirstOrDefaultAsync(r =>
+                                    r.Name.ToLower().Replace("reliquia", "").Replace("relic", "").Trim().Contains(core) ||
+                                    r.UniqueName.ToLower().Replace("reliquia", "").Replace("relic", "").Trim().Contains(core)
+                                );
+
+                            if (found != null)
                             {
-                                comp.Drops.Add(new DropLocation
-                                {
-                                    Location = drop.TryGetProperty("location", out var loc) ? loc.GetString() ?? "" : "",
-                                    Rarity = drop.TryGetProperty("rarity", out var rar) ? rar.GetString() ?? "" : "",
-                                    Type = drop.TryGetProperty("type", out var typ) ? typ.GetString() ?? "" : "",
-                                    Chance = drop.TryGetProperty("chance", out var ch) ? ch.GetDouble() : 0
-                                });
+                                relics.Add(found);
+                                //Console.WriteLine($"✅ Coincidencia encontrada: {found.Name}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"❌ No se encontró coincidencia para: '{core}'");
                             }
                         }
 
-                        components.Add(comp);
+                        if (relics.Count > 0)
+                        {
+                            comp.RelicLinks = relics.Select(r => new RelicLink
+                            {
+                                Name = r.Name,
+                                UniqueName = r.UniqueName,
+                                Vaulted = r.Vaulted,
+                                Quantity = 0
+                            }).ToList();
+                        }
+
+                        //Console.WriteLine($"🧩 Componente {comp.Name}: {relics.Count} reliquias encontradas.");
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error al deserializar componentes de arma: {ex.Message}");
-                }
             }
+
+            // Muestra las primeras reliquias de la BD para confirmar formato
+            var sampleRelics = await Db.Relics.Take(10).ToListAsync();
+            foreach (var rel in sampleRelics);
+                //Console.WriteLine($"📘 Reliquia en BD: {rel.Name}");
         }
         catch (Exception ex)
         {
@@ -149,7 +230,6 @@
 
         loading = false;
     }
-
 
     private static string GetImageUrl(string? imageName)
         => string.IsNullOrWhiteSpace(imageName)

@@ -1,6 +1,7 @@
 @page "/mods/{uniqueName}"
 @using Microsoft.EntityFrameworkCore
 @using System.Text.Json
+@using System.Text.Json.Serialization
 @using WarframeInventory.Models
 @inject WarframeInventory.Data.ApplicationDbContext Db
 
@@ -40,6 +41,7 @@
 
             <MudDivider Class="my-4" />
 
+            <!-- ==================== NIVEL DE ESTADÍSTICAS ==================== -->
             <MudText Typo="Typo.h6" Class="mb-2">Niveles</MudText>
 
             @if (levelStats == null || levelStats.Count == 0)
@@ -60,9 +62,9 @@
                 </MudTable>
             }
 
+            <!-- ==================== DROPS ==================== -->
             <MudDivider Class="my-4" />
-
-            <MudText Typo="Typo.h6" Class="mb-2">Drops</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">Dónde conseguir este mod</MudText>
 
             @if (drops == null || drops.Count == 0)
             {
@@ -70,21 +72,20 @@
             }
             else
             {
-                <MudList Dense="true">
-                    @foreach (var d in drops)
-                    {
-                        <MudListItem>
-                            <MudText Typo="Typo.body2">
-                                <b>@d.Location</b>
-                                (<i>@d.Rarity</i>) — @d.Type
-                                @if (d.Chance > 0)
-                                {
-                                    <text> — Prob: @d.Chance.ToString("0.##")%</text>
-                                }
-                            </MudText>
-                        </MudListItem>
-                    }
-                </MudList>
+                <MudTable Items="drops" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Ubicación</MudTh>
+                        <MudTh>Rareza</MudTh>
+                        <MudTh>Tipo</MudTh>
+                        <MudTh>Probabilidad</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Ubicación">@context.Location</MudTd>
+                        <MudTd DataLabel="Rareza">@context.Rarity</MudTd>
+                        <MudTd DataLabel="Tipo">@context.Type</MudTd>
+                        <MudTd DataLabel="Probabilidad">@context.Chance.ToString("0.##")%</MudTd>
+                    </RowTemplate>
+                </MudTable>
             }
         </MudPaper>
     }
@@ -106,9 +107,9 @@
                 return;
 
             var decodedName = Uri.UnescapeDataString(uniqueName);
-            mod = await Db.Mods.FirstOrDefaultAsync(m => m.UniqueName == decodedName);
+            mod = await Db.Mods.AsNoTracking().FirstOrDefaultAsync(m => m.UniqueName == decodedName);
 
-            // 🔹 Niveles
+            // --- NIVELES ---
             if (mod != null && !string.IsNullOrWhiteSpace(mod.LevelStatsJson))
             {
                 try
@@ -132,24 +133,15 @@
                 }
             }
 
-            // 🔹 Drops
+            // --- DROPS ---
             if (mod != null && !string.IsNullOrWhiteSpace(mod.DropsJson))
             {
                 try
                 {
-                    var doc = JsonDocument.Parse(mod.DropsJson);
-                    drops = new List<ModDrop>();
+                    drops = JsonSerializer.Deserialize<List<ModDrop>>(mod.DropsJson,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                    foreach (var drop in doc.RootElement.EnumerateArray())
-                    {
-                        drops.Add(new ModDrop
-                        {
-                            Location = drop.TryGetProperty("location", out var loc) ? loc.GetString() ?? "" : "",
-                            Rarity = drop.TryGetProperty("rarity", out var rar) ? rar.GetString() ?? "" : "",
-                            Type = drop.TryGetProperty("type", out var typ) ? typ.GetString() ?? "" : "",
-                            Chance = drop.TryGetProperty("chance", out var ch) ? ch.GetDouble() : 0
-                        });
-                    }
+                    Console.WriteLine($"✅ {drops?.Count} ubicaciones cargadas para {mod.Name}");
                 }
                 catch (Exception ex)
                 {
@@ -178,9 +170,16 @@
 
     private class ModDrop
     {
-        public double Chance { get; set; }
+        [JsonPropertyName("location")]
         public string Location { get; set; } = "";
+
+        [JsonPropertyName("rarity")]
         public string Rarity { get; set; } = "";
+
+        [JsonPropertyName("type")]
         public string Type { get; set; } = "";
+
+        [JsonPropertyName("chance")]
+        public double Chance { get; set; }
     }
 }

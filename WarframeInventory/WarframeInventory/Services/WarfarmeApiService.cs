@@ -145,6 +145,30 @@ namespace WarframeInventory.Services
             foreach (var n in array.OfType<JsonObject>())
             {
                 var comps = n["components"];
+                string? compsJson = null;
+
+                if (comps is JsonArray compArray)
+                {
+                    var parsed = compArray
+                        .OfType<JsonObject>()
+                        .Select(c => new WarframeComponent
+                        {
+                            Name = c["name"]?.GetValue<string>() ?? "",
+                            ImageName = c["imageName"]?.GetValue<string>(),
+                            Drops = c["drops"] is JsonArray drops
+                                ? drops.OfType<JsonObject>().Select(d => new DropLocation
+                                {
+                                    Chance = d["chance"]?.GetValue<double?>() ?? 0,
+                                    Location = d["location"]?.GetValue<string>() ?? "",
+                                    Rarity = d["rarity"]?.GetValue<string>() ?? "",
+                                    Type = d["type"]?.GetValue<string>() ?? ""
+                                }).ToList()
+                                : new List<DropLocation>()
+                        }).ToList();
+
+                    compsJson = JsonSerializer.Serialize(parsed);
+                }
+
                 list.Add(new Weapon
                 {
                     UniqueName = n["uniqueName"]?.GetValue<string?>() ?? "",
@@ -154,13 +178,15 @@ namespace WarframeInventory.Services
                     ImageName = n["imageName"]?.GetValue<string?>(),
                     IsPrime = n["isPrime"]?.GetValue<bool?>() ?? false,
                     MasteryReq = n["masteryReq"]?.GetValue<int?>(),
-                    ComponentsJson = comps?.ToJsonString(),
+                    ComponentsJson = compsJson,
                     Description = n["description"]?.GetValue<string?>(),
                     Owned = false
                 });
             }
+
             return list;
         }
+
 
         // -------------------------------
         // 🔹 RELICS
@@ -183,14 +209,14 @@ namespace WarframeInventory.Services
                     continue;
 
                 var name = n["name"]?.GetValue<string?>() ?? "(sin nombre)";
-                Console.WriteLine($"\n🔹 Procesando: {name}");
+                //Console.WriteLine($"\n🔹 Procesando: {name}");
 
                 // --- Recompensas ---
                 List<object>? rewards = null;
                 if (n["rewards"] is JsonArray rewardsArray)
                 {
                     rewards = new List<object>();
-                    Console.WriteLine($"   → Recompensas: {rewardsArray.Count}");
+                    //Console.WriteLine($"   → Recompensas: {rewardsArray.Count}");
                 }
                 else
                 {
@@ -202,7 +228,7 @@ namespace WarframeInventory.Services
                 if (n["drops"] is JsonArray dropsArray)
                 {
                     drops = new List<object>();
-                    Console.WriteLine($"   ✅ Encontrado campo 'drops' con {dropsArray.Count} ubicaciones");
+                    //Console.WriteLine($"   ✅ Encontrado campo 'drops' con {dropsArray.Count} ubicaciones");
 
                     foreach (var drop in dropsArray.OfType<JsonObject>())
                     {
@@ -220,11 +246,11 @@ namespace WarframeInventory.Services
                         }
                     }
 
-                    Console.WriteLine($"   → Total procesadas: {drops.Count}");
+                    //Console.WriteLine($"   → Total procesadas: {drops.Count}");
                 }
                 else
                 {
-                    Console.WriteLine($"   ⚠️ No existe 'drops' en JSON de esta reliquia");
+                    //Console.WriteLine($"   ⚠️ No existe 'drops' en JSON de esta reliquia");
                 }
 
                 // --- Agregar ---
@@ -242,7 +268,7 @@ namespace WarframeInventory.Services
                 });
             }
 
-            Console.WriteLine($"✅ Total reliquias guardadas: {list.Count}");
+            //Console.WriteLine($"✅ Total reliquias guardadas: {list.Count}");
             return list;
         }
 
