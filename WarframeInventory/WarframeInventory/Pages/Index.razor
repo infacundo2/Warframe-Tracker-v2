@@ -1,20 +1,58 @@
 ﻿@page "/"
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
 @using MudBlazor
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-10 text-center">
     <MudPaper Class="p-6">
         <MudText Typo="Typo.h4" Color="Color.Primary">
-            Bienvenido a Warframe Inventory
+            Bienvenido a Warframe Tracker
         </MudText>
 
         <MudText Typo="Typo.body1" Class="mt-3 mb-4">
-            Usa el menú lateral para explorar tus Warframes, armas, mods y reliquias.
+            Gestiona tu inventario de Warframes, armas, mods y reliquias.
         </MudText>
 
         <MudDivider Class="mb-4" />
 
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/warframes">
-            Ver Warframes
-        </MudButton>
+        @if (!isAuthChecked)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (!isAuthenticated)
+        {
+            <MudStack Direction="Row" Spacing="2" Justify="Justify.Center">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           OnClick="@(() => Nav.NavigateTo("/auth/login"))">
+                    Iniciar sesión
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                           OnClick="@(() => Nav.NavigateTo("/auth/register"))">
+                    Registrarse
+                </MudButton>
+            </MudStack>
+        }
+        else
+        {
+            <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">Accede a tus colecciones:</MudText>
+            <MudStack Direction="Row" Spacing="2" Justify="Justify.Center">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/warframes">Warframes</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/weapons">Armas</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/mods">Mods</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/relics">Reliquias</MudButton>
+            </MudStack>
+        }
     </MudPaper>
 </MudContainer>
+
+@code {
+    private bool isAuthenticated;
+    private bool isAuthChecked;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        isAuthenticated = state.User.Identity?.IsAuthenticated == true;
+        isAuthChecked = true;
+    }
+}

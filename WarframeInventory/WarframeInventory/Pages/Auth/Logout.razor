@@ -1,0 +1,14 @@
+@page "/auth/logout"
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager Nav
+
+<MudText Typo="Typo.h6" Class="mt-4">Cerrando sesión...</MudText>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await SignInManager.SignOutAsync();
+        Nav.NavigateTo("/", forceLoad: true);
+    }
+}

@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.AspNetCore.Identity.UI.UIFrameworkAttribute("Bootstrap5")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("WarframeInventory")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+770b71ac15647d9ddace00835ad9a0dc26147124")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d9a6a670bc0f3e69ce9b7506515b4df59d8de0f0")]
 [assembly: System.Reflection.AssemblyProductAttribute("WarframeInventory")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WarframeInventory")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

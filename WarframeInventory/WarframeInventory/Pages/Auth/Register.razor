@@ -1,0 +1,51 @@
+@page "/auth/register"
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-10">
+    <MudPaper Class="p-6">
+        <MudText Typo="Typo.h5">Crear Cuenta</MudText>
+
+        <MudTextField @bind-Value="Username" Label="Usuario" Variant="Variant.Outlined" Class="mt-3" />
+        <MudTextField @bind-Value="Email" Label="Correo" Variant="Variant.Outlined" Class="mt-3" />
+        <MudTextField @bind-Value="Password" Label="Contraseña" Variant="Variant.Outlined" InputType="InputType.Password" Class="mt-3" />
+
+        <MudButton OnClick="RegisterAsync" Color="Color.Primary" Variant="Variant.Filled" Class="mt-4">Registrarse</MudButton>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <MudText Color="Color.Error" Class="mt-2">@ErrorMessage</MudText>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string Username = "";
+    private string Email = "";
+    private string Password = "";
+    private string? ErrorMessage;
+
+    private async Task RegisterAsync()
+    {
+        ErrorMessage = null;
+        try
+        {
+            var dto = new { Username, Email, Password };
+            var response = await Http.PostAsJsonAsync("/api/auth/register", dto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                var msg = await response.Content.ReadAsStringAsync();
+                ErrorMessage = string.IsNullOrWhiteSpace(msg) ? "Error al registrar usuario." : msg;
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+        }
+    }
+}

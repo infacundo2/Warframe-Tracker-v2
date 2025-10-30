@@ -1,12 +1,15 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 using WarframeInventory.Data;
 using WarframeInventory.Services;
-using MudBlazor.Services;
+using Microsoft.AspNetCore.Components.Authorization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 // =======================================================
-// CONFIGURACIÓN DE BASE DE DATOS
+// 🔹 CONEXIÓN A BASE DE DATOS
 // =======================================================
 var host = Environment.GetEnvironmentVariable("DB_HOST");
 var user = Environment.GetEnvironmentVariable("DB_USER");
@@ -20,23 +23,44 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 // =======================================================
-// SERVICIOS Y DEPENDENCIAS
+// 🔹 IDENTITY (autenticación y usuarios)
+// =======================================================
+builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequireDigit = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 6;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>();
+
+// =======================================================
+// 🔹 AUTENTICACIÓN EN BLAZOR
+// =======================================================
+builder.Services.AddScoped<AuthenticationStateProvider,
+    RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
+builder.Services.AddCascadingAuthenticationState();
+
+// =======================================================
+// 🔹 SERVICIOS PERSONALIZADOS
 // =======================================================
 builder.Services.AddMudServices();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddControllers();
 
-// Servicios propios
 builder.Services.AddHttpClient<WarframeApiService>();
 builder.Services.AddScoped<DataSyncService>();
 
 // =======================================================
-// CONSTRUCCIÓN DE LA APLICACIÓN
+// 🔹 CONSTRUIR APLICACIÓN
 // =======================================================
 var app = builder.Build();
 
 // =======================================================
-// CONFIGURACIÓN DEL PIPELINE
+// 🔹 MIDDLEWARE PIPELINE
 // =======================================================
 if (!app.Environment.IsDevelopment())
 {
@@ -45,13 +69,21 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// clave: habilitar archivos estáticos ANTES del routing
 app.UseStaticFiles();
 app.UseRouting();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 // =======================================================
-// SINCRONIZACIÓN INICIAL CON LA API
+// 🔹 RUTAS
+// =======================================================
+app.MapControllers();       // <-- Necesario para AuthController
+app.MapBlazorHub();
+app.MapFallbackToPage("/_Host");
+
+// =======================================================
+// 🔹 SINCRONIZAR DATOS DE WARFRAME AL INICIAR
 // =======================================================
 using (var scope = app.Services.CreateScope())
 {
@@ -65,12 +97,5 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"[WARN] Error sincronizando datos iniciales: {ex.Message}");
     }
 }
-
-// =======================================================
-// MAPEO DE PÁGINAS Y EJECUCIÓN
-// =======================================================
-app.MapControllers();           // ← agregado por buenas prácticas
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
 
 app.Run();

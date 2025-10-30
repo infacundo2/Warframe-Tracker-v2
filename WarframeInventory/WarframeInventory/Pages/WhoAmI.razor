@@ -1,0 +1,20 @@
+@page "/whoami"
+@attribute [Authorize]
+@inject AuthenticationStateProvider Auth
+
+@if (user is null) { <p>cargando…</p> }
+else
+{
+    <p>Autenticado: @user.Identity?.IsAuthenticated</p>
+    <ul>
+        @foreach (var c in user.Claims) { <li>@c.Type = @c.Value</li> }
+    </ul>
+}
+
+@code {
+    private System.Security.Claims.ClaimsPrincipal? user;
+    protected override async Task OnInitializedAsync()
+    {
+        user = (await Auth.GetAuthenticationStateAsync()).User;
+    }
+}

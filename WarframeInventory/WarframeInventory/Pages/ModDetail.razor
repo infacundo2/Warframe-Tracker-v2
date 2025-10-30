@@ -1,9 +1,9 @@
-@page "/mods/{uniqueName}"
+@* @page "/mods/{uniqueName}"
 @using Microsoft.EntityFrameworkCore
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using WarframeInventory.Models
-@inject WarframeInventory.Data.ApplicationDbContext Db
+
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
     @if (loading)
@@ -182,4 +182,4 @@
         [JsonPropertyName("chance")]
         public double Chance { get; set; }
     }
-}
+} *@

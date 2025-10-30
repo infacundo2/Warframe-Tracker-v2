@@ -22,6 +22,18 @@ build_property._RazorSourceGeneratorDebug =
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Wagner/Documents/Warframe-Tracker-v2/WarframeInventory/WarframeInventory/Pages/Auth/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXV0aFxMb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Wagner/Documents/Warframe-Tracker-v2/WarframeInventory/WarframeInventory/Pages/Auth/Logout.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXV0aFxMb2dvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Wagner/Documents/Warframe-Tracker-v2/WarframeInventory/WarframeInventory/Pages/Auth/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXV0aFxSZWdpc3Rlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Wagner/Documents/Warframe-Tracker-v2/WarframeInventory/WarframeInventory/Pages/Index.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXgucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
@@ -56,6 +68,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/Wagner/Documents/Warframe-Tracker-v2/WarframeInventory/WarframeInventory/Pages/Weapons.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV2VhcG9ucy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Wagner/Documents/Warframe-Tracker-v2/WarframeInventory/WarframeInventory/Pages/WhoAmI.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV2hvQW1JLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Wagner/Documents/Warframe-Tracker-v2/WarframeInventory/WarframeInventory/Shared/MainLayout.razor]
