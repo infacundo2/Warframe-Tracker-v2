@@ -1,8 +1,10 @@
 @page "/warframes/{uniqueName}"
 @using Microsoft.EntityFrameworkCore
-@inject WarframeInventory.Data.ApplicationDbContext Db
-@using System.Text.Json
 @using WarframeInventory.Models
+@using System.Security.Claims
+@using System.Text.Json
+@inject WarframeInventory.Data.ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthState
 @using MudBlazor
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
@@ -53,30 +55,32 @@
                     <MudPaper Class="p-3 mb-3" Elevation="1">
                         <MudGrid>
                             <MudItem xs="12" md="4">
-                                <img src="@GetImageUrl(c.ImageName)"
-                                     alt="@c.Name"
-                                     style="width:100%;border-radius:8px;" />
+                                <img src="@GetImageUrl(c.ImageName)" alt="@c.Name" style="width:100%;border-radius:8px;" />
                             </MudItem>
 
                             <MudItem xs="12" md="8">
                                 <MudStack Spacing="1">
                                     <MudText Typo="Typo.subtitle1" Color="Color.Primary">@c.Name</MudText>
 
-                                    <!-- ✅ Primero: control de propiedad del componente -->
                                     <MudStack Direction="Row" AlignItems="@AlignItems.Center" Spacing="2">
-                                        <MudCheckBox @bind-Checked="c.Owned"
-                                                     Label="Tengo este componente"
-                                                     Color="Color.Success" />
-                                        <MudNumericField @bind-Value="c.Quantity"
-                                                         Label="Cantidad"
-                                                         Min="0" Max="99"
-                                                         Immediate="true"
-                                                         Class="w-24" />
+                                        <MudCheckBox T="bool"
+                                                    Checked="@c.Owned"
+                                                    Label="Tengo este componente"
+                                                    Color="Color.Success"
+                                                    CheckedChanged="@(async (bool v) => { c.Owned = v; await UpdateComponentAsync(c); })" />
+
+                                        <MudNumericField T="int"
+                                                        Value="@c.Quantity"
+                                                        Label="Cantidad"
+                                                        Min="0"
+                                                        Max="99"
+                                                        Immediate="true"
+                                                        Class="w-24"
+                                                        ValueChanged="@(async (int v) => { c.Quantity = v; await UpdateComponentAsync(c); })" />
                                     </MudStack>
 
                                     <MudDivider Class="my-2" />
 
-                                    <!-- ✅ Solo lista de reliquias (sin repetir ubicación) -->
                                     @if (c.RelicLinks != null && c.RelicLinks.Count > 0)
                                     {
                                         <MudText Typo="Typo.caption"><b>Reliquias que lo dropean:</b></MudText>
@@ -91,9 +95,11 @@
                                                         @(rel.Vaulted ? "Vaulted" : "Disponible")
                                                       </i>
                                                 </MudText>
-                                                <MudNumericField @bind-Value="rel.Quantity"
+                                                <MudNumericField T="int"
+                                                                 Value="@rel.Quantity"
                                                                  Label="Cantidad"
-                                                                 Min="0" Max="99"
+                                                                 Min="0"
+                                                                 Max="99"
                                                                  Immediate="true"
                                                                  Class="w-24 mt-1" />
                                             </MudPaper>
@@ -103,7 +109,6 @@
                                     {
                                         <MudText Typo="Typo.caption">No hay reliquias registradas.</MudText>
                                     }
-
                                 </MudStack>
                             </MudItem>
                         </MudGrid>
@@ -119,84 +124,175 @@
 
     private Warframe? warframe;
     private List<WarframeComponent>? components;
+    private string userId = "";
     private bool loading = true;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            Console.WriteLine("============== DEBUG WARFRAME DETAIL ==============");
+
+            // 🔹 Usuario autenticado
+            var authState = await AuthState.GetAuthenticationStateAsync();
+            var user = authState.User;
+            userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            Console.WriteLine($"👤 Usuario autenticado: {user.Identity?.Name} ({userId})");
+
             if (string.IsNullOrWhiteSpace(uniqueName))
                 return;
 
             var decodedName = Uri.UnescapeDataString(uniqueName);
+            Console.WriteLine($"🔹 Cargando Warframe: {decodedName}");
 
+            // 🔹 Warframe base
             warframe = await Db.Warframes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.UniqueName == decodedName);
 
-            if (warframe != null && !string.IsNullOrWhiteSpace(warframe.ComponentsJson))
+            if (warframe == null)
+            {
+                Console.WriteLine("❌ Warframe no encontrado");
+                loading = false;
+                return;
+            }
+
+            // 🔹 Componentes
+            if (!string.IsNullOrWhiteSpace(warframe.ComponentsJson))
             {
                 components = JsonSerializer.Deserialize<List<WarframeComponent>>(warframe.ComponentsJson);
 
                 if (components != null)
                 {
+                    Console.WriteLine($"📦 {components.Count} componentes encontrados");
+
+                    // 🔹 Datos del usuario
+                    var userComps = await Db.UserComponents
+                        .Where(x => x.UserId == userId && x.ParentUnique == warframe.UniqueName)
+                        .ToListAsync();
+
+                    Console.WriteLine($"📊 UserComponents cargados: {userComps.Count}");
+
                     foreach (var comp in components)
                     {
-                        if (comp.Drops == null) continue;
-
-                        // 🔹 Detectar las reliquias mencionadas
-                        var relicNames = comp.Drops
-                            .Where(d => !string.IsNullOrWhiteSpace(d.Location) && d.Location.Contains("Relic"))
-                            .Select(d => d.Location)
-                            .Distinct()
-                            .ToList();
-
-                        var relics = new List<Relic>();
-
-                        foreach (var relicNameRaw in relicNames)
+                        var match = userComps.FirstOrDefault(x => x.ComponentName == comp.Name);
+                        if (match != null)
                         {
-                            var cleanName = relicNameRaw
-                                .Replace("Reliquia", "", StringComparison.OrdinalIgnoreCase)
-                                .Replace("Relic", "", StringComparison.OrdinalIgnoreCase)
-                                .Replace(" (Radiant)", "", StringComparison.OrdinalIgnoreCase)
-                                .Replace(" (Flawless)", "", StringComparison.OrdinalIgnoreCase)
-                                .Replace(" (Exceptional)", "", StringComparison.OrdinalIgnoreCase)
-                                .Trim();
-
-                            var core = cleanName.ToLower();
-
-                            var found = await Db.Relics
-                                .AsNoTracking()
-                                .FirstOrDefaultAsync(r =>
-                                    r.Name.ToLower().Contains(core) ||
-                                    r.UniqueName.ToLower().Contains(core));
-
-                            if (found != null)
-                                relics.Add(found);
+                            comp.Owned = match.Owned;
+                            comp.Quantity = match.Quantity;
                         }
 
-                        if (relics.Count > 0)
-                        {
-                            comp.RelicLinks = relics.Select(r => new RelicLink
-                            {
-                                Name = r.Name,
-                                UniqueName = r.UniqueName,
-                                Vaulted = r.Vaulted,
-                                Quantity = 0
-                            }).ToList();
-                        }
-
-                        Console.WriteLine($"Componente {comp.Name}: {relics.Count} reliquias encontradas.");
+                        await LoadRelicLinksAsync(comp);
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error cargando detalle de Warframe: {ex.Message}");
+            Console.WriteLine($"❌ Error cargando detalle de Warframe: {ex}");
         }
 
         loading = false;
+    }
+
+    private async Task LoadRelicLinksAsync(WarframeComponent comp)
+    {
+        try
+        {
+            if (comp.Drops == null) return;
+
+            var relicNames = comp.Drops
+                .Where(d => !string.IsNullOrWhiteSpace(d.Location) && d.Location.Contains("Relic"))
+                .Select(d => d.Location)
+                .Distinct()
+                .ToList();
+
+            var relics = new List<Relic>();
+
+            foreach (var relicNameRaw in relicNames)
+            {
+                var cleanName = relicNameRaw
+                    .Replace("Reliquia", "", StringComparison.OrdinalIgnoreCase)
+                    .Replace("Relic", "", StringComparison.OrdinalIgnoreCase)
+                    .Replace(" (Radiant)", "", StringComparison.OrdinalIgnoreCase)
+                    .Replace(" (Flawless)", "", StringComparison.OrdinalIgnoreCase)
+                    .Replace(" (Exceptional)", "", StringComparison.OrdinalIgnoreCase)
+                    .Trim();
+
+                var core = cleanName.ToLower();
+
+                var found = await Db.Relics
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r =>
+                        r.Name.ToLower().Contains(core) ||
+                        r.UniqueName.ToLower().Contains(core));
+
+                if (found != null)
+                    relics.Add(found);
+            }
+
+            if (relics.Count > 0)
+                comp.RelicLinks = relics.Select(r => new RelicLink
+                {
+                    Name = r.Name,
+                    UniqueName = r.UniqueName,
+                    Vaulted = r.Vaulted,
+                    Quantity = 0
+                }).ToList();
+
+            Console.WriteLine($"🧩 {comp.Name}: {relics.Count} reliquias asociadas");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Error procesando reliquias de {comp.Name}: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateComponentAsync(WarframeComponent comp)
+    {
+        try
+        {
+            Console.WriteLine($"🟡 UpdateComponentAsync → {comp.Name} Owned={comp.Owned}, Qty={comp.Quantity}");
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                Console.WriteLine("❌ Usuario no autenticado, no se guardará.");
+                return;
+            }
+
+            var existing = await Db.UserComponents
+                .FirstOrDefaultAsync(x =>
+                    x.UserId == userId &&
+                    x.ParentUnique == warframe!.UniqueName &&
+                    x.ComponentName == comp.Name);
+
+            if (existing == null)
+            {
+                existing = new UserComponent
+                {
+                    UserId = userId,
+                    ParentUnique = warframe!.UniqueName,
+                    ComponentName = comp.Name,
+                    Owned = comp.Owned,
+                    Quantity = comp.Quantity
+                };
+                Db.UserComponents.Add(existing);
+                Console.WriteLine("➕ Nuevo componente creado.");
+            }
+            else
+            {
+                existing.Owned = comp.Owned;
+                existing.Quantity = comp.Quantity;
+                Console.WriteLine("🔁 Componente existente actualizado.");
+            }
+
+            var result = await Db.SaveChangesAsync();
+            Console.WriteLine($"✅ Guardado OK ({result} filas afectadas)");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error guardando componente {comp.Name}: {ex.Message}");
+        }
     }
 
     private static string GetImageUrl(string? imageName)
