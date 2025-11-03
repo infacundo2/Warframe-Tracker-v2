@@ -31,14 +31,25 @@ namespace WarframeInventory.Services
         {
             var user = authenticationState.User;
             if (!user.Identity?.IsAuthenticated ?? true)
+            {
+                Console.WriteLine("🚫 Estado no autenticado, invalida sesión.");
                 return false;
+            }
 
             using var scope = _scopeFactory.CreateScope();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<TUser>>();
             var userId = userManager.GetUserId(user);
             var storedUser = await userManager.FindByIdAsync(userId);
 
-            return storedUser != null;
+            if (storedUser != null)
+            {
+                var username = await userManager.GetUserNameAsync(storedUser);
+                Console.WriteLine($"✅ Usuario válido en revalidación: {username}");
+                return true;
+            }
+
+            Console.WriteLine("⚠️ Usuario eliminado o inválido en BD, cerrando sesión automáticamente.");
+            return false;
         }
     }
 }

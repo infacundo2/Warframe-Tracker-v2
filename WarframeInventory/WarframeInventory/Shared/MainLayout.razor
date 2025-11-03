@@ -1,18 +1,30 @@
 ﻿@inherits LayoutComponentBase
 @using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
 
 <MudThemeProvider Theme="_theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <!-- Barra superior -->
-    <MudAppBar Color="Color.Primary" Elevation="4">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                       Color="Color.Inherit"
-                       Edge="Edge.Start"
-                       OnClick="@ToggleDrawer" />
+     <MudAppBar Color="Color.Primary" Elevation="4">
         <MudText Typo="Typo.h6" Class="ml-2">Warframe Inventory</MudText>
+        <MudSpacer />
+
+        <AuthorizeView>
+            <Authorized>
+                <MudText Typo="Typo.subtitle2" Class="mr-2">
+                    Usuario: @context.User.Identity?.Name
+                </MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/auth/logout">Salir</MudButton>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/auth/login">Iniciar sesión</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/auth/register">Registrarse</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
     </MudAppBar>
 
     <MudDrawerContainer>
@@ -22,30 +34,52 @@
                     Anchor="Anchor.Left"
                     Color="Color.Surface">
 
-                <MudDrawerHeader>
-                    <MudText Typo="Typo.h6" Class="ml-2 mt-1 mb-1">Menú</MudText>
-                </MudDrawerHeader>
+            <MudDrawerHeader>
+                <MudText Typo="Typo.h6">Menú</MudText>
+            </MudDrawerHeader>
 
-                <MudNavMenu Dense="true">
-                    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home">Inicio</MudNavLink>
-                    <MudNavLink Href="/warframes" Icon="@Icons.Material.Filled.Face">Warframes</MudNavLink>
-                    <MudNavLink Href="/weapons" Icon="@Icons.Material.Filled.Gavel">Armas</MudNavLink>
-                    <MudNavLink Href="/mods" Icon="@Icons.Material.Filled.Build">Mods</MudNavLink>
-                    <MudNavLink Href="/relics" Icon="@Icons.Material.Filled.Star">Reliquias</MudNavLink>
-                </MudNavMenu>
+            <MudNavMenu Dense="true">
+                <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home">Inicio</MudNavLink>
+                <AuthorizeView>
+                    <Authorized>
+                        <MudNavLink Href="/warframes" Icon="@Icons.Material.Filled.Face">Warframes</MudNavLink>
+                        <MudNavLink Href="/weapons" Icon="@Icons.Material.Filled.Gavel">Armas</MudNavLink>
+                        <MudNavLink Href="/mods" Icon="@Icons.Material.Filled.Build">Mods</MudNavLink>
+                        <MudNavLink Href="/relics" Icon="@Icons.Material.Filled.Star">Reliquias</MudNavLink>
+                    </Authorized>
+                </AuthorizeView>
+            </MudNavMenu>
 
-            </MudDrawer>
-
+        </MudDrawer>
 
         <MudMainContent Class="p-4">
             @Body
         </MudMainContent>
     </MudDrawerContainer>
+
 </MudLayout>
 
 @code {
     private bool _drawerOpen = true;
-    private MudTheme _theme = new MudTheme();
-
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    private MudTheme _theme = new();
+    private bool isAuthenticated;
+    private bool isAuthChecked;
+    private string? username;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var st = await AuthState.GetAuthenticationStateAsync();
+        var user = st.User;
+        isAuthenticated = user.Identity?.IsAuthenticated == true;
+        username = isAuthenticated ? user.Identity?.Name : null;
+        isAuthChecked = true;
+    }
+
+
+    private void Logout()
+    {
+        // Llama a tu endpoint de logout y recarga
+        Nav.NavigateTo("/auth/logout", forceLoad: true);
+    }
 }

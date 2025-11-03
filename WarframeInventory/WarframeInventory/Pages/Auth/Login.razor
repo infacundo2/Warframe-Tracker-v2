@@ -1,54 +1,64 @@
 @page "/auth/login"
-
-@inject NavigationManager Nav
-@inject HttpClient Http
+@using Microsoft.AspNetCore.Identity
 @inject NavigationManager Nav
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-10">
     <MudPaper Class="p-6">
-        <MudText Typo="Typo.h5">Iniciar Sesión</MudText>
+        <MudText Typo="Typo.h5" Align="Align.Center">Iniciar Sesión</MudText>
 
-        <MudTextField @bind-Value="Username" Label="Usuario" Variant="Variant.Outlined" Class="mt-3" />
-        <MudTextField @bind-Value="Password" Label="Contraseña" Variant="Variant.Outlined" InputType="InputType.Password" Class="mt-3" />
-        <MudCheckBox @bind-Checked="RememberMe" Label="Recordarme" Class="mt-2" />
+        <!-- 
+            ✅ Este formulario se envía directamente al backend (MVC), no por Blazor.
+            ✅ forceLoad: true en el botón de acceso desde el Index garantiza recarga completa.
+        -->
+        <form method="post" action="/auth/login-mvc" onsubmit="console.log('➡️ Form enviado');">
+            <MudTextField @bind-Value="Username"
+                          Label="Usuario"
+                          Variant="Variant.Outlined"
+                          Class="mt-3"
+                          Required="true" />
 
-        <MudButton OnClick="LoginAsync" Color="Color.Primary" Variant="Variant.Filled" Class="mt-4">Entrar</MudButton>
+            <MudTextField @bind-Value="Password"
+                          Label="Contraseña"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Class="mt-3"
+                          Required="true" />
 
-        @if (!string.IsNullOrEmpty(ErrorMessage))
+            <MudCheckBox @bind-Checked="RememberMe"
+                         Label="Recordarme"
+                         Class="mt-2" />
+
+            <!-- Campos HTML reales que viajan en el POST -->
+            <input type="hidden" name="username" value="@Username" />
+            <input type="hidden" name="password" value="@Password" />
+            <input type="hidden" name="rememberMe" value="@RememberMe" />
+
+            <MudButton Type="Submit"
+                    Color="Color.Primary"
+                    Variant="Variant.Filled"
+                    Class="mt-4"
+                    ButtonType="ButtonType.Submit">
+                Entrar
+            </MudButton>
+
+        </form>
+
+        @if (Nav.Uri.Contains("error="))
         {
-            <MudText Color="Color.Error" Class="mt-2">@ErrorMessage</MudText>
+            <MudText Color="Color.Error" Class="mt-3" Align="Align.Center">
+                @Uri.UnescapeDataString(Nav.Uri.Split("error=")[1])
+            </MudText>
         }
+
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
+            ¿No tienes cuenta?
+            <MudLink Href="/auth/register">Registrarse</MudLink>
+        </MudText>
     </MudPaper>
 </MudContainer>
 
 @code {
-    private string Username = "";
-    private string Password = "";
+    private string Username = string.Empty;
+    private string Password = string.Empty;
     private bool RememberMe = false;
-    private string? ErrorMessage;
-
-    private async Task LoginAsync()
-    {
-        ErrorMessage = null;
-        try
-        {
-            var dto = new { Username, Password, RememberMe };
-            var response = await Http.PostAsJsonAsync(Nav.BaseUri + "api/auth/login", dto);
-
-
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo("/", forceLoad: true);
-            }
-            else
-            {
-                var msg = await response.Content.ReadAsStringAsync();
-                ErrorMessage = string.IsNullOrWhiteSpace(msg) ? "Error al iniciar sesión." : msg;
-            }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error: {ex.Message}";
-        }
-    }
 }
