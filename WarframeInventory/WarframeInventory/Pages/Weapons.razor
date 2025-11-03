@@ -1,6 +1,10 @@
 @page "/weapons"
+@attribute [Authorize]
+
 @using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
 @inject WarframeInventory.Data.ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthState
 @using WarframeInventory.Models
 @using MudBlazor
 
@@ -8,13 +12,14 @@
     <MudStack Spacing="3">
         <MudText Typo="Typo.h4" Color="Color.Primary">Armas</MudText>
 
+        <!-- 🔍 Búsqueda -->
         <MudTextField @bind-Value="searchTerm"
                       Placeholder="Buscar arma..."
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search"
                       Class="w-full sm:w-1/2"
                       Immediate="true"
-                      OnKeyUp="@(async (_) => await LoadPageAsync(1))" />
+                      OnKeyUp="@(async (_) => await RefreshAsync())" />
 
         @if (loading)
         {
@@ -31,17 +36,23 @@
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
                         <MudCard Class="hover:shadow-lg mb-4">
-                            <img src="https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS0103)@GetImageUrl(w.ImageName)"
-                                    loading="lazy"
-                                    alt="@w.Name"
-                                    style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
+                            <img src="@GetImageUrl(w.ImageName)"
+                                 alt="@w.Name"
+                                 style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
 
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@w.Name</MudText>
                                 <MudText Typo="Typo.caption">@w.Type</MudText>
                                 <MudText Typo="Typo.body2" Class="line-clamp-3">@w.Description</MudText>
                             </MudCardContent>
+
                             <MudCardActions>
+                                <MudCheckBox T="bool"
+                                             Checked="@w.IsOwned"
+                                             Label="Lo tengo"
+                                             Color="Color.Success"
+                                             CheckedChanged="@(async (bool v) => await ToggleOwnedAsync(w, v))" />
+                                <MudSpacer />
                                 <MudButton Variant="Variant.Text" Color="Color.Primary"
                                            Href="@($"/weapons/{Uri.EscapeDataString(w.UniqueName)}")">
                                     Ver detalle
@@ -64,46 +75,133 @@
 </MudContainer>
 
 @code {
-    private List<Weapon> pagedWeapons = new();
+    private List<WeaponViewModel> pagedWeapons = new();
     private bool loading = true;
     private string? searchTerm = "";
     private int currentPage = 1;
     private int totalPages = 1;
     private const int pageSize = 10;
+    private string userId = "";
 
-    protected override async Task OnInitializedAsync() => await LoadPageAsync(1);
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("============== DEBUG WEAPONS ==============");
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var user = authState.User;
+        userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        Console.WriteLine($"👤 Usuario autenticado: {user.Identity?.Name} ({userId})");
+
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        currentPage = 1;
+        await LoadPageAsync(currentPage);
+    }
 
     private async Task LoadPageAsync(int page)
     {
-        loading = true;
-        StateHasChanged();
-
-        var query = Db.Weapons.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(searchTerm))
+        try
         {
-            string term = searchTerm.ToLower();
-            query = query.Where(w => w.Name.ToLower().Contains(term));
+            loading = true;
+            StateHasChanged();
+
+            var query = Db.Weapons.AsNoTracking().AsQueryable();
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                string term = searchTerm.ToLower();
+                query = query.Where(w => w.Name.ToLower().Contains(term));
+            }
+
+            var totalCount = await query.CountAsync();
+            totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            currentPage = Math.Clamp(page, 1, totalPages);
+
+            var result = await query
+                .OrderBy(w => w.Name)
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            Console.WriteLine($"📦 Armas cargadas: {result.Count}");
+            Console.WriteLine($"📊 Buscando UserWeapons para este usuario...");
+
+            var ownedList = await Db.UserWeapons
+                .Where(u => u.UserId == userId)
+                .ToListAsync();
+
+            Console.WriteLine($"📊 Registros de usuario encontrados: {ownedList.Count}");
+            foreach (var o in ownedList)
+                Console.WriteLine($"   -> {o.WeaponUnique}, Owned={o.Owned}");
+
+            pagedWeapons = result.Select(w => new WeaponViewModel
+            {
+                Id = w.Id,
+                UniqueName = w.UniqueName,
+                Name = w.Name,
+                Description = w.Description,
+                Type = w.Type,
+                ImageName = w.ImageName,
+                IsOwned = ownedList.Any(o => o.WeaponUnique == w.UniqueName && o.Owned)
+            }).ToList();
+
+            loading = false;
+            StateHasChanged();
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando armas: {ex}");
+        }
+    }
 
-        int totalCount = await query.CountAsync();
-        totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-        if (page < 1) page = 1;
-        if (page > totalPages) page = totalPages;
-        currentPage = page;
+    private async Task ToggleOwnedAsync(WeaponViewModel weapon, bool value)
+    {
+        Console.WriteLine($"🟡 ToggleOwnedAsync → {weapon.Name} = {value}");
+        Console.WriteLine($"   Usuario actual: {userId}");
 
-        pagedWeapons = await query
-            .OrderBy(w => w.Name)
-            .Skip((currentPage - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        try
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                Console.WriteLine("❌ userId vacío. No se guardará nada.");
+                return;
+            }
 
-        loading = false;
-        StateHasChanged();
+            var existing = await Db.UserWeapons
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.WeaponUnique == weapon.UniqueName);
+
+            if (existing == null)
+            {
+                Console.WriteLine($"➕ No existía registro, creando nuevo.");
+                existing = new UserWeapon
+                {
+                    UserId = userId,
+                    WeaponUnique = weapon.UniqueName,
+                    Owned = value
+                };
+                Db.UserWeapons.Add(existing);
+            }
+            else
+            {
+                Console.WriteLine($"🔁 Actualizando existente: {existing.WeaponUnique} → {value}");
+                existing.Owned = value;
+            }
+
+            var result = await Db.SaveChangesAsync();
+            Console.WriteLine($"✅ SaveChanges resultado: {result} filas afectadas.");
+            weapon.IsOwned = value;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error al guardar {weapon.Name}: {ex}");
+        }
     }
 
     private async Task OnPageChanged(int newPage)
     {
-        currentPage = newPage;
+        if (newPage == currentPage || newPage < 1 || newPage > totalPages)
+            return;
         await LoadPageAsync(newPage);
     }
 
@@ -111,4 +209,15 @@
         => string.IsNullOrWhiteSpace(imageName)
             ? "_content/MudBlazor/images/placeholder.png"
             : $"https://cdn.warframestat.us/img/{imageName}";
+
+    private class WeaponViewModel
+    {
+        public int Id { get; set; }
+        public string UniqueName { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public string? Type { get; set; }
+        public string? ImageName { get; set; }
+        public bool IsOwned { get; set; }
+    }
 }

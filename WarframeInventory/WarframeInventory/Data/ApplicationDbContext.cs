@@ -17,6 +17,7 @@ namespace WarframeInventory.Data
         public DbSet<Mod> Mods => Set<Mod>();
         public DbSet<Weapon> Weapons => Set<Weapon>();
         public DbSet<Relic> Relics => Set<Relic>();
+       
 
         // =============================
         // 🔹 ENTIDADES DE INVENTARIO DE USUARIO
@@ -25,6 +26,7 @@ namespace WarframeInventory.Data
         public DbSet<UserWeapon> UserWeapons => Set<UserWeapon>();
         public DbSet<UserComponent> UserComponents => Set<UserComponent>();
         public DbSet<UserRelic> UserRelics => Set<UserRelic>();
+         public DbSet<UserMod> UserMods => Set<UserMod>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -61,6 +63,7 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<UserWeapon>().HasIndex(x => new { x.UserId, x.WeaponUnique }).IsUnique();
             modelBuilder.Entity<UserComponent>().HasIndex(x => new { x.UserId, x.ParentUnique, x.ComponentName }).IsUnique();
             modelBuilder.Entity<UserRelic>().HasIndex(x => new { x.UserId, x.RelicUnique }).IsUnique();
+            modelBuilder.Entity<UserMod>().HasIndex(x => new { x.UserId, x.ModUnique }).IsUnique();
         }
     }
 }

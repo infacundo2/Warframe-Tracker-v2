@@ -1,6 +1,10 @@
 @page "/mods"
+@attribute [Authorize]
+
 @using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
 @inject WarframeInventory.Data.ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthState
 @using WarframeInventory.Models
 @using MudBlazor
 
@@ -8,13 +12,14 @@
     <MudStack Spacing="3">
         <MudText Typo="Typo.h4" Color="Color.Primary">Mods</MudText>
 
+        <!-- 🔍 Búsqueda -->
         <MudTextField @bind-Value="searchTerm"
                       Placeholder="Buscar mod..."
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search"
                       Class="w-full sm:w-1/2"
                       Immediate="true"
-                      OnKeyUp="@(async (_) => await LoadPageAsync(1))" />
+                      OnKeyUp="@(async (_) => await RefreshAsync())" />
 
         @if (loading)
         {
@@ -31,16 +36,22 @@
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
                         <MudCard Class="hover:shadow-lg mb-4">
-                            <img src="https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS0103)@GetImageUrl(m.ImageName)"
-                                    loading="lazy"
-                                    alt="@m.Name"
-                                    style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
+                            <img src="@GetImageUrl(m.ImageName)"
+                                 loading="lazy"
+                                 alt="@m.Name"
+                                 style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@m.Name</MudText>
                                 <MudText Typo="Typo.caption">@m.Polarity • @m.Rarity</MudText>
                                 <MudText Typo="Typo.body2" Class="line-clamp-3 mt-1">@m.Description</MudText>
                             </MudCardContent>
                             <MudCardActions>
+                                <MudCheckBox T="bool"
+                                             Checked="@m.IsOwned"
+                                             Label="Lo tengo"
+                                             Color="Color.Success"
+                                             CheckedChanged="@(async (bool v) => await ToggleOwnedAsync(m, v))" />
+                                <MudSpacer />
                                 <MudButton Variant="Variant.Text" Color="Color.Primary"
                                            Href="@($"/mods/{Uri.EscapeDataString(m.UniqueName)}")">
                                     Ver detalle
@@ -61,4 +72,3 @@
         }
     </MudStack>
 </MudContainer>
-
