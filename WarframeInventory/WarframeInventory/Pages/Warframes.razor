@@ -1,15 +1,17 @@
 @page "/warframes"
 @attribute [Authorize]
+
 @using Microsoft.EntityFrameworkCore
 @inject WarframeInventory.Data.ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthState
 @using WarframeInventory.Models
 @using MudBlazor
+@using System.Security.Claims
 
 <MudContainer MaxWidth="MaxWidth.False" Class="px-6 py-4">
     <MudStack Spacing="3">
         <MudText Typo="Typo.h4" Color="Color.Primary">Warframes</MudText>
 
-        <!-- 🔍 Barra de búsqueda -->
         <MudTextField @bind-Value="searchTerm"
                       Placeholder="Buscar Warframe..."
                       Adornment="Adornment.Start"
@@ -33,16 +35,9 @@
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
                         <MudCard Class="mb-4 hover:shadow-lg transition-shadow duration-300">
-                            @if (wf.Loaded)
-                            {
-                                <img src="@wf.TempImage"
-                                     alt="@wf.Name"
-                                     style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
-                            }
-                            else
-                            {
-                                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
-                            }
+                            <img src="@wf.TempImage"
+                                 alt="@wf.Name"
+                                 style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
 
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@wf.Name</MudText>
@@ -50,6 +45,13 @@
                             </MudCardContent>
 
                             <MudCardActions>
+                                <MudCheckBox T="bool"
+                                    Checked="@wf.IsOwned"
+                                    Label="Lo tengo"
+                                    Color="Color.Primary"
+                                    CheckedChanged="@(async (bool v) => await ToggleOwnedAsync(wf, v))" />
+
+                                <MudSpacer />
                                 <MudButton Variant="Variant.Text" Color="Color.Primary"
                                            Href="@($"/warframes/{Uri.EscapeDataString(wf.UniqueName)}")">
                                     Ver detalle
@@ -60,7 +62,6 @@
                 }
             </MudGrid>
 
-            <!-- 📄 Paginador -->
             <div class="d-flex justify-center mt-6">
                 <MudPagination Selected="@currentPage"
                                Count="@totalPages"
@@ -73,14 +74,26 @@
 </MudContainer>
 
 @code {
-    private List<Warframe> pagedWarframes = new();
+    private List<WarframeViewModel> pagedWarframes = new();
+    private string userId = "";
     private bool loading = true;
     private string? searchTerm = "";
     private int currentPage = 1;
     private int totalPages = 1;
     private const int pageSize = 10;
 
-    protected override async Task OnInitializedAsync() => await RefreshAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("============== DEBUG WARFRAMES ==============");
+        Console.WriteLine($"🔹 Entrando a OnInitializedAsync");
+
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var user = authState.User;
+        userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+
+        Console.WriteLine($"👤 Usuario autenticado: {user.Identity?.Name} ({userId})");
+        await RefreshAsync();
+    }
 
     private async Task RefreshAsync()
     {
@@ -90,71 +103,103 @@
 
     private async Task LoadPageAsync(int page)
     {
-        loading = true;
-        StateHasChanged();
-
-        var query = Db.Warframes.AsNoTracking().AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(searchTerm))
+        try
         {
-            string term = searchTerm.ToLower();
-            query = query.Where(w => w.Name.ToLower().Contains(term));
+            loading = true;
+            StateHasChanged();
+
+            var query = Db.Warframes.AsNoTracking().AsQueryable();
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                string term = searchTerm.ToLower();
+                query = query.Where(w => w.Name.ToLower().Contains(term));
+            }
+
+            var totalCount = await query.CountAsync();
+            totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            currentPage = Math.Clamp(page, 1, totalPages);
+
+            var result = await query
+                .OrderBy(w => w.Name)
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            
+            Console.WriteLine("🔹 Consultando UserWarframes para este usuario...");
+
+
+            var ownedList = await Db.UserWarframes
+                .Where(u => u.UserId == userId)
+                .ToListAsync();
+
+            Console.WriteLine($"📊 Registros encontrados en UserWarframes para este usuario: {ownedList.Count}");
+                foreach (var o in ownedList)
+                    Console.WriteLine($"   -> {o.WarframeUnique}, Owned={o.Owned}");
+
+            pagedWarframes = result.Select(w => new WarframeViewModel
+            {
+                Id = w.Id,
+                UniqueName = w.UniqueName,
+                Name = w.Name,
+                Description = w.Description,
+                ImageName = w.ImageName,
+                TempImage = $"https://cdn.warframestat.us/img/{w.ImageName}",
+                Loaded = true,
+                IsOwned = ownedList.Any(o => o.WarframeUnique == w.UniqueName && o.Owned)
+            }).ToList();
+
+            loading = false;
+            StateHasChanged();
         }
-
-        // 🔹 Obtener total de elementos
-        var totalCount = await query.CountAsync();
-        var newTotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-
-        // 🔹 Forzar re-render si cambia el número de páginas
-        if (newTotalPages != totalPages)
+        catch (Exception ex)
         {
-            totalPages = newTotalPages;
-            await InvokeAsync(StateHasChanged);
+            Console.WriteLine($"❌ Error cargando warframes: {ex.Message}");
         }
-
-        currentPage = Math.Clamp(page, 1, totalPages);
-
-        // 🔹 Cargar solo los elementos visibles
-        var result = await query
-            .OrderBy(w => w.Name)
-            .Skip((currentPage - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
-        // 🔹 Inicializar imágenes
-        foreach (var wf in result)
-        {
-            wf.TempImage = "_content/MudBlazor/images/placeholder.png";
-            wf.Loaded = false;
-        }
-
-        pagedWarframes = result;
-        loading = false;
-        StateHasChanged();
-
-        _ = LoadImagesGraduallyAsync();
     }
 
-    private async Task LoadImagesGraduallyAsync()
+    private async Task ToggleOwnedAsync(WarframeViewModel wf, bool value)
     {
-        foreach (var wf in pagedWarframes)
+        Console.WriteLine($"🟡 ToggleOwnedAsync → {wf.Name} = {value}");
+        Console.WriteLine($"   Usuario actual: {userId}");
+
+        try
         {
-            try
+            if (string.IsNullOrWhiteSpace(userId))
             {
-                wf.TempImage = !string.IsNullOrWhiteSpace(wf.ImageName)
-                    ? GetImageUrl(wf.ImageName)
-                    : "_content/MudBlazor/images/placeholder.png";
-                wf.Loaded = true;
-                StateHasChanged();
-                await Task.Delay(100);
+                Console.WriteLine("❌ userId vacío. No se guardará nada.");
+                return;
             }
-            catch
+
+            var existing = await Db.UserWarframes
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.WarframeUnique == wf.UniqueName);
+
+            if (existing == null)
             {
-                wf.TempImage = "_content/MudBlazor/images/placeholder.png";
-                wf.Loaded = true;
+                Console.WriteLine($"➕ No existía registro, creando nuevo.");
+                existing = new UserWarframe
+                {
+                    UserId = userId,
+                    WarframeUnique = wf.UniqueName,
+                    Owned = value
+                };
+                Db.UserWarframes.Add(existing);
             }
+            else
+            {
+                Console.WriteLine($"🔁 Actualizando existente: {existing.WarframeUnique} → {value}");
+                existing.Owned = value;
+            }
+
+            var result = await Db.SaveChangesAsync();
+            Console.WriteLine($"✅ SaveChanges resultado: {result} filas afectadas.");
+            wf.IsOwned = value;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error al guardar {wf.Name}: {ex}");
         }
     }
+
 
     private async Task OnPageChanged(int newPage)
     {
@@ -163,8 +208,15 @@
         await LoadPageAsync(newPage);
     }
 
-    private static string GetImageUrl(string? imageName)
-        => string.IsNullOrWhiteSpace(imageName)
-            ? "_content/MudBlazor/images/placeholder.png"
-            : $"https://cdn.warframestat.us/img/{imageName}";
+    private class WarframeViewModel
+    {
+        public int Id { get; set; }
+        public string UniqueName { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public string? ImageName { get; set; }
+        public string TempImage { get; set; } = "";
+        public bool Loaded { get; set; }
+        public bool IsOwned { get; set; }
+    }
 }

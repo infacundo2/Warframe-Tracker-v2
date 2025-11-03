@@ -38,6 +38,40 @@ namespace WarframeInventory.Controllers
             return Redirect("/");
         }
 
+        [HttpPost("/auth/register-mvc")]
+        public async Task<IActionResult> RegisterMvc(string username, string email, string password)
+        {
+            Console.WriteLine("➡️ POST /auth/register-mvc recibido");
+            Console.WriteLine($"   Usuario: {username}, Email: {email}");
+
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                return Redirect("/auth/register?error=Campos%20incompletos");
+
+            var existing = await _userManager.FindByNameAsync(username);
+            if (existing != null)
+            {
+                Console.WriteLine("❌ Usuario ya existe");
+                return Redirect("/auth/register?error=Usuario%20ya%20existe");
+            }
+
+            var user = new IdentityUser { UserName = username, Email = email };
+            var result = await _userManager.CreateAsync(user, password);
+
+            if (!result.Succeeded)
+            {
+                var msg = string.Join("; ", result.Errors.Select(e => e.Description));
+                Console.WriteLine($"❌ Error creando usuario: {msg}");
+                return Redirect($"/auth/register?error={Uri.EscapeDataString(msg)}");
+            }
+
+            Console.WriteLine("✅ Usuario creado correctamente, iniciando sesión...");
+            await _signInManager.SignInAsync(user, isPersistent: false);
+            Console.WriteLine("🍪 Cookie creada correctamente en registro");
+
+            return Redirect("/");
+        }
+
+
         [HttpPost("/auth/logout-mvc")]
         public async Task<IActionResult> LogoutMvc()
         {

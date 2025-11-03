@@ -1,51 +1,74 @@
 @page "/auth/register"
-@inject HttpClient Http
+@using Microsoft.AspNetCore.Identity
 @inject NavigationManager Nav
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-10">
     <MudPaper Class="p-6">
-        <MudText Typo="Typo.h5">Crear Cuenta</MudText>
+        <MudText Typo="Typo.h5" Align="Align.Center">Crear cuenta</MudText>
 
-        <MudTextField @bind-Value="Username" Label="Usuario" Variant="Variant.Outlined" Class="mt-3" />
-        <MudTextField @bind-Value="Email" Label="Correo" Variant="Variant.Outlined" Class="mt-3" />
-        <MudTextField @bind-Value="Password" Label="Contraseña" Variant="Variant.Outlined" InputType="InputType.Password" Class="mt-3" />
+        <!-- 
+            ✅ Formulario MVC clásico (no Blazor).
+            ✅ Usa la misma lógica que login-mvc.
+        -->
+        <form method="post" action="/auth/register-mvc" onsubmit="console.log('➡️ Registro enviado');">
+            <MudTextField @bind-Value="Username"
+                          Label="Usuario"
+                          Variant="Variant.Outlined"
+                          Class="mt-3"
+                          Required="true" />
 
-        <MudButton OnClick="RegisterAsync" Color="Color.Primary" Variant="Variant.Filled" Class="mt-4">Registrarse</MudButton>
+            <MudTextField @bind-Value="Email"
+                          Label="Correo electrónico"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Email"
+                          Class="mt-3"
+                          Required="true" />
 
-        @if (!string.IsNullOrEmpty(ErrorMessage))
+            <MudTextField @bind-Value="Password"
+                          Label="Contraseña"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Class="mt-3"
+                          Required="true" />
+
+            <MudTextField @bind-Value="ConfirmPassword"
+                          Label="Confirmar contraseña"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Class="mt-3"
+                          Required="true" />
+
+            <!-- Campos HTML reales que viajan en el POST -->
+            <input type="hidden" name="username" value="@Username" />
+            <input type="hidden" name="email" value="@Email" />
+            <input type="hidden" name="password" value="@Password" />
+
+            <MudButton Type="Submit"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       Class="mt-4"
+                       ButtonType="ButtonType.Submit">
+                Registrarse
+            </MudButton>
+        </form>
+
+        @if (Nav.Uri.Contains("error="))
         {
-            <MudText Color="Color.Error" Class="mt-2">@ErrorMessage</MudText>
+            <MudText Color="Color.Error" Class="mt-3" Align="Align.Center">
+                @Uri.UnescapeDataString(Nav.Uri.Split("error=")[1])
+            </MudText>
         }
+
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
+            ¿Ya tienes cuenta?
+            <MudLink Href="/auth/login">Iniciar sesión</MudLink>
+        </MudText>
     </MudPaper>
 </MudContainer>
 
 @code {
-    private string Username = "";
-    private string Email = "";
-    private string Password = "";
-    private string? ErrorMessage;
-
-    private async Task RegisterAsync()
-    {
-        ErrorMessage = null;
-        try
-        {
-            var dto = new { Username, Email, Password };
-            var response = await Http.PostAsJsonAsync("/api/auth/register", dto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo("/", forceLoad: true);
-            }
-            else
-            {
-                var msg = await response.Content.ReadAsStringAsync();
-                ErrorMessage = string.IsNullOrWhiteSpace(msg) ? "Error al registrar usuario." : msg;
-            }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error: {ex.Message}";
-        }
-    }
+    private string Username = string.Empty;
+    private string Email = string.Empty;
+    private string Password = string.Empty;
+    private string ConfirmPassword = string.Empty;
 }
