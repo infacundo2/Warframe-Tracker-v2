@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: warframe-inventory
+    env: dotnet
+    plan: free
+    buildCommand: dotnet publish -c Release -o out
+    startCommand: dotnet out/WarframeInventory.dll
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:10000
