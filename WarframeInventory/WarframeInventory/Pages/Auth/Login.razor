@@ -10,28 +10,27 @@
             ✅ Este formulario se envía directamente al backend (MVC), no por Blazor.
             ✅ forceLoad: true en el botón de acceso desde el Index garantiza recarga completa.
         -->
-        <form method="post" action="/auth/login-mvc" onsubmit="console.log('➡️ Form enviado');">
+
+        <form method="post" action="/auth/login-mvc" onsubmit="return syncLoginFields();">
             <MudTextField @bind-Value="Username"
-                          Label="Usuario"
-                          Variant="Variant.Outlined"
-                          Class="mt-3"
-                          Required="true" />
+                        Label="Usuario"
+                        Variant="Variant.Outlined"
+                        Class="mt-3"
+                        Required="true"
+                        Name="username" />
 
             <MudTextField @bind-Value="Password"
-                          Label="Contraseña"
-                          Variant="Variant.Outlined"
-                          InputType="InputType.Password"
-                          Class="mt-3"
-                          Required="true" />
+                        Label="Contraseña"
+                        Variant="Variant.Outlined"
+                        InputType="InputType.Password"
+                        Class="mt-3"
+                        Required="true"
+                        Name="password" />
 
             <MudCheckBox @bind-Checked="RememberMe"
-                         Label="Recordarme"
-                         Class="mt-2" />
-
-            <!-- Campos HTML reales que viajan en el POST -->
-            <input type="hidden" name="username" value="@Username" />
-            <input type="hidden" name="password" value="@Password" />
-            <input type="hidden" name="rememberMe" value="@RememberMe" />
+                        Label="Recordarme"
+                        Class="mt-2"
+                        Name="rememberMe" />
 
             <MudButton Type="Submit"
                     Color="Color.Primary"
@@ -40,8 +39,8 @@
                     ButtonType="ButtonType.Submit">
                 Entrar
             </MudButton>
-
         </form>
+
 
         @if (Nav.Uri.Contains("error="))
         {
@@ -56,7 +55,21 @@
         </MudText>
     </MudPaper>
 
-    
+   <script>
+        function syncLoginFields() {
+            const form = document.querySelector("form[action='/auth/login-mvc']");
+            if (!form) return true;
+            const inputs = form.querySelectorAll("input");
+            for (const input of inputs) {
+                // fuerza que todos los inputs se sincronicen antes de enviar
+                input.dispatchEvent(new Event("change"));
+                input.dispatchEvent(new Event("input"));
+            }
+            return true; // permite enviar el form
+        }
+    </script>
+
+
 </MudContainer>
 
 @code {

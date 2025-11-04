@@ -18,7 +18,7 @@
                 <MudText Typo="Typo.subtitle2" Class="mr-2">
                     Usuario: @context.User.Identity?.Name
                 </MudText>
-                <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/auth/logout">Salir</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="Logout">Salir</MudButton>
             </Authorized>
             <NotAuthorized>
                 <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/auth/login">Iniciar sesión</MudButton>
