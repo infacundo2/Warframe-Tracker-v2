@@ -2,8 +2,11 @@
 @using Microsoft.EntityFrameworkCore
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@using WarframeInventory.Models
+@using System.Security.Claims
 @inject WarframeInventory.Data.ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthState
+@using WarframeInventory.Models
+@using MudBlazor
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
     @if (loading)
@@ -27,11 +30,42 @@
                     <MudText Typo="Typo.h4" Color="Color.Primary">@relic.Name</MudText>
                     <MudText Typo="Typo.subtitle2">@relic.Category</MudText>
                     <MudText Typo="Typo.body2" Class="mt-2 mb-3">
-                        @(relic.Vaulted ? "Vaulted" : "Disponible") —
-                        @(relic.Tradable ? "Intercambiable" : "No intercambiable")
+                        @(relic.Vaulted ? "Vaulted" : "Disponible") — @(relic.Tradable ? "Intercambiable" : "No intercambiable")
                     </MudText>
                 </MudItem>
             </MudGrid>
+
+            <MudDivider Class="my-4" />
+
+            <!-- ==================== CANTIDADES DEL USUARIO ==================== -->
+            <MudText Typo="Typo.h6" Class="mb-2">Tus cantidades</MudText>
+
+            @if (variantCounts == null || variantCounts.Count == 0)
+            {
+                <MudText Typo="Typo.caption">No se ha cargado información del usuario.</MudText>
+            }
+            else
+            {
+                <MudTable Items="variantCounts" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Tipo</MudTh>
+                        <MudTh>Cantidad</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Tipo">@context.DisplayName</MudTd>
+                        <MudTd DataLabel="Cantidad">
+                            <MudNumericField T="int"
+                                            Value="@context.Quantity"
+                                            ValueChanged="@(async (int v) => await UpdateQuantityAsync(context, v))"
+                                            Min="0" Max="99"
+                                            Immediate="true"
+                                            Class="w-20"
+                                            Style="@($"color:{(context.Quantity > 0 ? "limegreen" : "gray")}")" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+
 
             <MudDivider Class="my-4" />
 
@@ -115,7 +149,9 @@
     private Relic? relic;
     private List<RelicReward>? rewards;
     private List<RelicDrop>? dropLocations;
+    private List<RelicVariant> variantCounts = new();
     private bool loading = true;
+    private string userId = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -125,10 +161,68 @@
                 return;
 
             var decoded = Uri.UnescapeDataString(uniqueName);
+
+            Console.WriteLine($"🔍 Cargando detalle de reliquia: {decoded}");
+
+            var relicCheck = await Db.Relics.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.UniqueName == decoded);
+            if (relicCheck == null)
+            {
+                Console.WriteLine("❌ No se encontró ninguna reliquia con ese UniqueName en la base de datos.");
+            }
+            else
+            {
+                Console.WriteLine($"✅ Reliquia encontrada: {relicCheck.Name} ({relicCheck.UniqueName})");
+            }
+
+
+            // 🔹 Usuario autenticado
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+
             relic = await Db.Relics.AsNoTracking().FirstOrDefaultAsync(r => r.UniqueName == decoded);
+            if (relic == null)
+                return;
+
+            // 🔹 Obtener variantes (Intacta, Excepcional, Flawless, Radiante)
+            var variants = await Db.Relics
+                .Where(r => r.Name == relic.Name)
+                .OrderBy(r => r.UniqueName)
+                .ToListAsync();
+
+            Console.WriteLine($"🔹 Variantes encontradas para {relic.Name}: {variants.Count}");
+                foreach (var v in variants)
+                    Console.WriteLine($"   - {v.UniqueName}");
+
+
+            var userRelics = await Db.UserRelics
+                .Where(u => u.UserId == userId)
+                .ToListAsync();
+
+            Console.WriteLine($"👤 User {userId} tiene {userRelics.Count} registros en UserRelics");
+                foreach (var ur in userRelics)
+                    Console.WriteLine($"   -> {ur.RelicUnique} = {ur.Quantity}");
+
+
+            variantCounts = variants.Select(v => new RelicVariant
+            {
+                UniqueName = v.UniqueName,
+                DisplayName = v.UniqueName.Contains("EBronze") ? "Intacta" :
+                            v.UniqueName.Contains("ESilver") ? "Excepcional" :
+                            v.UniqueName.Contains("EGold") ? "Flawless" :
+                            v.UniqueName.Contains("EPlatinum") ? "Radiante" : "Desconocida",
+                Quantity = userRelics.FirstOrDefault(u => u.RelicUnique == v.UniqueName)?.Quantity ?? 0
+            }).ToList();
+
+            Console.WriteLine($"📦 Renderizando {variantCounts.Count} variantes en la vista");
+            foreach (var v in variantCounts)
+                Console.WriteLine($"   - {v.DisplayName}: {v.Quantity}");
+
+            await InvokeAsync(StateHasChanged);
+
 
             // --- RECOMPENSAS ---
-            if (relic != null && !string.IsNullOrWhiteSpace(relic.RewardsJson))
+            if (!string.IsNullOrWhiteSpace(relic.RewardsJson))
             {
                 try
                 {
@@ -169,13 +263,12 @@
             }
 
             // --- DROPS ---
-            if (relic != null && !string.IsNullOrWhiteSpace(relic.DropsJson))
+            if (!string.IsNullOrWhiteSpace(relic.DropsJson))
             {
                 try
                 {
                     dropLocations = JsonSerializer.Deserialize<List<RelicDrop>>(relic.DropsJson,
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    //Console.WriteLine($"✅ {dropLocations?.Count} ubicaciones cargadas para {relic.Name}");
                 }
                 catch (Exception ex)
                 {
@@ -191,11 +284,44 @@
         loading = false;
     }
 
+    private async Task UpdateQuantityAsync(RelicVariant variant, int count)
+    {
+        try
+        {
+            var existing = await Db.UserRelics
+                .FirstOrDefaultAsync(u => u.UserId == userId && u.RelicUnique == variant.UniqueName);
+
+            if (existing == null)
+            {
+                existing = new UserRelic
+                {
+                    UserId = userId,
+                    RelicUnique = variant.UniqueName,
+                    Quantity = count
+                };
+                Db.UserRelics.Add(existing);
+            }
+            else
+            {
+                existing.Quantity = count;
+            }
+
+            await Db.SaveChangesAsync();
+            variant.Quantity = count;
+            Console.WriteLine($"✅ {variant.DisplayName} ({variant.UniqueName}) → {count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error actualizando cantidad de reliquia: {ex.Message}");
+        }
+    }
+
     private static string GetImageUrl(string? imageName)
         => string.IsNullOrWhiteSpace(imageName)
             ? "_content/MudBlazor/images/placeholder.png"
             : $"https://cdn.warframestat.us/img/{imageName}";
 
+    // ==== Clases auxiliares ====
     private class RelicReward
     {
         public string ItemName { get; set; } = "";
@@ -206,19 +332,17 @@
 
     private class RelicDrop
     {
-        [JsonPropertyName("location")]
-        public string Location { get; set; } = "";
+        [JsonPropertyName("location")] public string Location { get; set; } = "";
+        [JsonPropertyName("type")] public string Type { get; set; } = "";
+        [JsonPropertyName("rotation")] public string? Rotation { get; set; }
+        [JsonPropertyName("rarity")] public string? Rarity { get; set; }
+        [JsonPropertyName("chance")] public double Chance { get; set; }
+    }
 
-        [JsonPropertyName("type")]
-        public string Type { get; set; } = "";
-
-        [JsonPropertyName("rotation")]
-        public string? Rotation { get; set; }
-
-        [JsonPropertyName("rarity")]
-        public string? Rarity { get; set; }
-
-        [JsonPropertyName("chance")]
-        public double Chance { get; set; }
+    private class RelicVariant
+    {
+        public string UniqueName { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public int Quantity { get; set; }
     }
 }
