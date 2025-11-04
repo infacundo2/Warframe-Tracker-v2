@@ -1,6 +1,11 @@
 C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\WarframeInventory.exe
+C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\out\web.config
 C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\appsettings.Development.json
 C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\appsettings.json
+C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\out\appsettings.Development.json
+C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\out\appsettings.json
+C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\out\WarframeInventory.deps.json
+C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\out\WarframeInventory.runtimeconfig.json
 C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\WarframeInventory.dll
 C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\WarframeInventory.runtimeconfig.json
 C:\Users\Wagner\Documents\Warframe-Tracker-v2\out\WarframeInventory.pdb
