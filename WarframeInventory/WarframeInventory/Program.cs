@@ -22,10 +22,14 @@ Console.ResetColor();
 // =======================================================
 // 🔹 VARIABLES DE ENTORNO Y CONEXIÓN A BASE DE DATOS
 // =======================================================
-var host = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-var user = Environment.GetEnvironmentVariable("DB_USER") ?? "root";
-var pass = Environment.GetEnvironmentVariable("DB_PASS") ?? "";
-var db   = Environment.GetEnvironmentVariable("DB_NAME") ?? "warframe_inventory";
+var configuration = builder.Configuration;
+var host = configuration["ConnectionStrings:DB_HOST"] ?? "localhost";
+var user = configuration["ConnectionStrings:DB_USER"] ??
+    throw new Exception("Falta la variable de entorno DB_USER");
+var pass = configuration["ConnectionStrings:DB_PASS"] ??
+    throw new Exception("Falta la variable de entorno DB_PASS");
+var db = configuration["ConnectionStrings:DB_NAME"] ??
+    throw new Exception("Falta la variable de entorno DB_NAME");
 
 var connectionString =
     $"server={host};port=3306;database={db};user={user};password={pass};SslMode=None;AllowPublicKeyRetrieval=True;";
