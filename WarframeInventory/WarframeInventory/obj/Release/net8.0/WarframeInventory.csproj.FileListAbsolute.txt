@@ -116,8 +116,3 @@ C:\Users\Wagner\Documents\Warframe-Tracker-v2\WarframeInventory\WarframeInventor
 C:\Users\Wagner\Documents\Warframe-Tracker-v2\WarframeInventory\WarframeInventory\obj\Release\net8.0\WarframeInventory.pdb
 C:\Users\Wagner\Documents\Warframe-Tracker-v2\WarframeInventory\WarframeInventory\obj\Release\net8.0\WarframeInventory.genruntimeconfig.cache
 C:\Users\Wagner\Documents\Warframe-Tracker-v2\WarframeInventory\WarframeInventory\obj\Release\net8.0\ref\WarframeInventory.dll
-C:\Users\Wagner\Documents\Warframe-Tracker-v2\WarframeInventory\WarframeInventory\bin\Release\net8.0\out\web.config
-C:\Users\Wagner\Documents\Warframe-Tracker-v2\WarframeInventory\WarframeInventory\bin\Release\net8.0\out\appsettings.Development.json
-C:\Users\Wagner\Documents\Warframe-Tracker-v2\WarframeInventory\WarframeInventory\bin\Release\net8.0\out\appsettings.json
-C:\Users\Wagner\Documents\Warframe-Tracker-v2\WarframeInventory\WarframeInventory\bin\Release\net8.0\out\WarframeInventory.deps.json
-C:\Users\Wagner\Documents\Warframe-Tracker-v2\WarframeInventory\WarframeInventory\bin\Release\net8.0\out\WarframeInventory.runtimeconfig.json
