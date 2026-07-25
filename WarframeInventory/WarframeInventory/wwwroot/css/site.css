@@ -930,23 +930,80 @@ img { color: transparent; }
     border-color: rgba(216, 184, 92, .45);
 }
 
-/* Cursor holográfico Tenno: conserva el cursor nativo en campos de texto. */
+/* Cursor holográfico Tenno dibujado sobre la interfaz. */
 @media (pointer: fine) {
-    html,
-    body,
-    a,
-    button,
-    [role="button"],
-    .mud-button-root,
-    .mud-nav-link {
-        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 2l17 12-8 2-4 8z' fill='%23071118' stroke='%2377e7ff' stroke-width='1.5'/%3E%3Ccircle cx='19.5' cy='14' r='2.2' fill='%23d8b86a'/%3E%3C/svg%3E") 3 2, pointer;
+    body.tenno-cursor-ready,
+    body.tenno-cursor-ready a,
+    body.tenno-cursor-ready button,
+    body.tenno-cursor-ready [role="button"],
+    body.tenno-cursor-ready .mud-button-root,
+    body.tenno-cursor-ready .mud-nav-link {
+        cursor: none !important;
     }
 
-    input,
-    textarea,
-    [contenteditable="true"] {
-        cursor: text;
+    body.tenno-cursor-ready input,
+    body.tenno-cursor-ready textarea,
+    body.tenno-cursor-ready select,
+    body.tenno-cursor-ready [contenteditable="true"] {
+        cursor: text !important;
     }
+}
+
+#tenno-cursor {
+    position: fixed;
+    z-index: 99999;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+.tenno-cursor-ready #tenno-cursor {
+    opacity: 1;
+}
+
+.tenno-cursor-core,
+.tenno-cursor-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translate(-50%, -50%) rotate(45deg);
+    border: 1px solid #77e7ff;
+    box-shadow: 0 0 8px rgba(119, 231, 255, .9);
+}
+
+.tenno-cursor-core {
+    width: 6px;
+    height: 6px;
+    background: #d8b86a;
+    border-color: #fff0b7;
+}
+
+.tenno-cursor-ring {
+    width: 22px;
+    height: 22px;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    animation: tenno-cursor-spin 2.2s linear infinite;
+    transition: width .12s ease, height .12s ease, border-color .12s ease;
+}
+
+.tenno-cursor-pressed .tenno-cursor-ring {
+    width: 14px;
+    height: 14px;
+    border-color: #d8b86a;
+}
+
+.tenno-cursor-hidden,
+.tenno-cursor-offscreen {
+    opacity: 0 !important;
+}
+
+@keyframes tenno-cursor-spin {
+    to { transform: translate(-50%, -50%) rotate(405deg); }
 }
 
 .audio-toggle {

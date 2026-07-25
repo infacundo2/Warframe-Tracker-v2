@@ -21,7 +21,7 @@ const tennoAudio = (() => {
     let ambientGain;
     let ambientNodes = [];
     let ambientEnabled = localStorage.getItem("warframe-ambient-audio") === "1";
-    let effectsEnabled = localStorage.getItem("warframe-interface-audio") === "1";
+    let effectsEnabled = localStorage.getItem("warframe-interface-audio") !== "0";
 
     const ensureContext = () => {
         if (!context) {
@@ -49,7 +49,7 @@ const tennoAudio = (() => {
 
         ambientGain = audio.createGain();
         ambientGain.gain.setValueAtTime(0.0001, audio.currentTime);
-        ambientGain.gain.exponentialRampToValueAtTime(0.035, audio.currentTime + 2.5);
+        ambientGain.gain.exponentialRampToValueAtTime(0.13, audio.currentTime + 1.4);
         ambientGain.connect(audio.destination);
 
         const filter = audio.createBiquadFilter();
@@ -65,7 +65,7 @@ const tennoAudio = (() => {
             oscillator.type = index === 1 ? "triangle" : "sine";
             oscillator.frequency.value = frequency;
             oscillator.detune.value = index * 3 - 3;
-            gain.gain.value = index === 1 ? 0.16 : 0.11;
+            gain.gain.value = index === 1 ? 0.32 : 0.24;
             oscillator.connect(gain).connect(filter);
             oscillator.start();
             ambientNodes.push(oscillator, gain);
@@ -80,8 +80,8 @@ const tennoAudio = (() => {
         ambientNodes.push(lfo, lfoGain, filter);
     };
 
-    const interfacePulse = (strong = false) => {
-        if (!effectsEnabled) return;
+    const interfacePulse = (strong = false, force = false) => {
+        if (!effectsEnabled && !force) return;
         const audio = ensureContext();
         if (!audio) return;
 
@@ -96,11 +96,11 @@ const tennoAudio = (() => {
         filter.frequency.value = 1100;
         filter.Q.value = 2.5;
         gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(strong ? 0.075 : 0.04, now + 0.008);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+        gain.gain.exponentialRampToValueAtTime(strong ? 0.19 : 0.11, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
         oscillator.connect(filter).connect(gain).connect(audio.destination);
         oscillator.start(now);
-        oscillator.stop(now + 0.13);
+        oscillator.stop(now + 0.17);
     };
 
     const updateControls = () => {
@@ -118,13 +118,13 @@ const tennoAudio = (() => {
             localStorage.setItem("warframe-ambient-audio", ambientEnabled ? "1" : "0");
             ambientEnabled ? startAmbient() : stopAmbient();
             updateControls();
-            interfacePulse(true);
+            interfacePulse(true, true);
         },
         toggleEffects: () => {
             effectsEnabled = !effectsEnabled;
             localStorage.setItem("warframe-interface-audio", effectsEnabled ? "1" : "0");
             updateControls();
-            interfacePulse(true);
+            interfacePulse(true, true);
         },
         pulse: interfacePulse,
         restore: () => {
@@ -164,6 +164,22 @@ document.addEventListener("pointermove", (event) => {
     document.documentElement.style.setProperty("--pointer-x", x.toFixed(3));
     document.documentElement.style.setProperty("--pointer-y", y.toFixed(3));
 }, { passive: true });
+
+const tennoCursor = document.getElementById("tenno-cursor");
+if (tennoCursor && window.matchMedia("(pointer: fine)").matches) {
+    document.body.classList.add("tenno-cursor-ready");
+    document.addEventListener("pointermove", (event) => {
+        tennoCursor.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
+        tennoCursor.classList.toggle(
+            "tenno-cursor-hidden",
+            Boolean(event.target.closest("input, textarea, select, [contenteditable='true']"))
+        );
+    }, { passive: true });
+    document.addEventListener("pointerdown", () => tennoCursor.classList.add("tenno-cursor-pressed"), { passive: true });
+    document.addEventListener("pointerup", () => tennoCursor.classList.remove("tenno-cursor-pressed"), { passive: true });
+    document.addEventListener("pointerleave", () => tennoCursor.classList.add("tenno-cursor-offscreen"), { passive: true });
+    document.addEventListener("pointerenter", () => tennoCursor.classList.remove("tenno-cursor-offscreen"), { passive: true });
+}
 
 document.addEventListener("pointerdown", (event) => {
     const isControl = event.target.closest("#ambient-audio-toggle, #interface-audio-toggle");
