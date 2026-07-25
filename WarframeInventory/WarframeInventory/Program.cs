@@ -163,6 +163,38 @@ app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
+var resetPasswordIndex = Array.FindIndex(
+    args,
+    value => value.Equals("--reset-password", StringComparison.OrdinalIgnoreCase));
+if (resetPasswordIndex >= 0)
+{
+    if (resetPasswordIndex + 1 >= args.Length)
+        throw new InvalidOperationException("Debes indicar el nombre de usuario.");
+
+    var resetUserName = args[resetPasswordIndex + 1];
+    var resetPassword = Environment.GetEnvironmentVariable("WARFRAME_RESET_PASSWORD");
+    if (string.IsNullOrWhiteSpace(resetPassword))
+        throw new InvalidOperationException(
+            "Define WARFRAME_RESET_PASSWORD para realizar el restablecimiento.");
+
+    using var scope = app.Services.CreateScope();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+    var identityUser = await userManager.FindByNameAsync(resetUserName)
+        ?? throw new InvalidOperationException($"No existe el usuario '{resetUserName}'.");
+    var token = await userManager.GeneratePasswordResetTokenAsync(identityUser);
+    var resetResult = await userManager.ResetPasswordAsync(identityUser, token, resetPassword);
+    if (!resetResult.Succeeded)
+    {
+        var errors = string.Join("; ", resetResult.Errors.Select(error => error.Description));
+        throw new InvalidOperationException($"No se pudo restablecer la contraseña: {errors}");
+    }
+
+    await userManager.SetLockoutEndDateAsync(identityUser, null);
+    await userManager.ResetAccessFailedCountAsync(identityUser);
+    Console.WriteLine($"Contraseña restablecida para '{identityUser.UserName}'.");
+    return;
+}
+
 if (args.Contains("--sync-catalog", StringComparer.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
