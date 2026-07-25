@@ -11,4 +11,5 @@ public sealed class InventoryEvent
     public int PreviousValue { get; set; }
     public int NewValue { get; set; }
     public DateTime OccurredUtc { get; set; } = DateTime.UtcNow;
+    public bool IsReverted { get; set; }
 }

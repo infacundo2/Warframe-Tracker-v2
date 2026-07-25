@@ -1,0 +1,139 @@
+@page "/inventory-manager"
+@attribute [Authorize]
+@using System.Security.Claims
+@inject InventoryAdvancedService InventoryManagerService
+@inject AuthenticationStateProvider AuthState
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <section class="orokin-panel inventory-manager-hero">
+        <div class="eyebrow">GESTIÓN TÁCTICA // INVENTARIO</div>
+        <MudText Typo="Typo.h3" Class="page-title">Editor e historial</MudText>
+        <MudText>Selecciona varias reliquias, aplica cambios y revierte errores recientes.</MudText>
+    </section>
+    @if (data is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-4" />
+    }
+    else
+    {
+        <div class="inventory-stats">
+            <div><span>OBTENIDOS ESTA SEMANA</span><b>@data.Stats.AddedThisWeek</b></div>
+            <div><span>CATEGORÍA MÁS ACTIVA</span><b>@data.Stats.MostActiveCategory</b></div>
+            <div><span>CAMBIOS REVERTIDOS</span><b>@data.Stats.RevertedChanges</b></div>
+        </div>
+        <MudGrid>
+            <MudItem xs="12" lg="7">
+                <MudPaper Class="bulk-panel">
+                    <div class="bulk-toolbar">
+                        <MudTextField @bind-Value="search" Placeholder="Buscar reliquias..."
+                                      Immediate="true" DebounceInterval="300"
+                                      OnDebounceIntervalElapsed="ReloadAsync"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search" />
+                        <MudButton OnClick="@(() => ApplyAsync(1))" Disabled="@(selected.Count == 0)"
+                                   Variant="Variant.Filled" Color="Color.Primary">+1</MudButton>
+                        <MudButton OnClick="@(() => ApplyAsync(-1))" Disabled="@(selected.Count == 0)"
+                                   Variant="Variant.Outlined" Color="Color.Error">−1</MudButton>
+                    </div>
+                    <div class="bulk-list">
+                        @foreach (var relic in data.Relics)
+                        {
+                            <label class="bulk-row">
+                                <MudCheckBox T="bool" Value="@selected.Contains(relic.UniqueName)"
+                                             ValueChanged="@((bool value) => Toggle(relic.UniqueName, value))" />
+                                <span><b>@relic.Name</b><small>@(relic.Vaulted ? "Vaulted" : "Disponible")</small></span>
+                                <strong>@relic.Quantity</strong>
+                            </label>
+                        }
+                    </div>
+                    @if (selected.Count == 1)
+                    {
+                        <div class="metadata-editor">
+                            <MudText Typo="Typo.h6">Archivo personal</MudText>
+                            <MudTextField @bind-Value="tags" Label="Etiquetas"
+                                          Placeholder="intercambiable, conservar..."
+                                          Variant="Variant.Outlined" />
+                            <MudTextField @bind-Value="notes" Label="Notas" Lines="2"
+                                          Variant="Variant.Outlined" />
+                            <MudDatePicker @bind-Date="acquired" Label="Fecha de adquisición"
+                                           Variant="Variant.Outlined" />
+                            <MudButton OnClick="SaveMetadataAsync" Variant="Variant.Outlined"
+                                       Color="Color.Secondary">Guardar datos personales</MudButton>
+                        </div>
+                    }
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" lg="5">
+                <MudPaper Class="history-panel">
+                    <MudText Typo="Typo.h5">Historial reciente</MudText>
+                    @foreach (var entry in data.History)
+                    {
+                        <div class="history-row">
+                            <div>
+                                <span>@entry.Category</span><b>@entry.DisplayName</b>
+                                <small>@entry.PreviousValue → @entry.NewValue · @entry.OccurredUtc.ToLocalTime().ToString("dd/MM HH:mm")</small>
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Undo"
+                                           Disabled="@entry.IsReverted"
+                                           OnClick="@(() => UndoAsync(entry.Id))"
+                                           Color="Color.Primary" Size="Size.Small"
+                                           aria-label="Deshacer cambio" />
+                        </div>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private string userId = "", search = "";
+    private string notes = "", tags = "";
+    private DateTime? acquired;
+    private InventoryManagerData? data;
+    private readonly HashSet<string> selected = [];
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        await ReloadAsync();
+    }
+    private async Task ReloadAsync()
+    {
+        data = await InventoryManagerService.LoadAsync(userId, search);
+        selected.RemoveWhere(x => !data.Relics.Any(r => r.UniqueName == x));
+    }
+    private async Task Toggle(string key, bool value)
+    {
+        if (value) selected.Add(key); else selected.Remove(key);
+        notes = tags = "";
+        acquired = null;
+        if (selected.Count == 1)
+        {
+            var metadata = await InventoryManagerService.GetMetadataAsync(
+                userId, "relic", selected.Single());
+            if (metadata is not null)
+            {
+                notes = metadata.Notes;
+                tags = metadata.Tags;
+                acquired = metadata.AcquiredUtc?.ToLocalTime();
+            }
+        }
+    }
+    private async Task ApplyAsync(int delta)
+    {
+        await InventoryManagerService.ApplyRelicBulkAsync(userId, selected, delta);
+        await ReloadAsync();
+    }
+    private async Task UndoAsync(long id)
+    {
+        await InventoryManagerService.UndoAsync(userId, id);
+        await ReloadAsync();
+    }
+    private async Task SaveMetadataAsync()
+    {
+        if (selected.Count != 1) return;
+        await InventoryManagerService.SaveMetadataAsync(
+            userId, "relic", selected.Single(), notes, tags, acquired?.ToUniversalTime());
+    }
+}

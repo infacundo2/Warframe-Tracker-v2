@@ -117,6 +117,7 @@ builder.Services.AddScoped<UniversalSearchService>();
 builder.Services.AddScoped<ComparisonService>();
 builder.Services.AddScoped<InventoryToolsService>();
 builder.Services.AddScoped<BuildService>();
+builder.Services.AddScoped<InventoryAdvancedService>();
 builder.Services.AddHttpClient<WorldstateService>(client =>
 {
     client.BaseAddress = new Uri("https://api.warframestat.us/");

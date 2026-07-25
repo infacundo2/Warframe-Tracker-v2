@@ -21,6 +21,8 @@ en ramas separadas antes de integrarse.
   Warframes y armas, y mapa navegable de componentes y reliquias implementados.
 - Inventario avanzado: exportación e importación JSON combinable implementadas.
   El constructor ligero guarda builds, calcula capacidad y señala mods faltantes.
+- Gestión avanzada: edición múltiple de reliquias, historial reversible,
+  estadísticas semanales y metadatos personales (notas, etiquetas y fecha).
 
 ## Fase 1 — Objetivos del operador
 

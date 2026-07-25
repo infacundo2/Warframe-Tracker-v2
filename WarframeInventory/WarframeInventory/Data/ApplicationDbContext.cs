@@ -32,6 +32,7 @@ namespace WarframeInventory.Data
         public DbSet<UserGoal> UserGoals => Set<UserGoal>();
         public DbSet<InventoryEvent> InventoryEvents => Set<InventoryEvent>();
         public DbSet<SavedBuild> SavedBuilds => Set<SavedBuild>();
+        public DbSet<InventoryMetadata> InventoryMetadata => Set<InventoryMetadata>();
 
         public override int SaveChanges()
         {
@@ -195,6 +196,12 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<SavedBuild>().Property(x => x.TargetName).HasMaxLength(255);
             modelBuilder.Entity<SavedBuild>().Property(x => x.Tags).HasMaxLength(255);
             modelBuilder.Entity<SavedBuild>().Property(x => x.ModsJson).HasColumnType("longtext");
+            modelBuilder.Entity<InventoryMetadata>()
+                .HasIndex(x => new { x.UserId, x.Category, x.TargetUnique }).IsUnique();
+            modelBuilder.Entity<InventoryMetadata>().Property(x => x.Category).HasMaxLength(32);
+            modelBuilder.Entity<InventoryMetadata>().Property(x => x.TargetUnique).HasMaxLength(255);
+            modelBuilder.Entity<InventoryMetadata>().Property(x => x.Tags).HasMaxLength(255);
+            modelBuilder.Entity<InventoryMetadata>().Property(x => x.Notes).HasColumnType("longtext");
 
             modelBuilder.Entity<UserWarframe>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -211,6 +218,8 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<InventoryEvent>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<SavedBuild>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
+                .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<InventoryMetadata>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<RelicReward>().HasIndex(x => new { x.RelicUnique, x.ItemUnique }).IsUnique();
