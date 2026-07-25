@@ -19,6 +19,8 @@ en ramas separadas antes de integrarse.
   caché tolerante a fallos y cruce por era con las reliquias del inventario.
 - Herramientas transversales: consola universal con `Ctrl+K`, comparación de
   Warframes y armas, y mapa navegable de componentes y reliquias implementados.
+- Inventario avanzado: exportación e importación JSON combinable implementadas.
+  El constructor ligero guarda builds, calcula capacidad y señala mods faltantes.
 
 ## Fase 1 — Objetivos del operador
 

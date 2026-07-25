@@ -15,3 +15,24 @@ document.addEventListener("keydown", (event) => {
 if (window.location.pathname === "/search") {
     window.setTimeout(() => document.getElementById("universal-search-input")?.focus(), 150);
 }
+
+window.warframeTracker = {
+    downloadText: (filename, content) => {
+        const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    },
+    toggleEnergyMode: () => {
+        const enabled = !document.documentElement.classList.contains("reduced-energy");
+        document.documentElement.classList.toggle("reduced-energy", enabled);
+        localStorage.setItem("warframe-reduced-energy", enabled ? "1" : "0");
+    }
+};
+
+if (localStorage.getItem("warframe-reduced-energy") === "1") {
+    document.documentElement.classList.add("reduced-energy");
+}

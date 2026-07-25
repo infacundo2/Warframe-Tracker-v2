@@ -1,0 +1,112 @@
+@page "/builds"
+@attribute [Authorize]
+@using System.Security.Claims
+@inject BuildService BuildManager
+@inject AuthenticationStateProvider AuthState
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <section class="orokin-panel build-hero">
+        <div class="eyebrow">ARSENAL SIMULADO // CONFIGURACIONES</div>
+        <MudText Typo="Typo.h3" Class="page-title">Constructor ligero</MudText>
+        <MudText>Combina mods, calcula capacidad y detecta piezas faltantes.</MudText>
+    </section>
+    @if (workspace is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-4" />
+    }
+    else
+    {
+        <MudPaper Class="build-editor mt-4">
+            <MudTextField @bind-Value="name" Label="Nombre de la build" Variant="Variant.Outlined" />
+            <MudSelect T="string" Label="Objetivo" Value="@targetUnique" ValueChanged="SelectTarget"
+                       Variant="Variant.Outlined">
+                @foreach (var target in workspace.Targets)
+                {
+                    <MudSelectItem T="string" Value="@target.UniqueName">
+                        @target.Name · @target.Type
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="tags" Label="Etiquetas" Placeholder="acero, supervivencia..."
+                          Variant="Variant.Outlined" />
+            <MudNumericField T="int" @bind-Value="capacity" Label="Capacidad" Min="0" Max="90"
+                             Variant="Variant.Outlined" />
+            <MudNumericField T="int" @bind-Value="forma" Label="Forma" Min="0" Max="100"
+                             Variant="Variant.Outlined" />
+        </MudPaper>
+        <div class="build-summary">
+            <span>CAPACIDAD USADA <b class="@(TotalDrain > capacity ? "is-over" : "")">@TotalDrain / @capacity</b></span>
+            <span>MODS FALTANTES <b>@slots.Count(x => !x.Owned)</b></span>
+        </div>
+        <div class="build-slots">
+            @for (var index = 0; index < 8; index++)
+            {
+                var slotIndex = index;
+                <MudPaper Class="@($"build-slot {(slots[index].Owned ? "" : "is-missing")}")">
+                    <MudSelect T="string" Label="@($"Ranura {index + 1}")"
+                               Value="@slots[index].ModUnique"
+                               ValueChanged="@((string value) => SelectMod(slotIndex, value))"
+                               Variant="Variant.Outlined" Clearable="true">
+                        @foreach (var mod in workspace.Mods)
+                        {
+                            <MudSelectItem T="string" Value="@mod.UniqueName">
+                                @mod.Name · @mod.Drain @(mod.Owned ? "" : "· FALTA")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (!string.IsNullOrWhiteSpace(slots[index].ModUnique))
+                    {
+                        <small>@slots[index].Polarity · @slots[index].Drain capacidad</small>
+                    }
+                </MudPaper>
+            }
+        </div>
+        <MudButton OnClick="SaveAsync" Disabled="@(!CanSave)" Variant="Variant.Filled"
+                   Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">Guardar build</MudButton>
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <MudAlert Severity="Severity.Success" Class="mt-3">@message</MudAlert>
+        }
+        <MudText Typo="Typo.h5" Class="mt-6 mb-2">Builds guardadas</MudText>
+        <div class="saved-builds">
+            @foreach (var build in workspace.Builds)
+            {
+                <MudPaper Class="saved-build">
+                    <span>@build.TargetName</span><b>@build.Name</b>
+                    <small>@build.Tags · @build.Capacity capacidad · @build.FormaCount Forma</small>
+                </MudPaper>
+            }
+        </div>
+    }
+</MudContainer>
+
+@code {
+    private BuildWorkspace? workspace;
+    private string userId = "", name = "", tags = "", targetUnique = "", message = "";
+    private int capacity = 30, forma;
+    private List<BuildSlot> slots = Enumerable.Range(0, 8)
+        .Select(_ => new BuildSlot("", "", 0, "", true)).ToList();
+    private int TotalDrain => slots.Sum(x => x.Drain);
+    private bool CanSave => !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(targetUnique);
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        workspace = await BuildManager.LoadAsync(userId);
+        targetUnique = workspace.Targets.FirstOrDefault()?.UniqueName ?? "";
+    }
+    private void SelectTarget(string value) => targetUnique = value;
+    private void SelectMod(int index, string value)
+    {
+        var mod = workspace?.Mods.FirstOrDefault(x => x.UniqueName == value);
+        slots[index] = mod is null ? new("", "", 0, "", true)
+            : new(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned);
+    }
+    private async Task SaveAsync()
+    {
+        var target = workspace!.Targets.First(x => x.UniqueName == targetUnique);
+        await BuildManager.SaveAsync(userId, 0, name, target, tags, capacity, forma, slots);
+        workspace = await BuildManager.LoadAsync(userId);
+        message = "Build guardada en el archivo del operador.";
+    }
+}

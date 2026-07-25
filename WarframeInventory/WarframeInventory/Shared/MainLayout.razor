@@ -17,6 +17,10 @@
         <a href="/search" class="command-trigger" aria-label="Abrir búsqueda universal">
             <MudIcon Icon="@Icons.Material.Filled.Search" /><span>Buscar</span><kbd>Ctrl K</kbd>
         </a>
+        <button type="button" class="energy-toggle" onclick="warframeTracker.toggleEnergyMode()"
+                aria-label="Alternar movimiento reducido" title="Movimiento reducido">
+            <MudIcon Icon="@Icons.Material.Filled.MotionPhotosOff" />
+        </button>
         <AuthorizeView>
             <Authorized>
                 <span class="tenno-id">@context.User.Identity?.Name</span>
@@ -46,6 +50,8 @@
                     <Authorized>
                         <MudNavLink Href="/goals" Icon="@Icons.Material.Filled.TrackChanges">Objetivos</MudNavLink>
                         <MudNavLink Href="/buildable" Icon="@Icons.Material.Filled.Inventory2">Construibles</MudNavLink>
+                        <MudNavLink Href="/inventory-tools" Icon="@Icons.Material.Filled.SyncAlt">Transferir inventario</MudNavLink>
+                        <MudNavLink Href="/builds" Icon="@Icons.Material.Filled.Build">Builds</MudNavLink>
                     </Authorized>
                 </AuthorizeView>
             </MudNavMenu>

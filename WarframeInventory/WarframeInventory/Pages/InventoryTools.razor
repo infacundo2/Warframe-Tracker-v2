@@ -1,0 +1,72 @@
+@page "/inventory-tools"
+@attribute [Authorize]
+@using System.Security.Claims
+@using System.Text
+@inject InventoryToolsService InventoryTransferService
+@inject AuthenticationStateProvider AuthState
+@inject IJSRuntime Js
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
+    <section class="orokin-panel inventory-tools-hero">
+        <div class="eyebrow">PROTOCOLO DE TRANSFERENCIA // INVENTARIO</div>
+        <MudText Typo="Typo.h3" Class="page-title">Copia y restauración</MudText>
+        <MudText>Exporta tu inventario completo o combina un archivo previamente guardado.</MudText>
+    </section>
+    <MudGrid Class="mt-4">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="inventory-tool-card">
+                <MudIcon Icon="@Icons.Material.Filled.Download" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h5">Exportar JSON</MudText>
+                <MudText Typo="Typo.body2">Incluye Warframes, armas, mods, reliquias y componentes.</MudText>
+                <MudButton OnClick="ExportAsync" Variant="Variant.Filled" Color="Color.Primary">
+                    Descargar copia
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="inventory-tool-card">
+                <MudIcon Icon="@Icons.Material.Filled.UploadFile" Color="Color.Secondary" Size="Size.Large" />
+                <MudText Typo="Typo.h5">Importar JSON</MudText>
+                <MudText Typo="Typo.body2">Combina por identificador y conserva el catálogo.</MudText>
+                <InputFile OnChange="ImportAsync" accept=".json,application/json" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <MudAlert Severity="@severity" Class="mt-4">@message</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private string userId = "";
+    private string message = "";
+    private Severity severity = Severity.Success;
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+    }
+    private async Task ExportAsync()
+    {
+        var json = await InventoryTransferService.ExportAsync(userId);
+        await Js.InvokeVoidAsync("warframeTracker.downloadText",
+            $"warframe-inventory-{DateTime.Now:yyyyMMdd}.json", json);
+    }
+    private async Task ImportAsync(InputFileChangeEventArgs args)
+    {
+        try
+        {
+            await using var stream = args.File.OpenReadStream(5 * 1024 * 1024);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            var summary = await InventoryTransferService.ImportAsync(userId, await reader.ReadToEndAsync());
+            message = $"{summary.ChangedEntries} entradas combinadas correctamente.";
+            severity = Severity.Success;
+        }
+        catch (Exception ex)
+        {
+            message = $"No se pudo importar: {ex.Message}";
+            severity = Severity.Error;
+        }
+    }
+}
