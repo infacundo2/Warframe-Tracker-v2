@@ -1,0 +1,155 @@
+@page "/resources"
+@inject ResourceCatalogService ResourceCatalog
+
+<MudContainer MaxWidth="MaxWidth.False" Class="px-6 py-4 resource-page">
+    <section class="orokin-panel resource-hero">
+        <div>
+            <div class="eyebrow">ARCHIVO DE MATERIALES // ORIGEN DEL SISTEMA</div>
+            <MudText Typo="Typo.h3" Class="page-title">Recursos</MudText>
+            <MudText Typo="Typo.body1">
+                Consulta planetas, misiones, enemigos y probabilidades conocidas para cada material.
+            </MudText>
+        </div>
+        <div class="resource-scan" aria-hidden="true">
+            <span></span><span></span><span></span>
+        </div>
+    </section>
+
+    <div class="resource-toolbar">
+        <MudTextField @bind-Value="search"
+                      Placeholder="Buscar célula orokin, argón, telurio..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Immediate="true"
+                      Variant="Variant.Outlined" />
+        <MudSelect T="string" Label="Método principal" @bind-Value="category"
+                   Variant="Variant.Outlined">
+            <MudSelectItem T="string" Value="@("Todos")">Todos</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Planetario")">Recursos planetarios</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Drop específico")">Drops específicos</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Especial")">Obtención especial</MudSelectItem>
+        </MudSelect>
+    </div>
+
+    @if (loading)
+    {
+        <div class="resource-loading">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            <span>Analizando rutas de extracción...</span>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(error))
+    {
+        <MudAlert Severity="Severity.Error">@error</MudAlert>
+    }
+    else
+    {
+        <div class="resource-summary">
+            <b>@FilteredResources.Count()</b>
+            <span>recursos encontrados</span>
+        </div>
+
+        <div class="resource-grid">
+            @foreach (var resource in FilteredResources)
+            {
+                <article class="resource-card">
+                    <div class="resource-card__header">
+                        <img src="@ImageUrl(resource.ImageName)" alt="" loading="lazy" />
+                        <div>
+                            <span class="resource-class">@resource.Category</span>
+                            <MudText Typo="Typo.h5">@resource.Name</MudText>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(resource.LocationSummary))
+                    {
+                        <div class="resource-location">
+                            <MudIcon Icon="@Icons.Material.Filled.Place" />
+                            <span>@resource.LocationSummary</span>
+                        </div>
+                    }
+                    else if (resource.Drops.Count > 0)
+                    {
+                        <div class="resource-location">
+                            <MudIcon Icon="@Icons.Material.Filled.GpsFixed" />
+                            <span>Mejor fuente: @resource.Drops[0].Location</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="resource-location resource-location--unknown">
+                            Sin ubicación normalizada en el catálogo.
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(resource.Description))
+                    {
+                        <p class="resource-description">@resource.Description</p>
+                    }
+
+                    @if (resource.Drops.Count > 0)
+                    {
+                        <MudExpansionPanels Class="resource-drops">
+                            <MudExpansionPanel Text="@($"Ver {resource.Drops.Count} fuentes con probabilidad")">
+                                <div class="resource-drop-list">
+                                    @foreach (var drop in resource.Drops.Take(20))
+                                    {
+                                        <div>
+                                            <span>
+                                                <b>@drop.Location</b>
+                                                <small>@drop.Type · @drop.Rarity</small>
+                                            </span>
+                                            <strong>@drop.Chance.ToString("0.####")%</strong>
+                                        </div>
+                                    }
+                                </div>
+                                @if (resource.Drops.Count > 20)
+                                {
+                                    <small class="resource-more">
+                                        Se muestran las 20 fuentes con mayor probabilidad.
+                                    </small>
+                                }
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    }
+                </article>
+            }
+        </div>
+    }
+</MudContainer>
+
+@code {
+    private IReadOnlyList<ResourceInfo> resources = [];
+    private string search = "";
+    private string category = "Todos";
+    private bool loading = true;
+    private string error = "";
+
+    private IEnumerable<ResourceInfo> FilteredResources => resources
+        .Where(resource => category == "Todos" || resource.Category == category)
+        .Where(resource => string.IsNullOrWhiteSpace(search)
+            || resource.Name.Contains(search, StringComparison.CurrentCultureIgnoreCase)
+            || resource.LocationSummary.Contains(search, StringComparison.CurrentCultureIgnoreCase)
+            || resource.Description.Contains(search, StringComparison.CurrentCultureIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            resources = await ResourceCatalog.GetResourcesAsync();
+        }
+        catch (Exception ex)
+        {
+            error = $"No fue posible cargar los recursos: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private static string ImageUrl(string imageName)
+        => string.IsNullOrWhiteSpace(imageName)
+            ? "/images/item-placeholder.svg"
+            : $"https://cdn.warframestat.us/img/{imageName}";
+}
