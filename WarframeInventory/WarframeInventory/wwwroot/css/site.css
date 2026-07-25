@@ -930,6 +930,53 @@ img { color: transparent; }
     border-color: rgba(216, 184, 92, .45);
 }
 
+/* Cursor holográfico Tenno: conserva el cursor nativo en campos de texto. */
+@media (pointer: fine) {
+    html,
+    body,
+    a,
+    button,
+    [role="button"],
+    .mud-button-root,
+    .mud-nav-link {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 2l17 12-8 2-4 8z' fill='%23071118' stroke='%2377e7ff' stroke-width='1.5'/%3E%3Ccircle cx='19.5' cy='14' r='2.2' fill='%23d8b86a'/%3E%3C/svg%3E") 3 2, pointer;
+    }
+
+    input,
+    textarea,
+    [contenteditable="true"] {
+        cursor: text;
+    }
+}
+
+.audio-toggle {
+    position: relative;
+}
+
+.audio-toggle::after {
+    content: "";
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #52636a;
+    box-shadow: none;
+    transition: background .2s ease, box-shadow .2s ease;
+}
+
+.audio-toggle.audio-active {
+    color: #77e7ff;
+    border-color: rgba(119, 231, 255, .55);
+    background: rgba(119, 231, 255, .1);
+}
+
+.audio-toggle.audio-active::after {
+    background: #5de0aa;
+    box-shadow: 0 0 8px #5de0aa;
+}
+
 .orokin-panel {
     position: relative;
     overflow: hidden;

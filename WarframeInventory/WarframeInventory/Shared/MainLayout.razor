@@ -21,6 +21,18 @@
                 aria-label="Alternar movimiento reducido" title="Movimiento reducido">
             <MudIcon Icon="@Icons.Material.Filled.MotionPhotosOff" />
         </button>
+        <button id="ambient-audio-toggle" type="button" class="energy-toggle audio-toggle"
+                onclick="warframeTracker.audio.toggleAmbient()"
+                aria-label="Activar ambiente futurista" aria-pressed="false"
+                title="Ambiente futurista">
+            <MudIcon Icon="@Icons.Material.Filled.MusicNote" />
+        </button>
+        <button id="interface-audio-toggle" type="button" class="energy-toggle audio-toggle"
+                onclick="warframeTracker.audio.toggleEffects()"
+                aria-label="Activar sonidos de interfaz" aria-pressed="false"
+                title="Sonidos de interfaz">
+            <MudIcon Icon="@Icons.Material.Filled.VolumeUp" />
+        </button>
         <AuthorizeView>
             <Authorized>
                 <span class="tenno-id">@context.User.Identity?.Name</span>
