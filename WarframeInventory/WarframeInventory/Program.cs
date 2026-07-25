@@ -113,6 +113,15 @@ builder.Services.AddScoped<FarmPlannerService>();
 builder.Services.AddScoped<BuildableAnalysisService>();
 builder.Services.AddScoped<CommandCenterService>();
 builder.Services.AddScoped<RelicIntelligenceService>();
+builder.Services.AddHttpClient<MarketPriceService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.warframe.market/v2/");
+    client.Timeout = TimeSpan.FromSeconds(8);
+    client.DefaultRequestHeaders.Add("Platform", "pc");
+    client.DefaultRequestHeaders.Add("Crossplay", "true");
+    client.DefaultRequestHeaders.Add("Language", "es");
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("WarframeInventory/2.0");
+});
 builder.Services.AddScoped<UniversalSearchService>();
 builder.Services.AddScoped<ComparisonService>();
 builder.Services.AddScoped<InventoryToolsService>();

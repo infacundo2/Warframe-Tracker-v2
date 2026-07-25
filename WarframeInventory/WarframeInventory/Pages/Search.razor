@@ -1,6 +1,8 @@
 @page "/search"
 @inject UniversalSearchService SearchService
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
+@using System.Security.Claims
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
     <section class="search-console orokin-panel">
@@ -20,6 +22,13 @@
             {
                 <button type="button" class="@(category == option.Key ? "is-active" : "")"
                         @onclick="@(() => ChangeCategoryAsync(option.Key))">@option.Value</button>
+            }
+        </div>
+        <div class="search-examples">
+            <span>Prueba:</span>
+            @foreach (var example in Examples)
+            {
+                <button type="button" @onclick="@(() => RunExampleAsync(example))">@example</button>
             }
         </div>
     </section>
@@ -62,6 +71,16 @@
     private bool loading;
     private IReadOnlyList<SearchHit> results = [];
     private CancellationTokenSource? searchCts;
+    private string userId = "";
+    private static readonly string[] Examples =
+        ["reliquias vaulted que poseo", "armas Prime incompletas",
+         "reliquias con Ash Systems", "mods para Trinity"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+    }
 
     private async Task OnInput(ChangeEventArgs args)
     {
@@ -79,7 +98,7 @@
         try
         {
             await Task.Delay(220, token);
-            results = await SearchService.SearchAsync(query, category, token);
+            results = await SearchService.SearchAsync(query, category, userId, token);
         }
         catch (OperationCanceledException) { }
         finally
@@ -93,7 +112,14 @@
     {
         category = value;
         if (query.Trim().Length >= 2)
-            results = await SearchService.SearchAsync(query, category);
+            results = await SearchService.SearchAsync(query, category, userId);
+    }
+    private async Task RunExampleAsync(string value)
+    {
+        query = value;
+        loading = true;
+        results = await SearchService.SearchAsync(query, "all", userId);
+        loading = false;
     }
 
     private static string Label(string value) => Categories.GetValueOrDefault(value, value);

@@ -584,6 +584,22 @@ img { color: transparent; }
     color: #38d8f5;
     border-color: #38d8f5;
 }
+.search-examples {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+    margin-top: .75rem;
+    color: #8ca8b3;
+    font-size: .75rem;
+}
+.search-examples button {
+    color: #d8b85c;
+    background: transparent;
+    border: 0;
+    text-decoration: underline;
+    cursor: pointer;
+}
 
 .search-results {
     display: grid;
@@ -1231,6 +1247,38 @@ img { color: transparent; }
 .lab-confidence .mud-typography-caption {
     grid-column: 1 / -1;
 }
+.lab-economy { padding: 1.4rem; }
+.lab-economy__summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .6rem;
+    margin: 1rem 0;
+}
+.lab-economy__summary > div {
+    display: flex;
+    flex-direction: column;
+    padding: .7rem;
+    background: rgba(56, 216, 245, .05);
+    border-top: 1px solid #38d8f5;
+}
+.lab-economy__summary span { color: #8ca8b3; }
+.lab-economy__summary b { color: #d8b85c; font-size: 1.25rem; }
+.opening-history { padding: 1.4rem; }
+.opening-history__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: .6rem;
+    margin-top: 1rem;
+}
+.opening-history__list > div {
+    display: flex;
+    flex-direction: column;
+    padding: .7rem;
+    border-left: 1px solid #38d8f5;
+    background: rgba(56, 216, 245, .04);
+}
+.opening-history__list span { color: #d8b85c; font-size: .65rem; }
+.opening-history__list small { color: #8ca8b3; }
 
 @media (max-width: 900px) {
     .relic-lab-controls,

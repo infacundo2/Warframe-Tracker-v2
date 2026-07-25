@@ -1,5 +1,7 @@
 @page "/relics/{UniqueName}/laboratorio"
 @inject RelicIntelligenceService Intelligence
+@inject AuthenticationStateProvider AuthState
+@using System.Security.Claims
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
     @if (loading)
@@ -117,6 +119,32 @@
                     <div class="lab-advice">@reward.Recommendation</div>
                 </MudPaper>
 
+                <MudPaper Class="lab-economy mt-4">
+                    <div class="lab-section-title">
+                        <div><span>ANÁLISIS ECONÓMICO</span><MudText Typo="Typo.h5">Valor esperado</MudText></div>
+                    </div>
+                    <div class="lab-economy__summary">
+                        @foreach (var value in RelicIntelligenceService.Refinements)
+                        {
+                            <div><span>@value</span><b>@ExpectedValue(value).ToString("0.00") pl</b></div>
+                        }
+                    </div>
+                    <MudTable Items="@lab.Rewards.OrderByDescending(x => x.LowestSellPrice ?? 0)" Dense="true">
+                        <HeaderContent>
+                            <MudTh>Recompensa</MudTh><MudTh>Venta online</MudTh><MudTh>Compra online</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.ItemName</MudTd>
+                            <MudTd>@Price(context.LowestSellPrice)</MudTd>
+                            <MudTd>@Price(context.HighestBuyPrice)</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                    <MudText Typo="Typo.caption">
+                        Precios orientativos de órdenes online de Warframe Market, en caché durante cinco minutos.
+                        No garantizan una venta.
+                    </MudText>
+                </MudPaper>
+
                 <MudPaper Class="lab-confidence mt-4">
                     <MudText Typo="Typo.h6">Aperturas de escuadrón estimadas</MudText>
                     <div><span>50% de probabilidad</span><b>@simulation.Attempts50</b></div>
@@ -125,6 +153,36 @@
                     <MudText Typo="Typo.caption">
                         Estimación estadística, no garantía. Cada apertura sigue siendo independiente.
                     </MudText>
+                </MudPaper>
+
+                <MudPaper Class="opening-history mt-4">
+                    <div class="lab-section-title">
+                        <div><span>REGISTRO DEL OPERADOR</span><MudText Typo="Typo.h5">Aperturas manuales</MudText></div>
+                        <MudButton OnClick="RecordOpeningAsync"
+                                   Disabled="@string.IsNullOrWhiteSpace(userId)"
+                                   Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add">
+                            Registrar recompensa seleccionada
+                        </MudButton>
+                    </div>
+                    @if (history.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-3">
+                            Todavía no registras aperturas de esta reliquia.
+                        </MudText>
+                    }
+                    else
+                    {
+                        <div class="opening-history__list">
+                            @foreach (var opening in history)
+                            {
+                                <div>
+                                    <span>@opening.Refinement</span><b>@opening.RewardName</b>
+                                    <small>@opening.OpenedUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                                </div>
+                            }
+                        </div>
+                    }
                 </MudPaper>
             }
         }
@@ -141,20 +199,35 @@
     private string refinement = "Radiante";
     private int squadSize = 4;
     private int openings = 1;
+    private string userId = "";
+    private IReadOnlyList<RelicOpening> history = [];
 
     private RelicLabReward? SelectedReward
         => lab?.Rewards.FirstOrDefault(x => x.ItemUnique == selectedItem);
+    private double ExpectedValue(string value) => lab?.Rewards.Sum(reward =>
+        (reward.LowestSellPrice ?? 0) * reward.Chances.GetValueOrDefault(value) / 100d) ?? 0;
+    private static string Price(int? value) => value.HasValue ? $"{value.Value} pl" : "Sin datos";
 
     protected override async Task OnParametersSetAsync()
     {
         loading = true;
         if (!string.IsNullOrWhiteSpace(UniqueName))
         {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
             lab = await Intelligence.LoadAsync(Uri.UnescapeDataString(UniqueName));
             selectedItem = lab?.Rewards.FirstOrDefault(x => x.Rarity == "Rara")?.ItemUnique
                 ?? lab?.Rewards.FirstOrDefault()?.ItemUnique
                 ?? "";
+            if (lab is not null)
+                history = await Intelligence.HistoryAsync(userId, lab.Name);
         }
         loading = false;
+    }
+    private async Task RecordOpeningAsync()
+    {
+        if (lab is null || SelectedReward is null || string.IsNullOrWhiteSpace(userId)) return;
+        await Intelligence.RecordOpeningAsync(userId, lab, SelectedReward, refinement);
+        history = await Intelligence.HistoryAsync(userId, lab.Name);
     }
 }

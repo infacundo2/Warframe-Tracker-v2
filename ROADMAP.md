@@ -33,6 +33,8 @@ en ramas separadas antes de integrarse.
   energía reducida y enlaces de builds portables sin datos de cuenta.
 - Objetivos/builds: metas cuantitativas de reliquias sumando I/E/P/R y cálculo
   de capacidad por rango, polaridad coincidente/conflictiva y Forma sugerida.
+- Inteligencia final: comandos de búsqueda por intención, precios online v2,
+  valor esperado por refinamiento e historial manual de aperturas.
 
 ## Fase 1 — Objetivos del operador
 

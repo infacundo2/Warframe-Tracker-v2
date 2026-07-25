@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WarframeInventory.Data;
+using WarframeInventory.Models;
 
 namespace WarframeInventory.Services;
 
@@ -9,9 +10,14 @@ public sealed class RelicIntelligenceService
         ["Intacta", "Excepcional", "Perfecta", "Radiante"];
 
     private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
+    private readonly MarketPriceService _market;
 
-    public RelicIntelligenceService(IDbContextFactory<ApplicationDbContext> dbFactory)
-        => _dbFactory = dbFactory;
+    public RelicIntelligenceService(
+        IDbContextFactory<ApplicationDbContext> dbFactory, MarketPriceService market)
+    {
+        _dbFactory = dbFactory;
+        _market = market;
+    }
 
     public async Task<RelicLabData?> LoadAsync(string uniqueName, CancellationToken ct = default)
     {
@@ -52,13 +58,23 @@ public sealed class RelicIntelligenceService
             .OrderByDescending(x => x.Chances["Intacta"])
             .ThenBy(x => x.ItemName)
             .ToList();
+        var pricedRewards = new List<RelicLabReward>();
+        foreach (var reward in rewards)
+        {
+            var price = await _market.GetAsync(reward.MarketUrlName, ct);
+            pricedRewards.Add(reward with
+            {
+                LowestSellPrice = price?.LowestSell,
+                HighestBuyPrice = price?.HighestBuy
+            });
+        }
 
         return new RelicLabData(
             selected.UniqueName,
             selected.Name,
             selected.ImageName,
             variants.All(x => x.Vaulted),
-            rewards);
+            pricedRewards);
     }
 
     public static RelicSimulation Simulate(
@@ -80,6 +96,34 @@ public sealed class RelicIntelligenceService
             AttemptsFor(percent, squadSize, .50),
             AttemptsFor(percent, squadSize, .75),
             AttemptsFor(percent, squadSize, .90));
+    }
+
+    public async Task RecordOpeningAsync(
+        string userId, RelicLabData lab, RelicLabReward reward, string refinement,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        db.RelicOpenings.Add(new RelicOpening
+        {
+            UserId = userId,
+            RelicName = lab.Name,
+            RelicUnique = lab.UniqueName,
+            Refinement = refinement,
+            RewardUnique = reward.ItemUnique,
+            RewardName = reward.ItemName
+        });
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<RelicOpening>> HistoryAsync(
+        string userId, string relicName, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return [];
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        return await db.RelicOpenings.AsNoTracking()
+            .Where(x => x.UserId == userId && x.RelicName == relicName)
+            .OrderByDescending(x => x.OpenedUtc).Take(30).ToListAsync(ct);
     }
 
     private static int AttemptsFor(double percent, int squadSize, double confidence)
@@ -155,7 +199,11 @@ public sealed record RelicLabReward(
     string Rarity,
     IReadOnlyDictionary<string, double> Chances,
     string Recommendation,
-    string? MarketUrlName);
+    string? MarketUrlName)
+{
+    public int? LowestSellPrice { get; init; }
+    public int? HighestBuyPrice { get; init; }
+}
 
 public sealed record RelicSimulation(
     string Refinement,

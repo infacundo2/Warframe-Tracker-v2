@@ -33,6 +33,7 @@ namespace WarframeInventory.Data
         public DbSet<InventoryEvent> InventoryEvents => Set<InventoryEvent>();
         public DbSet<SavedBuild> SavedBuilds => Set<SavedBuild>();
         public DbSet<InventoryMetadata> InventoryMetadata => Set<InventoryMetadata>();
+        public DbSet<RelicOpening> RelicOpenings => Set<RelicOpening>();
 
         public override int SaveChanges()
         {
@@ -202,6 +203,13 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<InventoryMetadata>().Property(x => x.TargetUnique).HasMaxLength(255);
             modelBuilder.Entity<InventoryMetadata>().Property(x => x.Tags).HasMaxLength(255);
             modelBuilder.Entity<InventoryMetadata>().Property(x => x.Notes).HasColumnType("longtext");
+            modelBuilder.Entity<RelicOpening>()
+                .HasIndex(x => new { x.UserId, x.OpenedUtc });
+            modelBuilder.Entity<RelicOpening>().Property(x => x.RelicName).HasMaxLength(255);
+            modelBuilder.Entity<RelicOpening>().Property(x => x.RelicUnique).HasMaxLength(255);
+            modelBuilder.Entity<RelicOpening>().Property(x => x.Refinement).HasMaxLength(32);
+            modelBuilder.Entity<RelicOpening>().Property(x => x.RewardUnique).HasMaxLength(255);
+            modelBuilder.Entity<RelicOpening>().Property(x => x.RewardName).HasMaxLength(255);
 
             modelBuilder.Entity<UserWarframe>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -220,6 +228,8 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<SavedBuild>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<InventoryMetadata>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
+                .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<RelicOpening>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<RelicReward>().HasIndex(x => new { x.RelicUnique, x.ItemUnique }).IsUnique();

@@ -27,6 +27,11 @@ Una segunda pasada confirmó `/worldstate`, `/mods`, `/compare`, `/builds`,
 `/inventory-tools` e `/inventory-manager`, el SVG orbital del inicio y el manejo
 seguro de un enlace de build inválido, todos con HTTP 200.
 
+El laboratorio se probó con una reliquia normalizada real: respondió HTTP 200
+en 3,08 s incluyendo seis precios limitados, valor esperado e historial manual.
+La integración usa `/v2/orders/item/{slug}/top`, caché de cinco minutos y una
+cadencia inferior al límite público de tres solicitudes por segundo.
+
 ## Limitación del entorno
 
 El navegador integrado no pudo inicializarse por falta de la política de sandbox

@@ -11,13 +11,64 @@ public sealed class UniversalSearchService
         => _dbFactory = dbFactory;
 
     public async Task<IReadOnlyList<SearchHit>> SearchAsync(
-        string query, string category = "all", CancellationToken ct = default)
+        string query, string category = "all", string? userId = null,
+        CancellationToken ct = default)
     {
         query = query.Trim();
         if (query.Length < 2)
             return [];
 
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var intent = query.ToLowerInvariant();
+        if (intent.Contains("reliquia") && intent.Contains("vaulted"))
+        {
+            var relicQuery = db.Relics.AsNoTracking().Where(x => x.Vaulted);
+            if (intent.Contains("poseo") || intent.Contains("tengo"))
+            {
+                var owned = db.UserRelics.Where(x => x.UserId == userId && x.Quantity > 0)
+                    .Select(x => x.RelicUnique);
+                relicQuery = relicQuery.Where(x => owned.Contains(x.UniqueName));
+            }
+            return await relicQuery.OrderBy(x => x.Name).Take(60)
+                .Select(x => new SearchHit("relic", x.UniqueName, x.Name, "Vaulted",
+                    x.ImageName, $"/relics/{Uri.EscapeDataString(x.UniqueName)}"))
+                .ToListAsync(ct);
+        }
+        if (intent.Contains("arma") && intent.Contains("prime")
+            && (intent.Contains("incompleta") || intent.Contains("faltante")))
+        {
+            var owned = db.UserWeapons.Where(x => x.UserId == userId && x.Owned)
+                .Select(x => x.WeaponUnique);
+            return await db.Weapons.AsNoTracking().Where(x => x.IsPrime && !owned.Contains(x.UniqueName))
+                .OrderBy(x => x.Name).Take(60)
+                .Select(x => new SearchHit("weapon", x.UniqueName, x.Name,
+                    "Prime incompleta", x.ImageName, $"/weapons/{Uri.EscapeDataString(x.UniqueName)}"))
+                .ToListAsync(ct);
+        }
+        if (intent.StartsWith("reliquias con ") || intent.StartsWith("reliquia con "))
+        {
+            var separator = intent.IndexOf(" con ", StringComparison.Ordinal);
+            var rewardSearch = query[(separator + 5)..].Trim();
+            var rewardKeys = await db.RelicRewards.AsNoTracking()
+                .Where(x => EF.Functions.Like(x.ItemName, $"%{rewardSearch}%"))
+                .Select(x => x.RelicUnique).Distinct().Take(100).ToListAsync(ct);
+            return await db.Relics.AsNoTracking().Where(x => rewardKeys.Contains(x.UniqueName))
+                .OrderBy(x => x.Name).Take(60)
+                .Select(x => new SearchHit("relic", x.UniqueName, x.Name,
+                    x.Vaulted ? "Vaulted" : "Disponible", x.ImageName,
+                    $"/relics/{Uri.EscapeDataString(x.UniqueName)}"))
+                .ToListAsync(ct);
+        }
+        if (intent.StartsWith("mods para "))
+        {
+            var compat = query["mods para ".Length..].Trim();
+            return await db.Mods.AsNoTracking()
+                .Where(x => x.CompatName != null && EF.Functions.Like(x.CompatName, $"%{compat}%"))
+                .OrderBy(x => x.Name).Take(60)
+                .Select(x => new SearchHit("mod", x.UniqueName, x.Name,
+                    x.CompatName ?? "Mod", x.ImageName, $"/mods/{Uri.EscapeDataString(x.UniqueName)}"))
+                .ToListAsync(ct);
+        }
         var pattern = $"%{query}%";
         var hits = new List<SearchHit>();
 
