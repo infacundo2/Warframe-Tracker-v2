@@ -132,9 +132,20 @@
                         </div>
 
                         <div class="goal-card__actions">
-                            <MudButton Href="@TargetUrl(goal)" Variant="Variant.Text" Color="Color.Primary">
-                                Abrir objetivo
-                            </MudButton>
+                            <div>
+                                <MudButton Href="@TargetUrl(goal)" Variant="Variant.Text" Color="Color.Primary">
+                                    Abrir objetivo
+                                </MudButton>
+                                @if (goal.TargetType is "warframe" or "weapon" && analysis?.MissingCount > 0)
+                                {
+                                    <MudButton Href="@($"/planner/{goal.Id}")"
+                                               Variant="Variant.Filled"
+                                               Color="Color.Secondary"
+                                               StartIcon="@Icons.Material.Filled.Route">
+                                        Planificar
+                                    </MudButton>
+                                }
+                            </div>
                             <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
                                            Color="Color.Error"
                                            AriaLabel="Eliminar objetivo"

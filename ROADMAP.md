@@ -3,6 +3,14 @@
 La rama `main` conserva la versión estable. Las fases se desarrollan y validan
 en ramas separadas antes de integrarse.
 
+## Estado
+
+- Fase 1: implementada en `feature/operator-goals`.
+- Fase 2: motor inicial implementado; calcula rutas por componente, inventario
+  I/E/P/R, probabilidades, vestigios e intentos para 50%, 75% y 90%.
+- Pendiente en fase 2: incorporar costes de recursos cuando exista una fuente
+  de catálogo normalizada para esos datos.
+
 ## Fase 1 — Objetivos del operador
 
 - Marcar Warframes, armas y mods como objetivos.

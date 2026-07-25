@@ -1,0 +1,98 @@
+@page "/buildable"
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthState
+@inject BuildableAnalysisService Analyzer
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <section class="goal-hero orokin-panel">
+        <div>
+            <div class="eyebrow">ENSAMBLAJE // ANÁLISIS DE INVENTARIO</div>
+            <MudText Typo="Typo.h3" Class="page-title">¿Qué puedo construir?</MudText>
+            <MudText Typo="Typo.body1" Class="hero-copy">
+                Sets completos y objetos que están a una sola pieza de finalizarse.
+            </MudText>
+        </div>
+        @if (!loading && !string.IsNullOrWhiteSpace(userId))
+        {
+            <div class="goal-counter">
+                <strong>@candidates.Count(x => x.IsReady)</strong>
+                <span>listos para ensamblar</span>
+            </div>
+        }
+    </section>
+
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-5" />
+    }
+    else if (string.IsNullOrWhiteSpace(userId))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-5">Inicia sesión para analizar tu inventario.</MudAlert>
+    }
+    else if (candidates.Count == 0)
+    {
+        <MudPaper Class="goal-empty mt-5">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h5">No hay sets completos o casi completos</MudText>
+            <MudText Typo="Typo.body2">Actualiza las cantidades de tus componentes para obtener recomendaciones.</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid Class="mt-4">
+            @foreach (var item in candidates)
+            {
+                <MudItem xs="12" sm="6" lg="4">
+                    <MudCard Class="@($"buildable-card {(item.IsReady ? "buildable-card--ready" : "")}")">
+                        <img src="@GetImageUrl(item.ImageName)" alt="@item.Name"
+                             class="catalog-image" loading="lazy" decoding="async" />
+                        <MudCardContent>
+                            <span class="goal-type">@(item.TargetType == "warframe" ? "WARFRAME" : "ARMA")</span>
+                            <MudText Typo="Typo.h5">@item.Name</MudText>
+                            <MudProgressLinear Value="@item.ProgressPercent"
+                                               Color="@(item.IsReady ? Color.Success : Color.Primary)"
+                                               Rounded="true"
+                                               Class="my-2" />
+                            @if (item.IsReady)
+                            {
+                                <span class="buildable-status">SET COMPLETO</span>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">
+                                    Falta: <b>@item.MissingComponents[0]</b>
+                                </MudText>
+                            }
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Href="@TargetUrl(item)" Color="Color.Primary">Abrir detalle</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private readonly List<BuildableCandidate> candidates = [];
+    private string userId = "";
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        if (!string.IsNullOrWhiteSpace(userId))
+            candidates.AddRange(await Analyzer.AnalyzeAsync(userId));
+        loading = false;
+    }
+
+    private static string TargetUrl(BuildableCandidate item)
+        => $"/{(item.TargetType == "weapon" ? "weapons" : "warframes")}/{Uri.EscapeDataString(item.TargetUnique)}";
+
+    private static string GetImageUrl(string? imageName)
+        => string.IsNullOrWhiteSpace(imageName)
+            ? "/images/item-placeholder.svg"
+            : $"https://cdn.warframestat.us/img/{imageName}";
+}

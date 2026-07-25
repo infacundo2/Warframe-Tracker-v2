@@ -1,0 +1,149 @@
+@page "/planner/{GoalId:int}"
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthState
+@inject FarmPlannerService FarmPlanner
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (string.IsNullOrWhiteSpace(userId))
+    {
+        <MudAlert Severity="Severity.Info">Inicia sesión para utilizar el planificador.</MudAlert>
+    }
+    else if (plan is null)
+    {
+        <MudAlert Severity="Severity.Warning">
+            El objetivo no existe o todavía no admite una ruta de farmeo.
+        </MudAlert>
+    }
+    else
+    {
+        <section class="planner-hero orokin-panel">
+            <div>
+                <div class="eyebrow">NAVEGACIÓN DE ADQUISICIÓN // RUTA DINÁMICA</div>
+                <MudText Typo="Typo.h3" Class="page-title">@plan.TargetName</MudText>
+                <MudText Typo="Typo.body1" Class="hero-copy">
+                    @plan.MissingComponents.Count componentes pendientes · @plan.Routes.Count rutas detectadas
+                </MudText>
+            </div>
+            <MudSelect T="string"
+                       Label="Estrategia"
+                       Value="@strategy"
+                       ValueChanged="ChangeStrategyAsync"
+                       Variant="Variant.Outlined"
+                       Class="planner-strategy">
+                <MudSelectItem T="string" Value="@("balanced")">Equilibrada</MudSelectItem>
+                <MudSelectItem T="string" Value="@("traces")">Ahorrar vestigios</MudSelectItem>
+                <MudSelectItem T="string" Value="@("chance")">Máxima probabilidad</MudSelectItem>
+                <MudSelectItem T="string" Value="@("owned")">Solo priorizar las que poseo</MudSelectItem>
+                <MudSelectItem T="string" Value="@("available")">Priorizar disponibles</MudSelectItem>
+            </MudSelect>
+        </section>
+
+        @if (plan.Routes.Count == 0)
+        {
+            <MudPaper Class="goal-empty mt-5">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                <MudText Typo="Typo.h5">No hay rutas pendientes</MudText>
+                <MudText Typo="Typo.body2">
+                    El set está completo o la fuente de datos no registra reliquias para sus componentes.
+                </MudText>
+            </MudPaper>
+        }
+        else
+        {
+            @foreach (var componentGroup in plan.Routes.GroupBy(x => x.ComponentName))
+            {
+                <section class="planner-component">
+                    <div class="planner-component__title">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" />
+                        <div>
+                            <span>COMPONENTE PENDIENTE</span>
+                            <MudText Typo="Typo.h5">@componentGroup.Key</MudText>
+                        </div>
+                    </div>
+
+                    <MudGrid>
+                        @foreach (var route in componentGroup)
+                        {
+                            <MudItem xs="12" lg="6">
+                                <MudPaper Class="@($"planner-route {(route.Vaulted ? "planner-route--vaulted" : "")}")">
+                                    <div class="planner-route__header">
+                                        <MudLink Href="@($"/relics/{Uri.EscapeDataString(route.RelicUnique)}")">
+                                            @route.RelicName
+                                        </MudLink>
+                                        <span>@(route.Vaulted ? "VAULTED" : "DISPONIBLE")</span>
+                                    </div>
+
+                                    <div class="planner-owned">
+                                        <b>Total @route.TotalOwned</b>
+                                        <span>I @route.Owned.GetValueOrDefault("Intacta")</span>
+                                        <span>E @route.Owned.GetValueOrDefault("Excepcional")</span>
+                                        <span>P @route.Owned.GetValueOrDefault("Perfecta")</span>
+                                        <span>R @route.Owned.GetValueOrDefault("Radiante")</span>
+                                    </div>
+
+                                    <div class="planner-chances">
+                                        @foreach (var refinement in Refinements)
+                                        {
+                                            <div class="@(refinement == route.RecommendedRefinement ? "is-recommended" : "")">
+                                                <span>@refinement[..1]</span>
+                                                <b>@route.Chances.GetValueOrDefault(refinement).ToString("0.00")%</b>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <div class="planner-recommendation">
+                                        <span>REFINAMIENTO RECOMENDADO</span>
+                                        <strong>@route.RecommendedRefinement</strong>
+                                        <small>@route.TraceCost vestigios · @route.RecommendedChance.ToString("0.00")% por apertura</small>
+                                    </div>
+
+                                    <div class="planner-confidence">
+                                        <div><span>50% de éxito</span><b>@route.Attempts50 aperturas</b></div>
+                                        <div><span>75% de éxito</span><b>@route.Attempts75 aperturas</b></div>
+                                        <div><span>90% de éxito</span><b>@route.Attempts90 aperturas</b></div>
+                                    </div>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </section>
+            }
+        }
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int GoalId { get; set; }
+
+    private static readonly string[] Refinements =
+        ["Intacta", "Excepcional", "Perfecta", "Radiante"];
+    private string userId = "";
+    private string strategy = "balanced";
+    private FarmPlan? plan;
+    private bool loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        await LoadAsync();
+    }
+
+    private async Task ChangeStrategyAsync(string value)
+    {
+        strategy = value;
+        loading = true;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(userId))
+            plan = await FarmPlanner.BuildAsync(userId, GoalId, strategy);
+        loading = false;
+    }
+}

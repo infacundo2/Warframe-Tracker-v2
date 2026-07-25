@@ -109,6 +109,8 @@ builder.Services.AddHttpClient<WarframeApiService>(client =>
 builder.Services.AddScoped<DataSyncService>();
 builder.Services.AddScoped<UserGoalService>();
 builder.Services.AddScoped<GoalAnalysisService>();
+builder.Services.AddScoped<FarmPlannerService>();
+builder.Services.AddScoped<BuildableAnalysisService>();
 builder.Services.AddHostedService<CatalogSyncBackgroundService>();
 
 var app = builder.Build();
