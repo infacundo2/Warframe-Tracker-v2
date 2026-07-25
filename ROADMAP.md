@@ -25,6 +25,8 @@ en ramas separadas antes de integrarse.
   estadísticas semanales y metadatos personales (notas, etiquetas y fecha).
 - Mods y builds: filtros por compatibilidad, polaridad, rareza, colección e
   inventario; calculadora de fusión y creación de objetivos desde una build.
+- Validación HTTP: rutas principales y detalles reales responden correctamente;
+  la evidencia y la limitación visual del entorno están en `VALIDATION.md`.
 
 ## Fase 1 — Objetivos del operador
 
