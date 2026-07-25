@@ -33,13 +33,13 @@ namespace WarframeInventory.Services
         // -------------------------------
         // 🔹 WARFRAMES (con componentes serializados)
         // -------------------------------
-        public async Task<List<Warframe>> GetWarframesAsync()
+        public async Task<List<Warframe>> GetWarframesAsync(CancellationToken cancellationToken = default)
         {
             var url = "https://api.warframestat.us/warframes/?language=es";
-            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             resp.EnsureSuccessStatusCode();
 
-            var array = await resp.Content.ReadFromJsonAsync<JsonArray>(_jsonOpts) ?? [];
+            var array = await resp.Content.ReadFromJsonAsync<JsonArray>(_jsonOpts, cancellationToken) ?? [];
             var list = new List<Warframe>();
 
             foreach (var n in array.OfType<JsonObject>())
@@ -90,13 +90,13 @@ namespace WarframeInventory.Services
         // -------------------------------
         // 🔹 MODS
         // -------------------------------
-        public async Task<List<Mod>> GetModsAsync()
+        public async Task<List<Mod>> GetModsAsync(CancellationToken cancellationToken = default)
         {
             var url = "https://api.warframestat.us/mods/?language=es";
-            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             resp.EnsureSuccessStatusCode();
 
-            var array = await resp.Content.ReadFromJsonAsync<JsonArray>(_jsonOpts) ?? [];
+            var array = await resp.Content.ReadFromJsonAsync<JsonArray>(_jsonOpts, cancellationToken) ?? [];
             var list = new List<Mod>();
 
             foreach (var n in array.OfType<JsonObject>())
@@ -133,13 +133,13 @@ namespace WarframeInventory.Services
         // -------------------------------
         // 🔹 WEAPONS
         // -------------------------------
-        public async Task<List<Weapon>> GetWeaponsAsync()
+        public async Task<List<Weapon>> GetWeaponsAsync(CancellationToken cancellationToken = default)
         {
             var url = "https://api.warframestat.us/weapons/?language=es";
-            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             resp.EnsureSuccessStatusCode();
 
-            var array = await resp.Content.ReadFromJsonAsync<JsonArray>(_jsonOpts) ?? [];
+            var array = await resp.Content.ReadFromJsonAsync<JsonArray>(_jsonOpts, cancellationToken) ?? [];
             var list = new List<Weapon>();
 
             foreach (var n in array.OfType<JsonObject>())
@@ -191,16 +191,14 @@ namespace WarframeInventory.Services
         // -------------------------------
         // 🔹 RELICS
         // -------------------------------
-        public async Task<List<Relic>> GetRelicsAsync()
+        public async Task<List<RelicImport>> GetRelicsAsync(CancellationToken cancellationToken = default)
         {
             var url = "https://api.warframestat.us/items/?language=es";
-            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             resp.EnsureSuccessStatusCode();
 
-            var array = await resp.Content.ReadFromJsonAsync<JsonArray>(_jsonOpts) ?? [];
-            var list = new List<Relic>();
-
-            Console.WriteLine($"📦 Total elementos en API: {array.Count}");
+            var array = await resp.Content.ReadFromJsonAsync<JsonArray>(_jsonOpts, cancellationToken) ?? [];
+            var list = new List<RelicImport>();
 
             foreach (var n in array.OfType<JsonObject>())
             {
@@ -213,14 +211,33 @@ namespace WarframeInventory.Services
 
                 // --- Recompensas ---
                 List<object>? rewards = null;
+                var normalizedRewards = new List<RelicReward>();
                 if (n["rewards"] is JsonArray rewardsArray)
                 {
                     rewards = new List<object>();
-                    //Console.WriteLine($"   → Recompensas: {rewardsArray.Count}");
-                }
-                else
-                {
-                    Console.WriteLine($"   ⚠️ No hay campo 'rewards'");
+                    foreach (var rewardNode in rewardsArray.OfType<JsonObject>())
+                    {
+                        var item = rewardNode["item"] as JsonObject;
+                        if (item is null)
+                            continue;
+
+                        var itemUnique = item["uniqueName"]?.GetValue<string?>()
+                                         ?? item["name"]?.GetValue<string?>()
+                                         ?? "";
+                        if (string.IsNullOrWhiteSpace(itemUnique))
+                            continue;
+
+                        rewards.Add(JsonSerializer.Deserialize<object>(rewardNode.ToJsonString())!);
+                        normalizedRewards.Add(new RelicReward
+                        {
+                            RelicUnique = n["uniqueName"]?.GetValue<string?>() ?? "",
+                            ItemUnique = itemUnique,
+                            ItemName = item["name"]?.GetValue<string?>() ?? itemUnique,
+                            Rarity = rewardNode["rarity"]?.GetValue<string?>(),
+                            Chance = rewardNode["chance"]?.GetValue<double?>() ?? 0,
+                            MarketUrlName = item["warframeMarket"]?["urlName"]?.GetValue<string?>()
+                        });
+                    }
                 }
 
                 // --- Drops (ubicaciones) ---
@@ -254,7 +271,7 @@ namespace WarframeInventory.Services
                 }
 
                 // --- Agregar ---
-                list.Add(new Relic
+                var relic = new Relic
                 {
                     UniqueName = n["uniqueName"]?.GetValue<string?>() ?? "",
                     Name = name,
@@ -265,7 +282,8 @@ namespace WarframeInventory.Services
                     RewardsJson = rewards != null ? JsonSerializer.Serialize(rewards) : null,
                     DropsJson = drops != null ? JsonSerializer.Serialize(drops) : null,
                     Owned = false
-                });
+                };
+                list.Add(new RelicImport(relic, normalizedRewards));
             }
 
             //Console.WriteLine($"✅ Total reliquias guardadas: {list.Count}");
@@ -275,5 +293,6 @@ namespace WarframeInventory.Services
 
 
     }
+
+    public sealed record RelicImport(Relic Relic, IReadOnlyCollection<RelicReward> Rewards);
 }
-                

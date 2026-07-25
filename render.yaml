@@ -3,12 +3,20 @@ services:
     name: warframe-inventory
     env: dotnet
     plan: free
-    buildCommand: dotnet publish -c Release -o out
+    buildCommand: dotnet publish WarframeInventory/WarframeInventory/WarframeInventory.csproj -c Release -o out
     startCommand: dotnet out/WarframeInventory.dll
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-      - key: ConnectionStrings__DefaultConnection
+      - key: ConnectionStrings__DB_HOST
         sync: false
+      - key: ConnectionStrings__DB_USER
+        sync: false
+      - key: ConnectionStrings__DB_PASS
+        sync: false
+      - key: ConnectionStrings__DB_NAME
+        sync: false
+      - key: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+        value: true
       - key: ASPNETCORE_URLS
         value: http://0.0.0.0:10000

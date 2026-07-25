@@ -1,5 +1,4 @@
 @page "/weapons"
-@attribute [Authorize]
 
 @using Microsoft.EntityFrameworkCore
 @using System.Security.Claims
@@ -17,9 +16,10 @@
                       Placeholder="Buscar arma..."
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search"
-                      Class="w-full sm:w-1/2"
+                      Class="catalog-toolbar"
                       Immediate="true"
-                      OnKeyUp="@(async (_) => await RefreshAsync())" />
+                      DebounceInterval="350"
+                      OnDebounceIntervalElapsed="RefreshAsync" />
 
         @if (loading)
         {
@@ -35,10 +35,11 @@
                 @foreach (var w in pagedWeapons)
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
-                        <MudCard Class="hover:shadow-lg mb-4">
+                        <MudCard Class="mb-4">
                             <img src="@GetImageUrl(w.ImageName)"
                                  alt="@w.Name"
-                                 style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
+                                 class="catalog-image" loading="lazy" decoding="async"
+                                 width="360" height="210" />
 
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@w.Name</MudText>
@@ -51,6 +52,7 @@
                                              Checked="@w.IsOwned"
                                              Label="Lo tengo"
                                              Color="Color.Success"
+                                             Disabled="@string.IsNullOrEmpty(userId)"
                                              CheckedChanged="@(async (bool v) => await ToggleOwnedAsync(w, v))" />
                                 <MudSpacer />
                                 <MudButton Variant="Variant.Text" Color="Color.Primary"
@@ -111,7 +113,7 @@
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 string term = searchTerm.ToLower();
-                query = query.Where(w => w.Name.ToLower().Contains(term));
+                query = query.Where(w => EF.Functions.Like(w.Name, $"%{term}%"));
             }
 
             var totalCount = await query.CountAsync();
@@ -127,8 +129,9 @@
             Console.WriteLine($"📦 Armas cargadas: {result.Count}");
             Console.WriteLine($"📊 Buscando UserWeapons para este usuario...");
 
-            var ownedList = await Db.UserWeapons
-                .Where(u => u.UserId == userId)
+            var pageKeys = result.Select(x => x.UniqueName).ToList();
+            var ownedList = await Db.UserWeapons.AsNoTracking()
+                .Where(u => u.UserId == userId && pageKeys.Contains(u.WeaponUnique))
                 .ToListAsync();
 
             Console.WriteLine($"📊 Registros de usuario encontrados: {ownedList.Count}");
@@ -207,7 +210,7 @@
 
     private static string GetImageUrl(string? imageName)
         => string.IsNullOrWhiteSpace(imageName)
-            ? "_content/MudBlazor/images/placeholder.png"
+            ? "/images/item-placeholder.svg"
             : $"https://cdn.warframestat.us/img/{imageName}";
 
     private class WeaponViewModel

@@ -1,58 +1,71 @@
-﻿@page "/"
+@page "/"
 @inject NavigationManager Nav
-@inject AuthenticationStateProvider AuthState
-@using MudBlazor
+@inject CatalogCacheService CatalogCache
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-10 text-center">
-    <MudPaper Class="p-6">
-        <MudText Typo="Typo.h4" Color="Color.Primary">
-            Bienvenido a Warframe Tracker
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <section class="command-hero orokin-panel">
+        <div class="eyebrow">SISTEMA DE ARCHIVO OROKIN // EN LÍNEA</div>
+        <MudText Typo="Typo.h2" Class="hero-title">Tu arsenal. Tu legado.</MudText>
+        <MudText Typo="Typo.h6" Class="hero-copy">
+            Explora el universo Warframe y registra cada pieza de tu colección desde un único centro de mando.
         </MudText>
+        <div class="hero-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/warframes"
+                       StartIcon="@Icons.Material.Filled.Explore">Explorar catálogo</MudButton>
+            <AuthorizeView>
+                <NotAuthorized>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/auth/register">
+                        Vincular perfil Tenno
+                    </MudButton>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </section>
 
-        <MudText Typo="Typo.body1" Class="mt-3 mb-4">
-            Gestiona tu inventario de Warframes, armas, mods y reliquias.
-        </MudText>
-
-        <MudDivider Class="mb-4" />
-
-        @if (!isAuthChecked)
+    <MudGrid Class="mt-6">
+        @foreach (var entry in Sections)
         {
-            <MudProgressCircular Indeterminate="true" />
+            <MudItem xs="12" sm="6" lg="3">
+                <MudCard Class="command-card" @onclick="@(() => Nav.NavigateTo(entry.Route))">
+                    <MudCardContent>
+                        <MudIcon Icon="@entry.Icon" Size="Size.Large" Color="Color.Primary" />
+                        <MudText Typo="Typo.overline">@entry.Code</MudText>
+                        <MudText Typo="Typo.h5">@entry.Title</MudText>
+                        <MudText Typo="Typo.body2">@entry.Description</MudText>
+                        @if (_counts is not null)
+                        {
+                            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-3">
+                                @CountFor(entry.Code).ToString("N0") registros
+                            </MudText>
+                        }
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Href="@entry.Route" Color="Color.Primary" Variant="Variant.Text">
+                            Abrir archivo →
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
         }
-        else if (!isAuthenticated)
-        {
-            <MudStack Direction="Row" Spacing="2" Justify="Justify.Center">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           OnClick="@(() => Nav.NavigateTo("/auth/login"))">
-                    Iniciar sesión
-                </MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                           OnClick="@(() => Nav.NavigateTo("/auth/register"))">
-                    Registrarse
-                </MudButton>
-            </MudStack>
-        }
-        else
-        {
-            <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">Accede a tus colecciones:</MudText>
-            <MudStack Direction="Row" Spacing="2" Justify="Justify.Center">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/warframes">Warframes</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/weapons">Armas</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/mods">Mods</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/relics">Reliquias</MudButton>
-            </MudStack>
-        }
-    </MudPaper>
+    </MudGrid>
 </MudContainer>
 
 @code {
-    private bool isAuthenticated;
-    private bool isAuthChecked;
-
-    protected override async Task OnInitializedAsync()
+    private static readonly Section[] Sections =
+    [
+        new("WF-01", "Warframes", "Chasis, sistemas y neuroópticas.", "/warframes", Icons.Material.Filled.Face),
+        new("AR-02", "Armas", "Domina cada herramienta del arsenal.", "/weapons", Icons.Material.Filled.GpsFixed),
+        new("MD-03", "Mods", "Configura el potencial de tu equipo.", "/mods", Icons.Material.Filled.AutoFixHigh),
+        new("RL-04", "Reliquias", "Rastrea recompensas y refinamientos.", "/relics", Icons.Material.Filled.Diamond)
+    ];
+    private CatalogCounts? _counts;
+    protected override async Task OnInitializedAsync() => _counts = await CatalogCache.GetCountsAsync();
+    private int CountFor(string code) => code switch
     {
-        var state = await AuthState.GetAuthenticationStateAsync();
-        isAuthenticated = state.User.Identity?.IsAuthenticated == true;
-        isAuthChecked = true;
-    }
+        "WF-01" => _counts?.Warframes ?? 0,
+        "AR-02" => _counts?.Weapons ?? 0,
+        "MD-03" => _counts?.Mods ?? 0,
+        _ => _counts?.Relics ?? 0
+    };
+    private sealed record Section(string Code, string Title, string Description, string Route, string Icon);
 }

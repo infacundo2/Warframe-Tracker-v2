@@ -65,6 +65,7 @@
                                             ValueChanged="@(async (int v) => await UpdateQuantityAsync(context, v))"
                                             Min="0" Max="99"
                                             Immediate="true"
+                                            Disabled="@string.IsNullOrEmpty(userId)"
                                             Class="w-20"
                                             Style="@($"color:{(context.Quantity > 0 ? "limegreen" : "gray")}")" />
                         </MudTd>
@@ -99,7 +100,8 @@
                         <MudTd DataLabel="Warframe Market">
                             @if (!string.IsNullOrEmpty(context.MarketUrl))
                             {
-                                <MudLink Href="@context.MarketUrl" Target="_blank">Ver en Warframe Market</MudLink>
+                                <MudLink Href="@context.MarketUrl" Target="_blank"
+                                         rel="noopener noreferrer">Ver en Warframe Market</MudLink>
                             }
                             else
                             {
@@ -169,20 +171,6 @@
 
             var decoded = Uri.UnescapeDataString(uniqueName);
 
-            Console.WriteLine($"🔍 Cargando detalle de reliquia: {decoded}");
-
-            var relicCheck = await Db.Relics.AsNoTracking()
-                .FirstOrDefaultAsync(r => r.UniqueName == decoded);
-            if (relicCheck == null)
-            {
-                Console.WriteLine("❌ No se encontró ninguna reliquia con ese UniqueName en la base de datos.");
-            }
-            else
-            {
-                Console.WriteLine($"✅ Reliquia encontrada: {relicCheck.Name} ({relicCheck.UniqueName})");
-            }
-
-
             // 🔹 Usuario autenticado
             var auth = await AuthState.GetAuthenticationStateAsync();
             userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
@@ -192,23 +180,15 @@
                 return;
 
             // 🔹 Obtener variantes (Intacta, Excepcional, Flawless, Radiante)
-            var variants = await Db.Relics
+            var variants = await Db.Relics.AsNoTracking()
                 .Where(r => r.Name == relic.Name)
                 .OrderBy(r => r.UniqueName)
                 .ToListAsync();
 
-            Console.WriteLine($"🔹 Variantes encontradas para {relic.Name}: {variants.Count}");
-                foreach (var v in variants)
-                    Console.WriteLine($"   - {v.UniqueName}");
-
-
-            var userRelics = await Db.UserRelics
-                .Where(u => u.UserId == userId)
+            var variantKeys = variants.Select(x => x.UniqueName).ToList();
+            var userRelics = await Db.UserRelics.AsNoTracking()
+                .Where(u => u.UserId == userId && variantKeys.Contains(u.RelicUnique))
                 .ToListAsync();
-
-            Console.WriteLine($"👤 User {userId} tiene {userRelics.Count} registros en UserRelics");
-                foreach (var ur in userRelics)
-                    Console.WriteLine($"   -> {ur.RelicUnique} = {ur.Quantity}");
 
 
             variantCounts = variants.Select(v => new RelicVariant
@@ -218,7 +198,7 @@
                             v.UniqueName.Contains("ESilver") ? "Excepcional" :
                             v.UniqueName.Contains("EGold") ? "Perfecta" :
                             v.UniqueName.Contains("EPlatinum") ? "Radiante" : "Desconocida",
-                ImageName = v.ImageName,
+                ImageName = v.ImageName ?? "",
                 Quantity = userRelics.FirstOrDefault(u => u.RelicUnique == v.UniqueName)?.Quantity ?? 0
             })
             .OrderBy(v => v.DisplayName switch
@@ -232,53 +212,20 @@
             .ToList();
 
 
-            Console.WriteLine($"📦 Renderizando {variantCounts.Count} variantes en la vista");
-            foreach (var v in variantCounts)
-                Console.WriteLine($"   - {v.DisplayName}: {v.Quantity}");
-
-            await InvokeAsync(StateHasChanged);
-
-
             // --- RECOMPENSAS ---
-            if (!string.IsNullOrWhiteSpace(relic.RewardsJson))
-            {
-                try
+            rewards = await Db.RelicRewards.AsNoTracking()
+                .Where(x => x.RelicUnique == relic.UniqueName)
+                .OrderByDescending(x => x.Chance)
+                .Select(x => new RelicReward
                 {
-                    var doc = JsonDocument.Parse(relic.RewardsJson);
-                    rewards = new();
-
-                    foreach (var el in doc.RootElement.EnumerateArray())
-                    {
-                        string itemName = "";
-                        string rarity = "";
-                        double chance = 0;
-                        string? marketUrl = null;
-
-                        if (el.TryGetProperty("rarity", out var rar)) rarity = rar.GetString() ?? "";
-                        if (el.TryGetProperty("chance", out var c)) chance = c.GetDouble();
-
-                        if (el.TryGetProperty("item", out var itemObj))
-                        {
-                            itemName = itemObj.GetProperty("name").GetString() ?? "";
-                            if (itemObj.TryGetProperty("warframeMarket", out var wm) &&
-                                wm.TryGetProperty("urlName", out var url))
-                                marketUrl = $"https://warframe.market/items/{url.GetString()}";
-                        }
-
-                        rewards.Add(new RelicReward
-                        {
-                            ItemName = itemName,
-                            Rarity = rarity,
-                            Chance = chance,
-                            MarketUrl = marketUrl
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error deserializando recompensas: {ex.Message}");
-                }
-            }
+                    ItemName = x.ItemName,
+                    Rarity = x.Rarity ?? "",
+                    Chance = x.Chance,
+                    MarketUrl = string.IsNullOrEmpty(x.MarketUrlName)
+                        ? null
+                        : $"https://warframe.market/items/{x.MarketUrlName}"
+                })
+                .ToListAsync();
 
             // --- DROPS ---
             if (!string.IsNullOrWhiteSpace(relic.DropsJson))
@@ -306,6 +253,8 @@
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+                return;
             var existing = await Db.UserRelics
                 .FirstOrDefaultAsync(u => u.UserId == userId && u.RelicUnique == variant.UniqueName);
 
@@ -336,7 +285,7 @@
 
     private static string GetImageUrl(string? imageName)
         => string.IsNullOrWhiteSpace(imageName)
-            ? "_content/MudBlazor/images/placeholder.png"
+            ? "/images/item-placeholder.svg"
             : $"https://cdn.warframestat.us/img/{imageName}";
 
     // ==== Clases auxiliares ====

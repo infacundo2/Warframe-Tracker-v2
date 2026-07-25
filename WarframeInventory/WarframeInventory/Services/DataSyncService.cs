@@ -1,199 +1,182 @@
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 using WarframeInventory.Data;
 using WarframeInventory.Models;
 
-namespace WarframeInventory.Services
+namespace WarframeInventory.Services;
+
+public sealed class DataSyncService
 {
-    public class DataSyncService
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
+    private readonly WarframeApiService _api;
+    private readonly ILogger<DataSyncService> _logger;
+    private readonly CatalogCacheService _cache;
+
+    public DataSyncService(
+        IDbContextFactory<ApplicationDbContext> dbFactory,
+        WarframeApiService api,
+        ILogger<DataSyncService> logger,
+        CatalogCacheService cache)
     {
-        private readonly ApplicationDbContext _db;
-        private readonly WarframeApiService _api;
+        _dbFactory = dbFactory;
+        _api = api;
+        _logger = logger;
+        _cache = cache;
+    }
 
-        public DataSyncService(ApplicationDbContext db, WarframeApiService api)
+    public async Task SyncAllAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var state = await db.DataSyncStates.FindAsync([1], cancellationToken)
+                    ?? new DataSyncState { Id = 1 };
+        if (db.Entry(state).State == EntityState.Detached)
+            db.DataSyncStates.Add(state);
+
+        state.LastAttemptUtc = DateTime.UtcNow;
+        state.Status = "Running";
+        state.Error = null;
+        await db.SaveChangesAsync(cancellationToken);
+
+        try
         {
-            _db = db;
-            _api = api;
+            var warframesTask = _api.GetWarframesAsync(cancellationToken);
+            var weaponsTask = _api.GetWeaponsAsync(cancellationToken);
+            var modsTask = _api.GetModsAsync(cancellationToken);
+            var relicsTask = _api.GetRelicsAsync(cancellationToken);
+            await Task.WhenAll(warframesTask, weaponsTask, modsTask, relicsTask);
+
+            await UpsertWarframesAsync(db, warframesTask.Result, cancellationToken);
+            await UpsertWeaponsAsync(db, weaponsTask.Result, cancellationToken);
+            await UpsertModsAsync(db, modsTask.Result, cancellationToken);
+            await UpsertRelicsAsync(db, relicsTask.Result, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+
+            state.LastSuccessUtc = DateTime.UtcNow;
+            state.Status = "Succeeded";
+            await db.SaveChangesAsync(cancellationToken);
+            _cache.Invalidate();
+            _logger.LogInformation("Warframe catalog synchronization completed.");
         }
-
-        public async Task SyncAllAsync()
+        catch (Exception ex)
         {
-            await _db.Database.EnsureCreatedAsync();
-            await SyncWarframesAsync();
-            await SyncWeaponsAsync();
-            await SyncModsAsync();
-            await SyncRelicsAsync();
+            state.Status = "Failed";
+            state.Error = ex.Message.Length > 1000 ? ex.Message[..1000] : ex.Message;
+            await db.SaveChangesAsync(CancellationToken.None);
+            _logger.LogError(ex, "Warframe catalog synchronization failed.");
+            throw;
         }
+    }
 
-        // -------------------------------
-        // 🔹 WARFRAMES
-        // -------------------------------
-        public async Task SyncWarframesAsync()
+    private static async Task UpsertWarframesAsync(
+        ApplicationDbContext db, IReadOnlyCollection<Warframe> incoming, CancellationToken ct)
+    {
+        var existing = await db.Warframes.ToDictionaryAsync(x => x.UniqueName, ct);
+        foreach (var item in incoming.Where(x => !string.IsNullOrWhiteSpace(x.UniqueName)))
         {
-            try
+            if (!existing.TryGetValue(item.UniqueName, out var entity))
             {
-                var items = await _api.GetWarframesAsync();
-                if (items.Count == 0) return;
+                db.Warframes.Add(item);
+                existing[item.UniqueName] = item;
+                continue;
+            }
+            entity.Name = item.Name;
+            entity.Description = item.Description;
+            entity.ImageName = item.ImageName;
+            entity.Health = item.Health;
+            entity.Armor = item.Armor;
+            entity.ComponentsJson = item.ComponentsJson;
+        }
+    }
 
-                foreach (var x in items)
+    private static async Task UpsertWeaponsAsync(
+        ApplicationDbContext db, IReadOnlyCollection<Weapon> incoming, CancellationToken ct)
+    {
+        var existing = await db.Weapons.ToDictionaryAsync(x => x.UniqueName, ct);
+        foreach (var item in incoming.Where(x => !string.IsNullOrWhiteSpace(x.UniqueName)))
+        {
+            if (!existing.TryGetValue(item.UniqueName, out var entity))
+            {
+                db.Weapons.Add(item);
+                existing[item.UniqueName] = item;
+                continue;
+            }
+            entity.Name = item.Name;
+            entity.Category = item.Category;
+            entity.Type = item.Type;
+            entity.ImageName = item.ImageName;
+            entity.IsPrime = item.IsPrime;
+            entity.MasteryReq = item.MasteryReq;
+            entity.ComponentsJson = item.ComponentsJson;
+            entity.Description = item.Description;
+        }
+    }
+
+    private static async Task UpsertModsAsync(
+        ApplicationDbContext db, IReadOnlyCollection<Mod> incoming, CancellationToken ct)
+    {
+        var existing = await db.Mods.ToDictionaryAsync(x => x.UniqueName, ct);
+        foreach (var item in incoming.Where(x => !string.IsNullOrWhiteSpace(x.UniqueName)))
+        {
+            if (!existing.TryGetValue(item.UniqueName, out var entity))
+            {
+                db.Mods.Add(item);
+                existing[item.UniqueName] = item;
+                continue;
+            }
+            entity.Name = item.Name;
+            entity.Category = item.Category;
+            entity.CompatName = item.CompatName;
+            entity.ImageName = item.ImageName;
+            entity.IsAugment = item.IsAugment;
+            entity.IsPrime = item.IsPrime;
+            entity.Polarity = item.Polarity;
+            entity.Rarity = item.Rarity;
+            entity.BaseDrain = item.BaseDrain;
+            entity.FusionLimit = item.FusionLimit;
+            entity.Description = item.Description;
+            entity.LevelStatsJson = item.LevelStatsJson;
+            entity.DropsJson = item.DropsJson;
+        }
+    }
+
+    private static async Task UpsertRelicsAsync(
+        ApplicationDbContext db, IReadOnlyCollection<RelicImport> incoming, CancellationToken ct)
+    {
+        var existing = await db.Relics.ToDictionaryAsync(x => x.UniqueName, ct);
+        var existingRewards = await db.RelicRewards
+            .ToDictionaryAsync(x => (x.RelicUnique, x.ItemUnique), ct);
+
+        foreach (var import in incoming.Where(x => !string.IsNullOrWhiteSpace(x.Relic.UniqueName)))
+        {
+            var item = import.Relic;
+            if (!existing.TryGetValue(item.UniqueName, out var entity))
+            {
+                db.Relics.Add(item);
+                existing[item.UniqueName] = item;
+            }
+            else
+            {
+                entity.Name = item.Name;
+                entity.Category = item.Category;
+                entity.ImageName = item.ImageName;
+                entity.Vaulted = item.Vaulted;
+                entity.Tradable = item.Tradable;
+                entity.RewardsJson = item.RewardsJson;
+                entity.DropsJson = item.DropsJson;
+            }
+
+            foreach (var reward in import.Rewards)
+            {
+                var key = (reward.RelicUnique, reward.ItemUnique);
+                if (!existingRewards.TryGetValue(key, out var stored))
                 {
-                    var existing = await _db.Warframes.FirstOrDefaultAsync(w => w.UniqueName == x.UniqueName);
-
-                    // Si el API devuelve lista de componentes, los convertimos a JSON
-                    string? componentsJson = x.ComponentsJson;
-                    if (componentsJson == null && x is { })
-                    {
-                        try
-                        {
-                            // Si el objeto API trae la propiedad Components (lista), la serializamos
-                            var compsProp = typeof(Warframe).GetProperty("Components");
-                            if (compsProp != null)
-                            {
-                                var compsValue = compsProp.GetValue(x);
-                                if (compsValue != null)
-                                    componentsJson = System.Text.Json.JsonSerializer.Serialize(compsValue);
-                            }
-                        }
-                        catch { componentsJson = null; }
-                    }
-
-                    if (existing == null)
-                    {
-                        _db.Warframes.Add(new Warframe
-                        {
-                            UniqueName = x.UniqueName,
-                            Name = x.Name,
-                            Description = x.Description,
-                            ImageName = x.ImageName,
-                            Health = x.Health,
-                            Armor = x.Armor,
-                            ComponentsJson = componentsJson
-                        });
-                    }
-                    else
-                    {
-                        existing.Name = x.Name;
-                        existing.Description = x.Description;
-                        existing.ImageName = x.ImageName;
-                        existing.Health = x.Health;
-                        existing.Armor = x.Armor;
-                        existing.ComponentsJson = componentsJson;
-                    }
+                    db.RelicRewards.Add(reward);
+                    existingRewards[key] = reward;
+                    continue;
                 }
-
-                await _db.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error SyncWarframesAsync: {ex.Message}");
-            }
-        }
-
-
-        // -------------------------------
-        // 🔹 WEAPONS
-        // -------------------------------
-        public async Task SyncWeaponsAsync()
-        {
-            try
-            {
-                var items = await _api.GetWeaponsAsync();
-                if (items.Count == 0) return;
-
-                foreach (var x in items)
-                {
-                    var existing = await _db.Weapons.FirstOrDefaultAsync(w => w.UniqueName == x.UniqueName);
-                    if (existing == null)
-                        _db.Weapons.Add(x);
-                    else
-                    {
-                        existing.Name = x.Name;
-                        existing.Category = x.Category;
-                        existing.Type = x.Type;
-                        existing.ImageName = x.ImageName;
-                        existing.IsPrime = x.IsPrime;
-                        existing.MasteryReq = x.MasteryReq;
-                        existing.ComponentsJson = x.ComponentsJson;
-                        existing.Description = x.Description;
-                    }
-                }
-                await _db.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error SyncWeaponsAsync: {ex.Message}");
-            }
-        }
-
-        // -------------------------------
-        // 🔹 MODS
-        // -------------------------------
-        public async Task SyncModsAsync()
-        {
-            try
-            {
-                var items = await _api.GetModsAsync();
-                if (items.Count == 0) return;
-
-                foreach (var x in items)
-                {
-                    var existing = await _db.Mods.FirstOrDefaultAsync(w => w.UniqueName == x.UniqueName);
-                    if (existing == null)
-                        _db.Mods.Add(x);
-                    else
-                    {
-                        existing.Name = x.Name;
-                        existing.Category = x.Category;
-                        existing.CompatName = x.CompatName;
-                        existing.ImageName = x.ImageName;
-                        existing.IsAugment = x.IsAugment;
-                        existing.IsPrime = x.IsPrime;
-                        existing.Polarity = x.Polarity;
-                        existing.Rarity = x.Rarity;
-                        existing.BaseDrain = x.BaseDrain;
-                        existing.FusionLimit = x.FusionLimit;
-                        existing.Description = x.Description;
-                        existing.LevelStatsJson = x.LevelStatsJson;
-                    }
-                }
-                await _db.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error SyncModsAsync: {ex.Message}");
-            }
-        }
-
-        // -------------------------------
-        // 🔹 RELICS
-        // -------------------------------
-        public async Task SyncRelicsAsync()
-        {
-            try
-            {
-                var items = await _api.GetRelicsAsync();
-                if (items.Count == 0) return;
-
-                foreach (var x in items)
-                {
-                    var existing = await _db.Relics.FirstOrDefaultAsync(w => w.UniqueName == x.UniqueName);
-                    if (existing == null)
-                        _db.Relics.Add(x);
-                    else
-                    {
-                        existing.Name = x.Name;
-                        existing.Category = x.Category;
-                        existing.ImageName = x.ImageName;
-                        existing.Vaulted = x.Vaulted;
-                        existing.Tradable = x.Tradable;
-                        existing.RewardsJson = x.RewardsJson;
-                    }
-                }
-                await _db.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error SyncRelicsAsync: {ex.Message}");
+                stored.ItemName = reward.ItemName;
+                stored.Rarity = reward.Rarity;
+                stored.Chance = reward.Chance;
+                stored.MarketUrlName = reward.MarketUrlName;
             }
         }
     }

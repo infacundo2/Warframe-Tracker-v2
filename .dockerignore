@@ -1,0 +1,13 @@
+.git
+.gitignore
+.vscode
+.vs
+.dotnet-home
+**/bin
+**/obj
+**/out
+out
+**/appsettings.json
+**/appsettings.Development.json
+*.user
+*.log

@@ -1,0 +1,25 @@
+# Build output
+**/bin/
+**/obj/
+**/out/
+out/
+
+# Local tooling and IDE
+.dotnet-home/
+.tools/
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Local configuration contains the database credentials.
+**/appsettings.json
+**/appsettings.Development.json
+!**/appsettings.example.json
+
+# Logs and local secrets
+*.log
+.env
+.env.*
+secrets.json
+**/DataProtectionKeys/

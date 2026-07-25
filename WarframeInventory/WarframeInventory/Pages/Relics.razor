@@ -15,9 +15,10 @@
                       Placeholder="Buscar reliquia..."
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search"
-                      Class="w-full sm:w-1/2"
+                      Class="catalog-toolbar"
                       Immediate="true"
-                      OnKeyUp="@(async (_) => await LoadPageAsync(1))" />
+                      DebounceInterval="350"
+                      OnDebounceIntervalElapsed="@(() => LoadPageAsync(1))" />
 
         @if (loading)
         {
@@ -33,9 +34,9 @@
                 @foreach (var r in pagedRelics)
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
-                        <MudCard Class="hover:shadow-lg mb-4 p-2">
-                            <img src="@GetImageUrl(r.ImageName)" loading="lazy" alt="@r.Name"
-                                    style="width:100%;height:180px;object-fit:contain;background-color:#111;border-radius:8px;" />
+                        <MudCard Class="mb-4 p-2">
+                            <img src="@GetImageUrl(r.ImageName)" loading="lazy" decoding="async"
+                                 width="360" height="210" class="catalog-image" alt="@r.Name" />
 
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@r.Name</MudText>
@@ -48,6 +49,7 @@
                                                  Label="Cantidad"
                                                  Min="0" Max="99"
                                                  Immediate="true"
+                                                 Disabled="@string.IsNullOrEmpty(userId)"
                                                  Class="mt-2 w-28" />
                             </MudCardContent>
 
@@ -98,7 +100,7 @@
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             string term = searchTerm.ToLower();
-            query = query.Where(r => r.Name.ToLower().Contains(term));
+            query = query.Where(r => EF.Functions.Like(r.Name, $"%{term}%"));
         }
 
         int totalCount = await query.CountAsync();
@@ -112,8 +114,9 @@
             .ToListAsync();
 
         // 🔹 Cargar inventario del usuario
-        var userRelics = await Db.UserRelics
-            .Where(u => u.UserId == userId)
+        var pageKeys = relics.Select(x => x.UniqueName).ToList();
+        var userRelics = await Db.UserRelics.AsNoTracking()
+            .Where(u => u.UserId == userId && pageKeys.Contains(u.RelicUnique))
             .ToListAsync();
 
         pagedRelics = relics.Select(r => new RelicViewModel
@@ -173,7 +176,7 @@
 
     private static string GetImageUrl(string? imageName)
         => string.IsNullOrWhiteSpace(imageName)
-            ? "_content/MudBlazor/images/placeholder.png"
+            ? "/images/item-placeholder.svg"
             : $"https://cdn.warframestat.us/img/{imageName}";
 
     private class RelicViewModel

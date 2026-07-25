@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300" role="img" aria-label="Imagen no disponible">
+  <defs>
+    <radialGradient id="g">
+      <stop offset="0" stop-color="#183c4b"/>
+      <stop offset="1" stop-color="#071018"/>
+    </radialGradient>
+  </defs>
+  <rect width="480" height="300" fill="url(#g)"/>
+  <g fill="none" stroke="#77e7ff" stroke-opacity=".45">
+    <path d="M240 75l82 75-82 75-82-75z"/>
+    <circle cx="240" cy="150" r="38"/>
+  </g>
+  <text x="240" y="270" text-anchor="middle" fill="#9cb5c0" font-family="Segoe UI,sans-serif" font-size="14" letter-spacing="3">DATOS TENNO</text>
+</svg>

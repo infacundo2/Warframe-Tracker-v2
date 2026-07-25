@@ -45,7 +45,7 @@ public partial class Mods
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 string term = searchTerm.ToLower();
-                query = query.Where(m => m.Name.ToLower().Contains(term));
+                query = query.Where(m => EF.Functions.Like(m.Name, $"%{term}%"));
             }
 
             var totalCount = await query.CountAsync();
@@ -59,8 +59,9 @@ public partial class Mods
                 .ToListAsync();
 
             Console.WriteLine($"📦 Mods cargados: {mods.Count}");
-            var ownedList = await Db.UserMods
-                .Where(u => u.UserId == userId)
+            var pageKeys = mods.Select(x => x.UniqueName).ToList();
+            var ownedList = await Db.UserMods.AsNoTracking()
+                .Where(u => u.UserId == userId && pageKeys.Contains(u.ModUnique))
                 .ToListAsync();
 
             Console.WriteLine($"📊 Registros de usuario encontrados: {ownedList.Count}");
@@ -140,7 +141,7 @@ public partial class Mods
 
     private static string GetImageUrl(string? imageName)
         => string.IsNullOrWhiteSpace(imageName)
-            ? "_content/MudBlazor/images/placeholder.png"
+            ? "/images/item-placeholder.svg"
             : $"https://cdn.warframestat.us/img/{imageName}";
 
     private class ModViewModel

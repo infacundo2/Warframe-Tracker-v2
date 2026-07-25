@@ -1,5 +1,4 @@
 @page "/warframes"
-@attribute [Authorize]
 
 @using Microsoft.EntityFrameworkCore
 @inject WarframeInventory.Data.ApplicationDbContext Db
@@ -18,8 +17,9 @@
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search"
                       Immediate="true"
-                      OnKeyUp="@(async (_) => await RefreshAsync())"
-                      Class="w-full sm:w-1/2" />
+                      DebounceInterval="350"
+                      OnDebounceIntervalElapsed="RefreshAsync"
+                      Class="catalog-toolbar" />
 
         @if (loading)
         {
@@ -35,10 +35,11 @@
                 @foreach (var wf in pagedWarframes)
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
-                        <MudCard Class="mb-4 hover:shadow-lg transition-shadow duration-300">
+                        <MudCard Class="mb-4">
                             <img src="@wf.TempImage"
                                  alt="@wf.Name"
-                                 style="width:100%;height:200px;object-fit:cover;border-radius:8px;" />
+                                 class="catalog-image" loading="lazy" decoding="async"
+                                 width="360" height="210" />
 
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@wf.Name</MudText>
@@ -50,6 +51,7 @@
                                     Checked="@wf.IsOwned"
                                     Label="Lo tengo"
                                     Color="Color.Primary"
+                                    Disabled="@string.IsNullOrEmpty(userId)"
                                     CheckedChanged="@(async (bool v) => await ToggleOwnedAsync(wf, v))" />
 
                                 <MudSpacer />
@@ -113,7 +115,7 @@
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 string term = searchTerm.ToLower();
-                query = query.Where(w => w.Name.ToLower().Contains(term));
+                query = query.Where(w => EF.Functions.Like(w.Name, $"%{term}%"));
             }
 
             var totalCount = await query.CountAsync();
@@ -129,8 +131,9 @@
             Console.WriteLine("🔹 Consultando UserWarframes para este usuario...");
 
 
-            var ownedList = await Db.UserWarframes
-                .Where(u => u.UserId == userId)
+            var pageKeys = result.Select(x => x.UniqueName).ToList();
+            var ownedList = await Db.UserWarframes.AsNoTracking()
+                .Where(u => u.UserId == userId && pageKeys.Contains(u.WarframeUnique))
                 .ToListAsync();
 
             Console.WriteLine($"📊 Registros encontrados en UserWarframes para este usuario: {ownedList.Count}");
@@ -144,7 +147,9 @@
                 Name = w.Name,
                 Description = w.Description,
                 ImageName = w.ImageName,
-                TempImage = $"https://cdn.warframestat.us/img/{w.ImageName}",
+                TempImage = string.IsNullOrWhiteSpace(w.ImageName)
+                    ? "/images/item-placeholder.svg"
+                    : $"https://cdn.warframestat.us/img/{w.ImageName}",
                 Loaded = true,
                 IsOwned = ownedList.Any(o => o.WarframeUnique == w.UniqueName && o.Owned)
             }).ToList();

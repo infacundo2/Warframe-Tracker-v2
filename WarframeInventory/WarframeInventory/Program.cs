@@ -1,217 +1,140 @@
+using System.IO.Compression;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using WarframeInventory.Data;
 using WarframeInventory.Services;
-using Microsoft.AspNetCore.Components.Authorization;
-using System.Net;
 
-// =======================================================
-// 🔹 CONFIGURACIÓN PRINCIPAL
-// =======================================================
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys")))
+    .SetApplicationName("WarframeInventory");
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
-builder.Logging.SetMinimumLevel(LogLevel.Debug);
+builder.Logging.SetMinimumLevel(
+    builder.Environment.IsDevelopment() ? LogLevel.Information : LogLevel.Warning);
 
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("========== INICIO DE CONFIGURACIÓN ==========");
-Console.ResetColor();
-
-// =======================================================
-// 🔹 VARIABLES DE ENTORNO Y CONEXIÓN A BASE DE DATOS
-// =======================================================
 var configuration = builder.Configuration;
 var host = configuration["ConnectionStrings:DB_HOST"] ?? "localhost";
-var user = configuration["ConnectionStrings:DB_USER"] ??
-    throw new Exception("Falta la variable de entorno DB_USER");
-var pass = configuration["ConnectionStrings:DB_PASS"] ??
-    throw new Exception("Falta la variable de entorno DB_PASS");
-var db = configuration["ConnectionStrings:DB_NAME"] ??
-    throw new Exception("Falta la variable de entorno DB_NAME");
-
+var user = configuration["ConnectionStrings:DB_USER"]
+           ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_USER");
+var pass = configuration["ConnectionStrings:DB_PASS"]
+           ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_PASS");
+var dbName = configuration["ConnectionStrings:DB_NAME"]
+             ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_NAME");
 var connectionString =
-    $"server={host};port=3306;database={db};user={user};password={pass};SslMode=None;AllowPublicKeyRetrieval=True;";
+    $"server={host};port=3306;database={dbName};user={user};password={pass};" +
+    "SslMode=None;AllowPublicKeyRetrieval=True;Pooling=True;MinimumPoolSize=0;MaximumPoolSize=50;";
+var serverVersion = ServerVersion.AutoDetect(connectionString);
 
-Console.WriteLine($"🧩 DB Host: {host}");
-Console.WriteLine($"🧩 DB User: {user}");
-Console.WriteLine($"🧩 DB Name: {db}");
+builder.Services.AddPooledDbContextFactory<ApplicationDbContext>(options =>
+    options.UseMySql(connectionString, serverVersion, mysql =>
+        mysql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null)));
+// Compatibilidad temporal con componentes existentes. Cada circuito obtiene un contexto;
+// las páginas nuevas deben preferir IDbContextFactory.
+builder.Services.AddScoped(sp =>
+    sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
-
-try
-{
-    using var testCtx = new ApplicationDbContext(
-        new DbContextOptionsBuilder<ApplicationDbContext>()
-        .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
-        .Options);
-    testCtx.Database.OpenConnection();
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine("✅ Conexión a MySQL verificada correctamente.");
-    testCtx.Database.CloseConnection();
-}
-catch (Exception ex)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"❌ Error conectando a la base de datos: {ex.Message}");
-}
-Console.ResetColor();
-
-// =======================================================
-// 🔹 IDENTITY (usuarios y autenticación)
-// =======================================================
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
-    options.Password.RequireDigit = false;
+    options.Password.RequiredLength = 10;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = false;
-    options.Password.RequireLowercase = false;
     options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 6;
+    options.Lockout.AllowedForNewUsers = true;
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// =======================================================
-// 🔹 AUTENTICACIÓN EN BLAZOR
-// =======================================================
 builder.Services.AddScoped<AuthenticationStateProvider,
     RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 builder.Services.AddCascadingAuthenticationState();
-
-// =======================================================
-// 🔹 CONFIGURACIÓN DE COOKIES
-// =======================================================
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.None;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.ExpireTimeSpan = TimeSpan.FromDays(14);
+    options.SlidingExpiration = true;
     options.LoginPath = "/auth/login";
-    options.AccessDeniedPath = "/";
+    options.AccessDeniedPath = "/auth/login";
 });
 
-Console.WriteLine("🍪 Cookies configuradas con SameSite=None y Secure=Always");
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 8,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
 
-// =======================================================
-// 🔹 SERVICIOS PERSONALIZADOS
-// =======================================================
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(x => x.Level = CompressionLevel.Fastest);
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<CatalogCacheService>();
 builder.Services.AddMudServices();
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder.Services.AddServerSideBlazor(options =>
+{
+    options.DetailedErrors = builder.Environment.IsDevelopment();
+    options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(2);
+});
 builder.Services.AddControllers();
-builder.Services.AddHttpClient<WarframeApiService>();
+builder.Services.AddHttpClient<WarframeApiService>(client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(2);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("WarframeInventory/2.0");
+});
 builder.Services.AddScoped<DataSyncService>();
+builder.Services.AddHostedService<CatalogSyncBackgroundService>();
 
-Console.WriteLine("⚙️ Servicios registrados correctamente.");
-
-// =======================================================
-// 🔹 CONSTRUCCIÓN DE APP
-// =======================================================
 var app = builder.Build();
-Console.WriteLine($"🌍 Entorno actual: {app.Environment.EnvironmentName}");
-Console.WriteLine($"📁 Raíz de contenido: {app.Environment.ContentRootPath}");
 
-// =======================================================
-// 🔹 MIDDLEWARE PIPELINE
-// =======================================================
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
-    Console.WriteLine("🧱 Modo Producción: HSTS habilitado.");
-}
-else
-{
-    Console.WriteLine("💻 Modo Desarrollo activo.");
 }
 
-// HTTPS Redirection check
-try
+app.UseForwardedHeaders();
+app.UseHttpsRedirection();
+app.UseResponseCompression();
+app.UseStaticFiles(new StaticFileOptions
 {
-    app.UseHttpsRedirection();
-    Console.WriteLine("🔒 HTTPS redirection habilitado.");
-}
-catch (Exception ex)
-{
-    Console.ForegroundColor = ConsoleColor.Yellow;
-    Console.WriteLine($"⚠️ No se pudo habilitar HTTPS correctamente: {ex.Message}");
-    Console.ResetColor();
-}
-
-app.UseStaticFiles();
-app.UseRouting();
-
-// =======================================================
-// 🔎 DEPURACIÓN DE REQUESTS Y COOKIES
-// =======================================================
-app.Use(async (context, next) =>
-{
-    Console.ForegroundColor = ConsoleColor.Cyan;
-    Console.WriteLine($"\n🌐 [{DateTime.Now:T}] {context.Request.Method} {context.Request.Scheme}://{context.Request.Host}{context.Request.Path}");
-    Console.ResetColor();
-
-    if (context.Request.Headers.TryGetValue("Cookie", out var cookies))
-        Console.WriteLine($"📥 Cookies recibidas: {cookies}");
-    else
-        Console.WriteLine("⚠️ No se recibió ninguna cookie en la solicitud.");
-
-    context.Response.OnStarting(() =>
+    OnPrepareResponse = context =>
     {
-        if (context.Response.Headers.TryGetValue("Set-Cookie", out var setCookie))
-            Console.WriteLine($"🍪 Cookies enviadas al cliente: {setCookie}");
-        return Task.CompletedTask;
-    });
-
-    await next();
+        context.Context.Response.Headers.CacheControl =
+            "public,max-age=604800,immutable";
+    }
 });
-
+app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// =======================================================
-// 🔹 MAPEO DE RUTAS
-// =======================================================
 app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
-Console.WriteLine("📡 Rutas y controladores listos.");
-
-// =======================================================
-// 🔹 SINCRONIZACIÓN INICIAL DE DATOS
-// =======================================================
-using (var scope = app.Services.CreateScope())
-{
-    try
-    {
-        Console.WriteLine("🔄 Sincronizando datos iniciales...");
-        var sync = scope.ServiceProvider.GetRequiredService<DataSyncService>();
-        await sync.SyncAllAsync();
-        Console.WriteLine("✅ Sincronización completa.");
-    }
-    catch (Exception ex)
-    {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"[WARN] Error sincronizando datos: {ex.Message}");
-        Console.ResetColor();
-    }
-}
-
-// =======================================================
-// 🔹 AVISO DE CERTIFICADO HTTPS LOCAL
-// =======================================================
-if (app.Environment.IsDevelopment())
-{
-    Console.WriteLine("\n🔐 Verifica tu certificado HTTPS local:");
-    Console.WriteLine("   Ejecuta: dotnet dev-certs https --trust");
-    Console.WriteLine("   Si no está confiado, las cookies Secure serán bloqueadas.\n");
-}
-
-// =======================================================
-// 🔹 EJECUCIÓN FINAL
-// =======================================================
-app.Logger.LogInformation("========== SERVIDOR INICIADO ==========");
-app.Logger.LogInformation("Modo: {env}", app.Environment.EnvironmentName);
 app.Run();
