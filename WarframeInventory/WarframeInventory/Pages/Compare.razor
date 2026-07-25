@@ -15,20 +15,16 @@
     </section>
 
     <div class="compare-selectors">
-        <MudSelect T="string" Label="Primer objeto" Value="@leftUnique"
-                   ValueChanged="LoadLeftAsync" Variant="Variant.Outlined">
-            @foreach (var option in options)
-            {
-                <MudSelectItem T="string" Value="@option.UniqueName">@option.Name</MudSelectItem>
-            }
-        </MudSelect>
-        <MudSelect T="string" Label="Segundo objeto" Value="@rightUnique"
-                   ValueChanged="LoadRightAsync" Variant="Variant.Outlined">
-            @foreach (var option in options)
-            {
-                <MudSelectItem T="string" Value="@option.UniqueName">@option.Name</MudSelectItem>
-            }
-        </MudSelect>
+        <MudAutocomplete T="string" Label="Primer objeto" Value="@leftUnique"
+                         ValueChanged="LoadLeftAsync" Variant="Variant.Outlined"
+                         SearchFunc="SearchOptionsAsync" ToStringFunc="OptionName"
+                         Clearable="true" CoerceText="true" DebounceInterval="120"
+                         HelperText="Escribe para buscar o abre la lista" />
+        <MudAutocomplete T="string" Label="Segundo objeto" Value="@rightUnique"
+                         ValueChanged="LoadRightAsync" Variant="Variant.Outlined"
+                         SearchFunc="SearchOptionsAsync" ToStringFunc="OptionName"
+                         Clearable="true" CoerceText="true" DebounceInterval="120"
+                         HelperText="Escribe para buscar o abre la lista" />
     </div>
 
     <div class="compare-grid">
@@ -80,14 +76,29 @@
     }
     private async Task LoadLeftAsync(string value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+            return;
         leftUnique = value;
         left = await Comparisons.LoadAsync(type, value);
     }
     private async Task LoadRightAsync(string value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+            return;
         rightUnique = value;
         right = await Comparisons.LoadAsync(type, value);
     }
+    private Task<IEnumerable<string>> SearchOptionsAsync(string search)
+    {
+        var matches = string.IsNullOrWhiteSpace(search)
+            ? options.Take(50)
+            : options.Where(option =>
+                    option.Name.Contains(search, StringComparison.CurrentCultureIgnoreCase))
+                .Take(50);
+        return Task.FromResult(matches.Select(option => option.UniqueName));
+    }
+    private string OptionName(string uniqueName)
+        => options.FirstOrDefault(option => option.UniqueName == uniqueName)?.Name ?? uniqueName;
     private static string ImageUrl(string? image)
         => string.IsNullOrWhiteSpace(image) ? "/images/item-placeholder.svg"
             : $"https://cdn.warframestat.us/img/{image}";

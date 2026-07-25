@@ -4,6 +4,7 @@
 <MudThemeProvider Theme="_theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
+<audio id="ambient-soundtrack" src="/audio/orbita-de-silicio.mp3" loop preload="metadata"></audio>
 
 <MudLayout Class="orokin-shell">
     <MudAppBar Class="orokin-appbar" Elevation="0" Fixed="false">
@@ -27,6 +28,13 @@
                 title="Música ambient techno">
             <MudIcon Icon="@Icons.Material.Filled.GraphicEq" />
         </button>
+        <label class="ambient-volume-control" title="Volumen de música">
+            <MudIcon Icon="@Icons.Material.Filled.VolumeDown" />
+            <input id="ambient-volume" type="range" min="0" max="100" step="1" value="35"
+                   aria-label="Volumen de música ambiental"
+                   oninput="warframeTracker.audio.setAmbientVolume(this.value)" />
+            <span id="ambient-volume-value">35%</span>
+        </label>
         <button id="interface-audio-toggle" type="button" class="energy-toggle audio-toggle"
                 onclick="warframeTracker.audio.toggleEffects()"
                 aria-label="Activar sonidos de interfaz" aria-pressed="false"

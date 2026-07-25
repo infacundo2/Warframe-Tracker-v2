@@ -23,3 +23,6 @@ out/
 .env.*
 secrets.json
 **/DataProtectionKeys/
+
+# Original local music drop folder; the optimized web asset lives in wwwroot/audio.
+**/Musica/

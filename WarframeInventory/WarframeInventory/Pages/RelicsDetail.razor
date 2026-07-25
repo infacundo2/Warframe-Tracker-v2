@@ -282,8 +282,12 @@
             {
                 try
                 {
-                    dropLocations = JsonSerializer.Deserialize<List<RelicDrop>>(relic.DropsJson,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    dropLocations = (JsonSerializer.Deserialize<List<RelicDrop>>(relic.DropsJson,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [])
+                        .OrderBy(drop => drop.Chance)
+                        .ThenBy(drop => drop.Location, StringComparer.CurrentCultureIgnoreCase)
+                        .ThenBy(drop => drop.Rotation, StringComparer.CurrentCultureIgnoreCase)
+                        .ToList();
                 }
                 catch (Exception ex)
                 {

@@ -1034,6 +1034,42 @@ img { color: transparent; }
     box-shadow: 0 0 8px #5de0aa;
 }
 
+.ambient-volume-control {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    width: 8.4rem;
+    margin-right: .55rem;
+    color: #8ca8b3;
+    font-size: .68rem;
+}
+
+.ambient-volume-control .mud-icon-root {
+    width: 1rem;
+    height: 1rem;
+}
+
+.ambient-volume-control input {
+    width: 5rem;
+    accent-color: #77e7ff;
+    cursor: pointer !important;
+}
+
+.ambient-volume-control span {
+    min-width: 2rem;
+    color: #77e7ff;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+    .ambient-volume-control span { display: none; }
+    .ambient-volume-control { width: 5.8rem; }
+}
+
+@media (max-width: 650px) {
+    .ambient-volume-control { display: none; }
+}
+
 .orokin-panel {
     position: relative;
     overflow: hidden;
