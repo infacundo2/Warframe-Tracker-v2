@@ -1,9 +1,13 @@
 @page "/builds"
 @attribute [Authorize]
 @using System.Security.Claims
+@using System.Text
+@using System.Text.Json
 @inject BuildService BuildManager
 @inject UserGoalService GoalService
 @inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject IJSRuntime Js
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
     <section class="orokin-panel build-hero">
@@ -70,6 +74,10 @@
                    StartIcon="@Icons.Material.Filled.TrackChanges">
             Crear objetivos para mods faltantes
         </MudButton>
+        <MudButton OnClick="ShareAsync" Disabled="@(!CanSave)" Variant="Variant.Text"
+                   Color="Color.Primary" StartIcon="@Icons.Material.Filled.Share">
+            Copiar enlace
+        </MudButton>
         @if (!string.IsNullOrWhiteSpace(message))
         {
             <MudAlert Severity="Severity.Success" Class="mt-3">@message</MudAlert>
@@ -81,6 +89,14 @@
                 <MudPaper Class="saved-build">
                     <span>@build.TargetName</span><b>@build.Name</b>
                     <small>@build.Tags · @build.Capacity capacidad · @build.FormaCount Forma</small>
+                    <div>
+                        <MudButton OnClick="@(() => LoadSaved(build))" Size="Size.Small"
+                                   Variant="Variant.Text">Editar</MudButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       OnClick="@(() => DeleteAsync(build.Id))"
+                                       Color="Color.Error" Size="Size.Small"
+                                       aria-label="Eliminar build" />
+                    </div>
                 </MudPaper>
             }
         </div>
@@ -88,6 +104,8 @@
 </MudContainer>
 
 @code {
+    [SupplyParameterFromQuery(Name = "share")]
+    public string? SharedBuild { get; set; }
     private BuildWorkspace? workspace;
     private string userId = "", name = "", tags = "", targetUnique = "", message = "";
     private int capacity = 30, forma;
@@ -101,6 +119,7 @@
         userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
         workspace = await BuildManager.LoadAsync(userId);
         targetUnique = workspace.Targets.FirstOrDefault()?.UniqueName ?? "";
+        LoadShared();
     }
     private void SelectTarget(string value) => targetUnique = value;
     private void SelectMod(int index, string value)
@@ -124,4 +143,75 @@
         message = created == 0 ? "Los mods faltantes ya estaban en tus objetivos."
             : $"{created} objetivos de mods creados.";
     }
+    private void LoadSaved(SavedBuild build)
+    {
+        name = build.Name;
+        tags = build.Tags;
+        targetUnique = build.TargetUnique;
+        capacity = build.Capacity;
+        forma = build.FormaCount;
+        slots = NormalizeSlots(DeserializeSlots(build.ModsJson));
+        message = $"Editando {build.Name}. Al guardar se creará una copia nueva.";
+    }
+    private async Task DeleteAsync(int id)
+    {
+        await BuildManager.DeleteAsync(userId, id);
+        workspace = await BuildManager.LoadAsync(userId);
+        message = "Build eliminada.";
+    }
+    private async Task ShareAsync()
+    {
+        var payload = new SharedBuildPayload(name, targetUnique, tags, capacity, forma, slots);
+        var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload));
+        var encoded = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var url = Nav.ToAbsoluteUri($"/builds?share={encoded}").ToString();
+        await Js.InvokeVoidAsync("warframeTracker.copyText", url);
+        message = "Enlace copiado. No incluye datos de tu cuenta.";
+    }
+    private void LoadShared()
+    {
+        if (string.IsNullOrWhiteSpace(SharedBuild)) return;
+        try
+        {
+            var encoded = SharedBuild.Replace('-', '+').Replace('_', '/');
+            encoded = encoded.PadRight(encoded.Length + (4 - encoded.Length % 4) % 4, '=');
+            var payload = JsonSerializer.Deserialize<SharedBuildPayload>(
+                Encoding.UTF8.GetString(Convert.FromBase64String(encoded)));
+            if (payload is null || workspace is null
+                || !workspace.Targets.Any(x => x.UniqueName == payload.TargetUnique)) return;
+            name = payload.Name;
+            targetUnique = payload.TargetUnique;
+            tags = payload.Tags;
+            capacity = Math.Clamp(payload.Capacity, 0, 90);
+            forma = Math.Clamp(payload.Forma, 0, 100);
+            slots = NormalizeSlots(payload.Slots);
+            message = "Build compartida cargada. Los mods faltantes se comparan con tu inventario.";
+        }
+        catch (Exception) { message = "El enlace compartido no es válido."; }
+    }
+    private static List<BuildSlot> DeserializeSlots(string json)
+    {
+        try
+        {
+            return (JsonSerializer.Deserialize<List<BuildSlot>>(json) ?? [])
+                .Take(8).Concat(Enumerable.Range(0, 8)
+                    .Select(_ => new BuildSlot("", "", 0, "", true))).Take(8).ToList();
+        }
+        catch (JsonException) { return Enumerable.Range(0, 8)
+            .Select(_ => new BuildSlot("", "", 0, "", true)).ToList(); }
+    }
+    private List<BuildSlot> NormalizeSlots(IEnumerable<BuildSlot> source)
+    {
+        var normalized = source.Take(8).Select(slot =>
+        {
+            var mod = workspace?.Mods.FirstOrDefault(x => x.UniqueName == slot.ModUnique);
+            return mod is null ? new BuildSlot("", "", 0, "", true)
+                : new BuildSlot(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned);
+        }).ToList();
+        return normalized.Concat(Enumerable.Range(0, 8)
+            .Select(_ => new BuildSlot("", "", 0, "", true))).Take(8).ToList();
+    }
+    private sealed record SharedBuildPayload(
+        string Name, string TargetUnique, string Tags, int Capacity, int Forma,
+        IReadOnlyList<BuildSlot> Slots);
 }

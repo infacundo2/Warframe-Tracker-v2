@@ -30,9 +30,18 @@ window.warframeTracker = {
         const enabled = !document.documentElement.classList.contains("reduced-energy");
         document.documentElement.classList.toggle("reduced-energy", enabled);
         localStorage.setItem("warframe-reduced-energy", enabled ? "1" : "0");
-    }
+    },
+    copyText: async (content) => navigator.clipboard.writeText(content)
 };
 
 if (localStorage.getItem("warframe-reduced-energy") === "1") {
     document.documentElement.classList.add("reduced-energy");
 }
+
+document.addEventListener("pointermove", (event) => {
+    if (document.documentElement.classList.contains("reduced-energy")) return;
+    const x = (event.clientX / window.innerWidth - 0.5) * 2;
+    const y = (event.clientY / window.innerHeight - 0.5) * 2;
+    document.documentElement.style.setProperty("--pointer-x", x.toFixed(3));
+    document.documentElement.style.setProperty("--pointer-y", y.toFixed(3));
+}, { passive: true });

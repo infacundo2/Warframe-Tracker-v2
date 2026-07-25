@@ -52,6 +52,16 @@ public sealed class BuildService
         build.UpdatedUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
     }
+
+    public async Task DeleteAsync(string userId, int id, CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var build = await db.SavedBuilds.FirstOrDefaultAsync(
+            x => x.Id == id && x.UserId == userId, ct);
+        if (build is null) return;
+        db.SavedBuilds.Remove(build);
+        await db.SaveChangesAsync(ct);
+    }
 }
 
 public sealed record BuildWorkspace(

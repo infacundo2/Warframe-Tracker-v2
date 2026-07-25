@@ -29,6 +29,8 @@ en ramas separadas antes de integrarse.
   la evidencia y la limitación visual del entorno están en `VALIDATION.md`.
 - Planificador y herramientas: rutas de misión, estrategias corta/multiobjetivo,
   comparación de mods/reliquias y exportación CSV añadidas.
+- Experiencia: diagrama orbital SVG, profundidad reactiva, celebración al 100%,
+  energía reducida y enlaces de builds portables sin datos de cuenta.
 
 ## Fase 1 — Objetivos del operador
 

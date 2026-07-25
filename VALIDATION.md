@@ -23,6 +23,10 @@ Durante la primera pasada `/builds` devolvió 500 por la captura del índice de
 una ranura. Se corrigió usando un índice estable y la matriz completa se repitió
 con resultado HTTP 200.
 
+Una segunda pasada confirmó `/worldstate`, `/mods`, `/compare`, `/builds`,
+`/inventory-tools` e `/inventory-manager`, el SVG orbital del inicio y el manejo
+seguro de un enlace de build inválido, todos con HTTP 200.
+
 ## Limitación del entorno
 
 El navegador integrado no pudo inicializarse por falta de la política de sandbox

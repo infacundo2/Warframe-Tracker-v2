@@ -908,6 +908,76 @@ img { color: transparent; }
     transform: translateX(-110%);
     animation: orokin-scan 8s ease-in-out infinite;
 }
+
+.command-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(17rem, .7fr);
+    align-items: center;
+    gap: 2rem;
+}
+.command-hero__copy { position: relative; z-index: 2; }
+.holographic-orbit {
+    position: relative;
+    z-index: 1;
+    transform: perspective(700px)
+        rotateX(calc(var(--pointer-y, 0) * -2deg))
+        rotateY(calc(var(--pointer-x, 0) * 3deg));
+    transition: transform .2s ease-out;
+}
+.holographic-orbit svg {
+    width: min(100%, 24rem);
+    filter: drop-shadow(0 0 1.2rem rgba(56, 216, 245, .16));
+}
+.orbit, .orbit-cross {
+    fill: none;
+    stroke: rgba(56, 216, 245, .42);
+    stroke-width: 1;
+}
+.orbit--outer { stroke-dasharray: 4 9; transform-origin: center; animation: orbit-spin 22s linear infinite; }
+.orbit--middle { stroke: rgba(216, 184, 92, .38); stroke-dasharray: 22 7; transform-origin: center; animation: orbit-spin 16s linear infinite reverse; }
+.orbit--inner { stroke-dasharray: 2 5; }
+.orbit-cross { stroke: rgba(56, 216, 245, .1); }
+.orbit-core polygon {
+    fill: rgba(56, 216, 245, .04);
+    stroke: #d8b85c;
+    stroke-width: 1;
+}
+.orbit-core polygon:last-child {
+    stroke: #38d8f5;
+    animation: orbit-pulse 2.8s ease-in-out infinite;
+}
+.orbit-node circle { fill: #38d8f5; }
+.orbit-node text {
+    fill: #d8b85c;
+    font-size: 12px;
+    letter-spacing: .18em;
+}
+.holographic-orbit > span {
+    display: block;
+    color: #38d8f5;
+    font-size: .62rem;
+    letter-spacing: .18em;
+    text-align: center;
+}
+@keyframes orbit-spin { to { transform: rotate(360deg); } }
+@keyframes orbit-pulse {
+    50% { fill: rgba(56, 216, 245, .22); filter: drop-shadow(0 0 .6rem #38d8f5); }
+}
+.collection-complete {
+    position: relative;
+    overflow: hidden;
+    margin: 1rem 0;
+    padding: 1.2rem;
+    color: #eafcff;
+    border: 1px solid #d8b85c;
+    text-align: center;
+    box-shadow: inset 0 0 2rem rgba(216, 184, 92, .08);
+}
+.collection-complete span { color: #d8b85c; letter-spacing: .2em; }
+@media (max-width: 780px) {
+    .command-hero { grid-template-columns: 1fr; }
+    .holographic-orbit { display: none; }
+}
 @keyframes orokin-scan {
     0%, 55% { transform: translateX(-110%); }
     78%, 100% { transform: translateX(110%); }
@@ -988,6 +1058,12 @@ img { color: transparent; }
 }
 .saved-build span { color: #d8b85c; font-size: .7rem; }
 .saved-build small { color: #8ca8b3; }
+.saved-build > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: .5rem;
+}
 @media (max-width: 900px) {
     .build-editor { grid-template-columns: 1fr 1fr; }
     .build-slots { grid-template-columns: 1fr 1fr; }

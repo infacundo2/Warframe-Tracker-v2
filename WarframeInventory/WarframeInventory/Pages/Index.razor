@@ -7,26 +7,52 @@
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <section class="command-hero orokin-panel">
-        <div class="eyebrow">SISTEMA DE ARCHIVO OROKIN // EN LÍNEA</div>
-        <MudText Typo="Typo.h2" Class="hero-title">Tu arsenal. Tu legado.</MudText>
-        <MudText Typo="Typo.h6" Class="hero-copy">
-            Explora el universo Warframe y registra cada pieza de tu colección desde un único centro de mando.
-        </MudText>
-        <div class="hero-actions">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/warframes"
-                       StartIcon="@Icons.Material.Filled.Explore">Explorar catálogo</MudButton>
-            <AuthorizeView>
-                <NotAuthorized>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/auth/register">
-                        Vincular perfil Tenno
-                    </MudButton>
-                </NotAuthorized>
-            </AuthorizeView>
+        <div class="command-hero__copy">
+            <div class="eyebrow">SISTEMA DE ARCHIVO OROKIN // EN LÍNEA</div>
+            <MudText Typo="Typo.h2" Class="hero-title">Tu arsenal. Tu legado.</MudText>
+            <MudText Typo="Typo.h6" Class="hero-copy">
+                Explora el universo Warframe y registra cada pieza de tu colección desde un único centro de mando.
+            </MudText>
+            <div class="hero-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/warframes"
+                           StartIcon="@Icons.Material.Filled.Explore">Explorar catálogo</MudButton>
+                <AuthorizeView>
+                    <NotAuthorized>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/auth/register">
+                            Vincular perfil Tenno
+                        </MudButton>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </div>
+        <div class="holographic-orbit" aria-hidden="true">
+            <svg viewBox="0 0 360 360" role="img">
+                <circle class="orbit orbit--outer" cx="180" cy="180" r="148" />
+                <circle class="orbit orbit--middle" cx="180" cy="180" r="105" />
+                <circle class="orbit orbit--inner" cx="180" cy="180" r="61" />
+                <path class="orbit-cross" d="M28 180h304M180 28v304" />
+                <g class="orbit-core">
+                    <polygon points="180,139 221,180 180,221 139,180" />
+                    <polygon points="180,157 203,180 180,203 157,180" />
+                </g>
+                <g class="orbit-node orbit-node--one"><circle cx="180" cy="32" r="6" /><text x="194" y="38">WF</text></g>
+                <g class="orbit-node orbit-node--two"><circle cx="328" cy="180" r="6" /><text x="295" y="170">AR</text></g>
+                <g class="orbit-node orbit-node--three"><circle cx="180" cy="328" r="6" /><text x="194" y="334">MD</text></g>
+                <g class="orbit-node orbit-node--four"><circle cx="32" cy="180" r="6" /><text x="48" y="170">RL</text></g>
+            </svg>
+            <span>ENLACE DEL OPERADOR ESTABLE</span>
         </div>
     </section>
 
     @if (_dashboard is not null)
     {
+        @if (_dashboard.Metrics.All(x => x.ProgressPercent == 100))
+        {
+            <section class="collection-complete">
+                <span>ARCHIVO COMPLETO</span>
+                <MudText Typo="Typo.h4">Sincronización de colección al 100%</MudText>
+            </section>
+        }
         <section class="operator-briefing">
             <div class="operator-briefing__signal">
                 <span>ANÁLISIS DEL OPERADOR</span>
