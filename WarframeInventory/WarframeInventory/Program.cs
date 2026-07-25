@@ -112,6 +112,7 @@ builder.Services.AddScoped<GoalAnalysisService>();
 builder.Services.AddScoped<FarmPlannerService>();
 builder.Services.AddScoped<BuildableAnalysisService>();
 builder.Services.AddScoped<CommandCenterService>();
+builder.Services.AddScoped<RelicIntelligenceService>();
 builder.Services.AddHostedService<CatalogSyncBackgroundService>();
 
 var app = builder.Build();

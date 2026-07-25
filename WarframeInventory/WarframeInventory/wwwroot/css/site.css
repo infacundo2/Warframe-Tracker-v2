@@ -348,3 +348,172 @@ img { color: transparent; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+.detail-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.relic-lab-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.lab-status {
+    border: 1px solid #38d8f5;
+    color: #38d8f5;
+    padding: .55rem .9rem;
+    letter-spacing: .16em;
+    font-size: .72rem;
+}
+
+.lab-status--vaulted {
+    border-color: #ff5d66;
+    color: #ff5d66;
+}
+
+.relic-lab-controls {
+    display: grid;
+    grid-template-columns: minmax(15rem, 2fr) minmax(10rem, 1fr) minmax(12rem, 1fr) minmax(10rem, 1fr);
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+}
+
+.lab-readout {
+    min-height: 9rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.4rem;
+    border: 1px solid rgba(56, 216, 245, .22);
+}
+
+.lab-readout span,
+.lab-section-title span {
+    color: #d8b85c;
+    font-size: .68rem;
+    letter-spacing: .16em;
+}
+
+.lab-readout strong {
+    color: #eafcff;
+    font-size: clamp(2rem, 5vw, 3.3rem);
+    line-height: 1;
+    margin: .5rem 0;
+}
+
+.lab-readout small {
+    color: #8ca8b3;
+}
+
+.lab-readout--primary {
+    border-color: #38d8f5;
+    box-shadow: inset 0 0 2rem rgba(56, 216, 245, .08);
+}
+
+.lab-readout--primary strong {
+    color: #38d8f5;
+}
+
+.lab-comparison,
+.lab-confidence {
+    padding: 1.4rem;
+}
+
+.lab-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.lab-refinement-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .75rem;
+    margin: 1.25rem 0;
+}
+
+.lab-refinement {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: 1rem;
+    color: #b8cbd2;
+    background: rgba(5, 20, 28, .8);
+    border: 1px solid rgba(56, 216, 245, .2);
+    text-align: left;
+    cursor: pointer;
+}
+
+.lab-refinement:hover,
+.lab-refinement.is-active {
+    border-color: #38d8f5;
+    background: rgba(17, 58, 70, .65);
+    box-shadow: 0 0 1.2rem rgba(56, 216, 245, .1);
+}
+
+.lab-refinement b {
+    color: #fff;
+    font-size: 1.4rem;
+}
+
+.lab-refinement strong {
+    color: #38d8f5;
+}
+
+.lab-advice {
+    border-left: 2px solid #d8b85c;
+    padding: .75rem 1rem;
+    color: #dce8eb;
+    background: rgba(216, 184, 92, .06);
+}
+
+.lab-confidence {
+    display: grid;
+    grid-template-columns: minmax(14rem, 2fr) repeat(3, minmax(8rem, 1fr));
+    align-items: center;
+    gap: 1rem;
+}
+
+.lab-confidence > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.lab-confidence > div b {
+    color: #38d8f5;
+    font-size: 1.6rem;
+}
+
+.lab-confidence .mud-typography-caption {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+    .relic-lab-controls,
+    .lab-refinement-grid,
+    .lab-confidence {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .detail-section-heading,
+    .relic-lab-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .relic-lab-controls,
+    .lab-refinement-grid,
+    .lab-confidence {
+        grid-template-columns: 1fr;
+    }
+}

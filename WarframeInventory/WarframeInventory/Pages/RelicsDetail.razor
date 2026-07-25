@@ -78,7 +78,15 @@
             <MudDivider Class="my-4" />
 
             <!-- ==================== RECOMPENSAS ==================== -->
-            <MudText Typo="Typo.h6" Class="mb-2">Recompensas al abrir</MudText>
+            <div class="detail-section-heading">
+                <MudText Typo="Typo.h6">Recompensas al abrir</MudText>
+                <MudButton Href="@($"/relics/{Uri.EscapeDataString(relic.UniqueName)}/laboratorio")"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Science">
+                    Abrir laboratorio
+                </MudButton>
+            </div>
 
             <MudSelect T="string"
                        Label="Estado de refinamiento"

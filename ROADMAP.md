@@ -12,6 +12,9 @@ en ramas separadas antes de integrarse.
   de catálogo normalizada para esos datos.
 - Fase 3: centro de mando personal e historial automático implementados. Los
   eventos comienzan a registrarse desde la migración `AddInventoryHistory`.
+- Inteligencia de reliquias: laboratorio implementado con comparación I/E/P/R,
+  escuadrones de 1–4 jugadores, simulaciones de 1/4/10/20 aperturas, vestigios
+  e intentos estimados para alcanzar 50%, 75% y 90%.
 
 ## Fase 1 — Objetivos del operador
 

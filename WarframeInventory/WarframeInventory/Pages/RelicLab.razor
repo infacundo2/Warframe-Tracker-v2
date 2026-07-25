@@ -1,0 +1,160 @@
+@page "/relics/{UniqueName}/laboratorio"
+@inject RelicIntelligenceService Intelligence
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (lab is null)
+    {
+        <MudAlert Severity="Severity.Warning">No se encontró la reliquia solicitada.</MudAlert>
+    }
+    else
+    {
+        <section class="relic-lab-hero orokin-panel">
+            <div>
+                <div class="eyebrow">LABORATORIO DE REFINAMIENTO // SIMULACIÓN</div>
+                <MudText Typo="Typo.h3" Class="page-title">@lab.Name</MudText>
+                <MudText Typo="Typo.body1">
+                    Compara probabilidades individuales, escuadrones y coste de vestigios.
+                </MudText>
+            </div>
+            <span class="@(lab.Vaulted ? "lab-status lab-status--vaulted" : "lab-status")">
+                @(lab.Vaulted ? "VAULTED" : "DISPONIBLE")
+            </span>
+        </section>
+
+        @if (lab.Rewards.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-5">
+                Esta reliquia todavía no tiene recompensas normalizadas.
+            </MudAlert>
+        }
+        else
+        {
+            <MudPaper Class="relic-lab-controls mt-5">
+                <MudSelect T="string" Label="Recompensa" @bind-Value="selectedItem"
+                           Variant="Variant.Outlined">
+                    @foreach (var reward in lab.Rewards)
+                    {
+                        <MudSelectItem T="string" Value="@reward.ItemUnique">
+                            @reward.ItemName · @reward.Rarity
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" Label="Refinamiento" @bind-Value="refinement"
+                           Variant="Variant.Outlined">
+                    @foreach (var value in RelicIntelligenceService.Refinements)
+                    {
+                        <MudSelectItem T="string" Value="@value">@value</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSlider T="int" @bind-Value="squadSize" Min="1" Max="4" Step="1">
+                    Escuadrón: @squadSize
+                </MudSlider>
+                <MudSelect T="int" Label="Aperturas por jugador" @bind-Value="openings"
+                           Variant="Variant.Outlined">
+                    @foreach (var value in OpeningOptions)
+                    {
+                        <MudSelectItem T="int" Value="@value">@value aperturas</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudPaper>
+
+            @if (SelectedReward is { } reward)
+            {
+                var simulation = RelicIntelligenceService.Simulate(
+                    reward, refinement, squadSize, openings);
+
+                <MudGrid Class="mt-3">
+                    <MudItem xs="12" md="4">
+                        <MudPaper Class="lab-readout">
+                            <span>PROBABILIDAD INDIVIDUAL</span>
+                            <strong>@simulation.IndividualChance.ToString("0.00")%</strong>
+                            <small>@simulation.Refinement</small>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudPaper Class="lab-readout lab-readout--primary">
+                            <span>AL MENOS UNA COPIA</span>
+                            <strong>@simulation.CumulativeChance.ToString("0.00")%</strong>
+                            <small>@(simulation.SquadSize * simulation.Openings) tiradas totales</small>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudPaper Class="lab-readout">
+                            <span>COSTE DEL GRUPO</span>
+                            <strong>@simulation.TotalTraceCost</strong>
+                            <small>vestigios para todas las reliquias</small>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                <MudPaper Class="lab-comparison mt-4">
+                    <div class="lab-section-title">
+                        <div>
+                            <span>COMPARACIÓN DE REFINAMIENTOS</span>
+                            <MudText Typo="Typo.h5">@reward.ItemName</MudText>
+                        </div>
+                        <MudChip Color="Color.Primary" Variant="Variant.Outlined">@reward.Rarity</MudChip>
+                    </div>
+                    <div class="lab-refinement-grid">
+                        @foreach (var value in RelicIntelligenceService.Refinements)
+                        {
+                            var result = RelicIntelligenceService.Simulate(
+                                reward, value, squadSize, openings);
+                            <button type="button"
+                                    class="lab-refinement @(value == refinement ? "is-active" : "")"
+                                    @onclick="@(() => refinement = value)">
+                                <span>@value</span>
+                                <b>@result.IndividualChance.ToString("0.00")%</b>
+                                <strong>@result.CumulativeChance.ToString("0.00")% grupo</strong>
+                                <small>@result.TotalTraceCost vestigios</small>
+                            </button>
+                        }
+                    </div>
+                    <div class="lab-advice">@reward.Recommendation</div>
+                </MudPaper>
+
+                <MudPaper Class="lab-confidence mt-4">
+                    <MudText Typo="Typo.h6">Aperturas de escuadrón estimadas</MudText>
+                    <div><span>50% de probabilidad</span><b>@simulation.Attempts50</b></div>
+                    <div><span>75% de probabilidad</span><b>@simulation.Attempts75</b></div>
+                    <div><span>90% de probabilidad</span><b>@simulation.Attempts90</b></div>
+                    <MudText Typo="Typo.caption">
+                        Estimación estadística, no garantía. Cada apertura sigue siendo independiente.
+                    </MudText>
+                </MudPaper>
+            }
+        }
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public string? UniqueName { get; set; }
+
+    private static readonly int[] OpeningOptions = [1, 4, 10, 20];
+    private RelicLabData? lab;
+    private bool loading = true;
+    private string selectedItem = "";
+    private string refinement = "Radiante";
+    private int squadSize = 4;
+    private int openings = 1;
+
+    private RelicLabReward? SelectedReward
+        => lab?.Rewards.FirstOrDefault(x => x.ItemUnique == selectedItem);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        if (!string.IsNullOrWhiteSpace(UniqueName))
+        {
+            lab = await Intelligence.LoadAsync(Uri.UnescapeDataString(UniqueName));
+            selectedItem = lab?.Rewards.FirstOrDefault(x => x.Rarity == "Rara")?.ItemUnique
+                ?? lab?.Rewards.FirstOrDefault()?.ItemUnique
+                ?? "";
+        }
+        loading = false;
+    }
+}
