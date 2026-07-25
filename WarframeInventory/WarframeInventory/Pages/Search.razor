@@ -1,0 +1,103 @@
+@page "/search"
+@inject UniversalSearchService SearchService
+@inject NavigationManager Nav
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <section class="search-console orokin-panel">
+        <div class="eyebrow">CONSOLA UNIVERSAL // CTRL + K</div>
+        <MudText Typo="Typo.h3" Class="page-title">Consulta el archivo</MudText>
+        <div class="search-console__input">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Color="Color.Primary" />
+            <input id="universal-search-input"
+                   value="@query"
+                   @oninput="OnInput"
+                   placeholder="Warframe, arma, mod, reliquia o componente..."
+                   autocomplete="off" />
+            <kbd>ESC</kbd>
+        </div>
+        <div class="search-categories">
+            @foreach (var option in Categories)
+            {
+                <button type="button" class="@(category == option.Key ? "is-active" : "")"
+                        @onclick="@(() => ChangeCategoryAsync(option.Key))">@option.Value</button>
+            }
+        </div>
+    </section>
+
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-4" />
+    }
+    else if (query.Length >= 2 && results.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">No se encontraron coincidencias.</MudAlert>
+    }
+    else
+    {
+        <div class="search-results">
+            @foreach (var hit in results)
+            {
+                <button type="button" class="search-hit" @onclick="@(() => Nav.NavigateTo(hit.Route))">
+                    <img src="@ImageUrl(hit.ImageName)" alt="" />
+                    <span>
+                        <small>@Label(hit.Category)</small>
+                        <b>@hit.Name</b>
+                        <em>@hit.Subtitle</em>
+                    </span>
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" />
+                </button>
+            }
+        </div>
+    }
+</MudContainer>
+
+@code {
+    private static readonly Dictionary<string, string> Categories = new()
+    {
+        ["all"] = "Todo", ["warframe"] = "Warframes", ["weapon"] = "Armas",
+        ["mod"] = "Mods", ["relic"] = "Reliquias", ["component"] = "Componentes"
+    };
+    private string query = "";
+    private string category = "all";
+    private bool loading;
+    private IReadOnlyList<SearchHit> results = [];
+    private CancellationTokenSource? searchCts;
+
+    private async Task OnInput(ChangeEventArgs args)
+    {
+        query = args.Value?.ToString() ?? "";
+        searchCts?.Cancel();
+        searchCts?.Dispose();
+        searchCts = new CancellationTokenSource();
+        var token = searchCts.Token;
+        if (query.Trim().Length < 2)
+        {
+            results = [];
+            return;
+        }
+        loading = true;
+        try
+        {
+            await Task.Delay(220, token);
+            results = await SearchService.SearchAsync(query, category, token);
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+                loading = false;
+        }
+    }
+
+    private async Task ChangeCategoryAsync(string value)
+    {
+        category = value;
+        if (query.Trim().Length >= 2)
+            results = await SearchService.SearchAsync(query, category);
+    }
+
+    private static string Label(string value) => Categories.GetValueOrDefault(value, value);
+    private static string ImageUrl(string? image)
+        => string.IsNullOrWhiteSpace(image) ? "/images/item-placeholder.svg"
+            : $"https://cdn.warframestat.us/img/{image}";
+}

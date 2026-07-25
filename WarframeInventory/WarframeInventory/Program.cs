@@ -113,6 +113,8 @@ builder.Services.AddScoped<FarmPlannerService>();
 builder.Services.AddScoped<BuildableAnalysisService>();
 builder.Services.AddScoped<CommandCenterService>();
 builder.Services.AddScoped<RelicIntelligenceService>();
+builder.Services.AddScoped<UniversalSearchService>();
+builder.Services.AddScoped<ComparisonService>();
 builder.Services.AddHttpClient<WorldstateService>(client =>
 {
     client.BaseAddress = new Uri("https://api.warframestat.us/");

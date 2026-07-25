@@ -14,6 +14,9 @@
             <span>WARFRAME <small>TRACKER</small></span>
         </a>
         <MudSpacer />
+        <a href="/search" class="command-trigger" aria-label="Abrir búsqueda universal">
+            <MudIcon Icon="@Icons.Material.Filled.Search" /><span>Buscar</span><kbd>Ctrl K</kbd>
+        </a>
         <AuthorizeView>
             <Authorized>
                 <span class="tenno-id">@context.User.Identity?.Name</span>
@@ -38,6 +41,7 @@
                 <MudNavLink Href="/mods" Icon="@Icons.Material.Filled.AutoFixHigh">Mods</MudNavLink>
                 <MudNavLink Href="/relics" Icon="@Icons.Material.Filled.Diamond">Reliquias</MudNavLink>
                 <MudNavLink Href="/worldstate" Icon="@Icons.Material.Filled.Public">Worldstate</MudNavLink>
+                <MudNavLink Href="/compare" Icon="@Icons.Material.Filled.CompareArrows">Comparador</MudNavLink>
                 <AuthorizeView>
                     <Authorized>
                         <MudNavLink Href="/goals" Icon="@Icons.Material.Filled.TrackChanges">Objetivos</MudNavLink>

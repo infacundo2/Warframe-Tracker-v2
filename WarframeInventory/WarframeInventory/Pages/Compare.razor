@@ -1,0 +1,87 @@
+@page "/compare"
+@inject ComparisonService Comparisons
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <section class="orokin-panel compare-hero">
+        <div class="eyebrow">MATRIZ DE COMPARACIÓN // ANÁLISIS PARALELO</div>
+        <MudText Typo="Typo.h3" Class="page-title">Comparador</MudText>
+        <MudSelect T="string" Label="Categoría" Value="@type" ValueChanged="ChangeTypeAsync"
+                   Variant="Variant.Outlined">
+            <MudSelectItem T="string" Value="@("warframe")">Warframes</MudSelectItem>
+            <MudSelectItem T="string" Value="@("weapon")">Armas</MudSelectItem>
+        </MudSelect>
+    </section>
+
+    <div class="compare-selectors">
+        <MudSelect T="string" Label="Primer objeto" Value="@leftUnique"
+                   ValueChanged="LoadLeftAsync" Variant="Variant.Outlined">
+            @foreach (var option in options)
+            {
+                <MudSelectItem T="string" Value="@option.UniqueName">@option.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="string" Label="Segundo objeto" Value="@rightUnique"
+                   ValueChanged="LoadRightAsync" Variant="Variant.Outlined">
+            @foreach (var option in options)
+            {
+                <MudSelectItem T="string" Value="@option.UniqueName">@option.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </div>
+
+    <div class="compare-grid">
+        @foreach (var item in new[] { left, right })
+        {
+            <MudPaper Class="compare-card">
+                @if (item is null)
+                {
+                    <MudText Typo="Typo.body1">Selecciona un objeto.</MudText>
+                }
+                else
+                {
+                    <img src="@ImageUrl(item.ImageName)" alt="@item.Name" />
+                    <MudText Typo="Typo.h4">@item.Name</MudText>
+                    @foreach (var stat in item.Stats)
+                    {
+                        <div class="compare-stat"><span>@stat.Label</span><b>@stat.Value</b></div>
+                    }
+                    <MudButton Href="@item.RelationRoute" Variant="Variant.Outlined"
+                               Color="Color.Primary" FullWidth="true">Ver mapa de relaciones</MudButton>
+                }
+            </MudPaper>
+        }
+    </div>
+</MudContainer>
+
+@code {
+    private string type = "warframe";
+    private string leftUnique = "";
+    private string rightUnique = "";
+    private IReadOnlyList<CompareOption> options = [];
+    private CompareItem? left;
+    private CompareItem? right;
+
+    protected override async Task OnInitializedAsync() => await ChangeTypeAsync(type);
+    private async Task ChangeTypeAsync(string value)
+    {
+        type = value;
+        options = await Comparisons.OptionsAsync(type);
+        leftUnique = options.FirstOrDefault()?.UniqueName ?? "";
+        rightUnique = options.Skip(1).FirstOrDefault()?.UniqueName ?? leftUnique;
+        left = string.IsNullOrEmpty(leftUnique) ? null : await Comparisons.LoadAsync(type, leftUnique);
+        right = string.IsNullOrEmpty(rightUnique) ? null : await Comparisons.LoadAsync(type, rightUnique);
+    }
+    private async Task LoadLeftAsync(string value)
+    {
+        leftUnique = value;
+        left = await Comparisons.LoadAsync(type, value);
+    }
+    private async Task LoadRightAsync(string value)
+    {
+        rightUnique = value;
+        right = await Comparisons.LoadAsync(type, value);
+    }
+    private static string ImageUrl(string? image)
+        => string.IsNullOrWhiteSpace(image) ? "/images/item-placeholder.svg"
+            : $"https://cdn.warframestat.us/img/{image}";
+}

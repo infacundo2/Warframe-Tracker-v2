@@ -17,6 +17,8 @@ en ramas separadas antes de integrarse.
   e intentos estimados para alcanzar 50%, 75% y 90%.
 - Fase 4: integración inicial de Worldstate implementada con fisuras PC activas,
   caché tolerante a fallos y cruce por era con las reliquias del inventario.
+- Herramientas transversales: consola universal con `Ctrl+K`, comparación de
+  Warframes y armas, y mapa navegable de componentes y reliquias implementados.
 
 ## Fase 1 — Objetivos del operador
 

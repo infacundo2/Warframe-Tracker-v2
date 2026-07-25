@@ -1,0 +1,49 @@
+@page "/relations/{Type}/{UniqueName}"
+@inject ComparisonService Comparisons
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    @if (map is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <section class="orokin-panel relation-hero">
+            <div class="eyebrow">MAPA HOLOGRÁFICO // RED DE ADQUISICIÓN</div>
+            <MudText Typo="Typo.h3" Class="page-title">@map.Name</MudText>
+            <MudText>Selecciona una reliquia para abrir su archivo completo.</MudText>
+        </section>
+        <div class="relation-map">
+            <div class="relation-root">@map.Name</div>
+            <div class="relation-components">
+                @foreach (var component in map.Components)
+                {
+                    <section class="relation-branch">
+                        <div class="relation-component">@component.Name</div>
+                        <div class="relation-relics">
+                            @if (component.Relics.Count == 0)
+                            {
+                                <span class="relation-empty">Sin reliquias registradas</span>
+                            }
+                            @foreach (var relic in component.Relics)
+                            {
+                                <a href="@($"/relics/{Uri.EscapeDataString(relic.UniqueName)}")">
+                                    <b>@relic.Name</b>
+                                    <small>@(relic.Vaulted ? "Vaulted" : "Disponible") · @relic.IntactChance.ToString("0.00")%</small>
+                                </a>
+                            }
+                        </div>
+                    </section>
+                }
+            </div>
+        </div>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public string Type { get; set; } = "";
+    [Parameter] public string UniqueName { get; set; } = "";
+    private RelationMap? map;
+    protected override async Task OnParametersSetAsync()
+        => map = await Comparisons.RelationsAsync(Type, Uri.UnescapeDataString(UniqueName));
+}
