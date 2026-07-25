@@ -31,6 +31,7 @@ namespace WarframeInventory.Models
     {
         public string Name { get; set; } = string.Empty;
         public string UniqueName { get; set; } = string.Empty;
+        public int ItemCount { get; set; } = 1;
         public string? ImageName { get; set; }
         public List<DropLocation> Drops { get; set; } = new();
 

@@ -35,6 +35,15 @@ cadencia inferior al límite público de tres solicitudes por segundo.
 Después de añadir estados de propiedad y duplicados, `/warframes`, `/weapons`,
 `/mods` e `/inventory-tools` se repitieron en Release con HTTP 200.
 
+El catálogo se resincronizó correctamente después de incorporar `itemCount`.
+La compilación Release posterior terminó con 0 errores y 0 advertencias; los
+detalles, objetivos, planificador y análisis de construcción usan ahora la
+cantidad requerida de cada componente o recurso.
+
+La matriz final volvió a comprobar 15 rutas en Release, incluidas autenticación,
+centro de mando, catálogos, objetivos, Worldstate, builds y herramientas de
+inventario: todas respondieron HTTP 200.
+
 ## Limitación del entorno
 
 El navegador integrado no pudo inicializarse por falta de la política de sandbox

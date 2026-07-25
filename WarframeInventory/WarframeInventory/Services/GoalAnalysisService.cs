@@ -140,7 +140,7 @@ public sealed class GoalAnalysisService
             .ToDictionary(x => x.ComponentName, StringComparer.OrdinalIgnoreCase);
         var missing = components
             .Where(component => !inventory.TryGetValue(component.Name, out var stored)
-                                || (!stored.Owned && stored.Quantity <= 0))
+                                || (!stored.Owned && stored.Quantity < Math.Max(1, component.ItemCount)))
             .ToList();
         var completed = components.Count - missing.Count;
         var progress = (int)Math.Round(completed * 100d / components.Count);
@@ -174,7 +174,7 @@ public sealed class GoalAnalysisService
             progress,
             components.Count,
             missing.Count,
-            missing.Select(x => x.Name).ToList(),
+            missing.Select(x => x.ItemCount > 1 ? $"{x.ItemCount} × {x.Name}" : x.Name).ToList(),
             related.OrderByDescending(x => x.OwnedQuantity).ThenBy(x => x.Name).ToList(),
             false);
     }

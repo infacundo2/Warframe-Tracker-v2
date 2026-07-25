@@ -79,7 +79,13 @@
 
                             <MudItem xs="12" md="8">
                                 <MudStack Spacing="1">
-                                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">@c.Name</MudText>
+                                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                                        @c.Name
+                                        @if (c.ItemCount > 1)
+                                        {
+                                            <span class="component-required"> · requiere @c.ItemCount</span>
+                                        }
+                                    </MudText>
 
                                     <MudStack Direction="Row" AlignItems="@AlignItems.Center" Spacing="2">
                                         <MudCheckBox T="bool"
@@ -91,7 +97,7 @@
                                         <MudNumericField T="int"
                                                         Value="@c.Quantity"
                                                         Label="Cantidad"
-                                                        Min="0" Max="99"
+                                                        Min="0" Max="999999"
                                                         Immediate="true"
                                                         Class="w-24"
                                                         ValueChanged="@(async (int v) => { c.Quantity = v; await UpdateComponentAsync(c); })" />

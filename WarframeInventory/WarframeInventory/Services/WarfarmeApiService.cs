@@ -106,6 +106,8 @@ namespace WarframeInventory.Services
                         .Select(c => new WarframeComponent
                         {
                             Name = c["name"]?.GetValue<string>() ?? "",
+                            UniqueName = c["uniqueName"]?.GetValue<string>() ?? "",
+                            ItemCount = Math.Max(1, c["itemCount"]?.GetValue<int?>() ?? 1),
                             ImageName = c["imageName"]?.GetValue<string>(),
                             Drops = c["drops"] is JsonArray drops
                                 ? drops.OfType<JsonObject>().Select(d => new DropLocation
@@ -205,6 +207,8 @@ namespace WarframeInventory.Services
                         .Select(c => new WarframeComponent
                         {
                             Name = c["name"]?.GetValue<string>() ?? "",
+                            UniqueName = c["uniqueName"]?.GetValue<string>() ?? "",
+                            ItemCount = Math.Max(1, c["itemCount"]?.GetValue<int?>() ?? 1),
                             ImageName = c["imageName"]?.GetValue<string>(),
                             Drops = c["drops"] is JsonArray drops
                                 ? drops.OfType<JsonObject>().Select(d => new DropLocation

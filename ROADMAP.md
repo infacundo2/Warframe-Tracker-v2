@@ -8,8 +8,9 @@ en ramas separadas antes de integrarse.
 - Fase 1: implementada en `feature/operator-goals`.
 - Fase 2: motor inicial implementado; calcula rutas por componente, inventario
   I/E/P/R, probabilidades, vestigios e intentos para 50%, 75% y 90%.
-- Pendiente en fase 2: incorporar costes de recursos cuando exista una fuente
-  de catálogo normalizada para esos datos.
+- Fase 2 incluye cantidades requeridas por componente y recurso tomadas del
+  catálogo normalizado; objetivos, planificador y análisis de construcción
+  distinguen entre poseer una pieza y reunir la cantidad necesaria.
 - Fase 3: centro de mando personal e historial automático implementados. Los
   eventos comienzan a registrarse desde la migración `AddInventoryHistory`.
 - Inteligencia de reliquias: laboratorio implementado con comparación I/E/P/R,

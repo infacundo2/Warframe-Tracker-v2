@@ -36,7 +36,7 @@ public sealed class FarmPlannerService
             .ToDictionaryAsync(x => x.ComponentName, StringComparer.OrdinalIgnoreCase, ct);
         var missing = components
             .Where(x => !inventory.TryGetValue(x.Name, out var stored)
-                        || (!stored.Owned && stored.Quantity <= 0))
+                        || (!stored.Owned && stored.Quantity < Math.Max(1, x.ItemCount)))
             .ToList();
 
         var relics = await db.Relics.AsNoTracking().ToListAsync(ct);

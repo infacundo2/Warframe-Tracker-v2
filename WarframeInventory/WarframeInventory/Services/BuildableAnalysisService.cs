@@ -71,8 +71,8 @@ public sealed class BuildableAnalysisService
         byParent.TryGetValue(unique, out var stored);
         var missing = components
             .Where(x => stored is null || !stored.TryGetValue(x.Name, out var item)
-                        || (!item.Owned && item.Quantity <= 0))
-            .Select(x => x.Name)
+                        || (!item.Owned && item.Quantity < Math.Max(1, x.ItemCount)))
+            .Select(x => x.ItemCount > 1 ? $"{x.ItemCount} × {x.Name}" : x.Name)
             .ToList();
         var owned = components.Count - missing.Count;
         result.Add(new BuildableCandidate(type, unique, name, imageName,
