@@ -3,6 +3,7 @@
 @using System.Text.Json
 @inject WarframeInventory.Data.ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthState
+@inject UserGoalService GoalService
 @using WarframeInventory.Models
 @using MudBlazor
 @using System.Security.Claims
@@ -30,6 +31,14 @@
 
                 <MudItem xs="12" md="8">
                     <MudText Typo="Typo.h4" Color="Color.Primary">@mod.Name</MudText>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="@(goalSelected ? Color.Secondary : Color.Primary)"
+                               StartIcon="@Icons.Material.Filled.TrackChanges"
+                               Disabled="@string.IsNullOrWhiteSpace(userId)"
+                               OnClick="ToggleGoalAsync"
+                               Class="mt-2">
+                        @(goalSelected ? "Quitar de objetivos" : "Añadir a objetivos")
+                    </MudButton>
                     <MudText Typo="Typo.body1" Class="mt-2 mb-3">@mod.Description</MudText>
 
                     <MudList Dense="true">
@@ -128,6 +137,7 @@
     private List<ModDrop> drops = new();
     private int ownedCount = 0;
     private string userId = "";
+    private bool goalSelected;
 
     protected override async Task OnInitializedAsync()
     {
@@ -150,6 +160,10 @@
                 Console.WriteLine($"❌ No se encontró el mod {decodedName}");
                 return;
             }
+
+            if (!string.IsNullOrWhiteSpace(userId))
+                goalSelected = await GoalService.IsGoalAsync(
+                    userId, "mod", mod.UniqueName);
 
             Console.WriteLine($"✅ Cargando mod: {mod.Name}");
 
@@ -242,6 +256,15 @@
         {
             Console.WriteLine($"❌ Error al actualizar mod: {ex.Message}");
         }
+    }
+
+    private async Task ToggleGoalAsync()
+    {
+        if (mod is null || string.IsNullOrWhiteSpace(userId))
+            return;
+
+        goalSelected = await GoalService.ToggleAsync(
+            userId, "mod", mod.UniqueName, mod.Name);
     }
 
 

@@ -29,6 +29,7 @@ namespace WarframeInventory.Data
         public DbSet<UserMod> UserMods => Set<UserMod>();
         public DbSet<RelicReward> RelicRewards => Set<RelicReward>();
         public DbSet<DataSyncState> DataSyncStates => Set<DataSyncState>();
+        public DbSet<UserGoal> UserGoals => Set<UserGoal>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -70,6 +71,12 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<UserComponent>().HasIndex(x => new { x.UserId, x.ParentUnique, x.ComponentName }).IsUnique();
             modelBuilder.Entity<UserRelic>().HasIndex(x => new { x.UserId, x.RelicUnique }).IsUnique();
             modelBuilder.Entity<UserMod>().HasIndex(x => new { x.UserId, x.ModUnique }).IsUnique();
+            modelBuilder.Entity<UserGoal>()
+                .HasIndex(x => new { x.UserId, x.TargetType, x.TargetUnique })
+                .IsUnique();
+            modelBuilder.Entity<UserGoal>().Property(x => x.TargetType).HasMaxLength(32);
+            modelBuilder.Entity<UserGoal>().Property(x => x.TargetUnique).HasMaxLength(255);
+            modelBuilder.Entity<UserGoal>().Property(x => x.DisplayName).HasMaxLength(255);
 
             modelBuilder.Entity<UserWarframe>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -80,6 +87,8 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<UserRelic>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<UserMod>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
+                .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<UserGoal>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<RelicReward>().HasIndex(x => new { x.RelicUnique, x.ItemUnique }).IsUnique();

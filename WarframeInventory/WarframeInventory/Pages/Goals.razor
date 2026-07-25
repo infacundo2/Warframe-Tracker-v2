@@ -1,0 +1,159 @@
+@page "/goals"
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
+@using WarframeInventory.Models
+@inject IDbContextFactory<WarframeInventory.Data.ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthState
+@inject UserGoalService GoalService
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <section class="goal-hero orokin-panel">
+        <div>
+            <div class="eyebrow">PROTOCOLO DE ADQUISICIÓN // OBJETIVOS</div>
+            <MudText Typo="Typo.h3" Class="page-title">Objetivos del operador</MudText>
+            <MudText Typo="Typo.body1" Class="hero-copy">
+                Define prioridades y convierte piezas pendientes en rutas de farmeo.
+            </MudText>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(userId))
+        {
+            <div class="goal-counter">
+                <strong>@goals.Count(x => !x.IsCompleted)</strong>
+                <span>objetivos activos</span>
+            </div>
+        }
+    </section>
+
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-5" />
+    }
+    else if (string.IsNullOrWhiteSpace(userId))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-5">
+            Inicia sesión para crear y sincronizar objetivos personales.
+        </MudAlert>
+    }
+    else if (goals.Count == 0)
+    {
+        <MudPaper Class="goal-empty mt-5">
+            <MudIcon Icon="@Icons.Material.Filled.TrackChanges" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h5">Todavía no hay objetivos</MudText>
+            <MudText Typo="Typo.body2">
+                Abre un Warframe, arma o mod y pulsa “Añadir a objetivos”.
+            </MudText>
+            <MudButton Href="/warframes" Variant="Variant.Outlined" Color="Color.Primary">
+                Explorar Warframes
+            </MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid Class="mt-4">
+            @foreach (var goal in goals.OrderBy(x => x.IsCompleted).ThenBy(x => x.Priority).ThenBy(x => x.DisplayName))
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="@($"goal-card {(goal.IsCompleted ? "goal-card--complete" : "")}")">
+                        <div class="goal-card__header">
+                            <span class="goal-type">@GoalTypeLabel(goal.TargetType)</span>
+                            <span class="@($"goal-priority goal-priority--{goal.Priority}")">
+                                @PriorityLabel(goal.Priority)
+                            </span>
+                        </div>
+                        <MudText Typo="Typo.h5">@goal.DisplayName</MudText>
+                        <MudText Typo="Typo.caption">
+                            Creado @goal.CreatedUtc.ToLocalTime().ToString("dd/MM/yyyy")
+                        </MudText>
+
+                        <div class="goal-card__controls">
+                            <MudSelect T="int"
+                                       Label="Prioridad"
+                                       Value="@goal.Priority"
+                                       ValueChanged="@(value => ChangePriorityAsync(goal, value))"
+                                       Dense="true">
+                                <MudSelectItem T="int" Value="1">Alta</MudSelectItem>
+                                <MudSelectItem T="int" Value="2">Media</MudSelectItem>
+                                <MudSelectItem T="int" Value="3">Baja</MudSelectItem>
+                            </MudSelect>
+                            <MudCheckBox T="bool"
+                                         Checked="@goal.IsCompleted"
+                                         CheckedChanged="@(value => ChangeCompletedAsync(goal, value))"
+                                         Label="Completado"
+                                         Color="Color.Success" />
+                        </div>
+
+                        <div class="goal-card__actions">
+                            <MudButton Href="@TargetUrl(goal)" Variant="Variant.Text" Color="Color.Primary">
+                                Abrir objetivo
+                            </MudButton>
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                           Color="Color.Error"
+                                           AriaLabel="Eliminar objetivo"
+                                           OnClick="@(() => DeleteAsync(goal))" />
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private readonly List<UserGoal> goals = [];
+    private string userId = "";
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            goals.AddRange(await db.UserGoals.AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .ToListAsync());
+        }
+
+        loading = false;
+    }
+
+    private async Task ChangePriorityAsync(UserGoal goal, int value)
+    {
+        goal.Priority = value;
+        await GoalService.UpdateAsync(userId, goal.Id, goal.Priority, goal.IsCompleted);
+    }
+
+    private async Task ChangeCompletedAsync(UserGoal goal, bool value)
+    {
+        goal.IsCompleted = value;
+        goal.CompletedUtc = value ? DateTime.UtcNow : null;
+        await GoalService.UpdateAsync(userId, goal.Id, goal.Priority, value);
+    }
+
+    private async Task DeleteAsync(UserGoal goal)
+    {
+        await GoalService.DeleteAsync(userId, goal.Id);
+        goals.Remove(goal);
+    }
+
+    private static string GoalTypeLabel(string type) => type switch
+    {
+        "warframe" => "WARFRAME",
+        "weapon" => "ARMA",
+        "mod" => "MOD",
+        "relic" => "RELIQUIA",
+        _ => type.ToUpperInvariant()
+    };
+
+    private static string PriorityLabel(int priority) => priority switch
+    {
+        1 => "PRIORIDAD ALTA",
+        3 => "PRIORIDAD BAJA",
+        _ => "PRIORIDAD MEDIA"
+    };
+
+    private static string TargetUrl(UserGoal goal)
+        => $"/{(goal.TargetType == "weapon" ? "weapons" : goal.TargetType + "s")}/{Uri.EscapeDataString(goal.TargetUnique)}";
+}

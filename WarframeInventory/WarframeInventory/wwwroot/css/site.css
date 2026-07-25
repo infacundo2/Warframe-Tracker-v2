@@ -78,6 +78,34 @@ a { text-underline-offset: .2em; }
     border-color: rgba(216, 184, 106, .34);
     background: rgba(216, 184, 106, .07);
 }
+.goal-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: clamp(1.5rem, 4vw, 3rem);
+    border: 1px solid var(--line);
+    background: linear-gradient(115deg, rgba(8, 29, 41, .96), rgba(4, 13, 21, .96));
+}
+.goal-counter { display: grid; min-width: 9rem; text-align: center; }
+.goal-counter strong { color: var(--cyan); font-size: 3rem; line-height: 1; text-shadow: 0 0 22px rgba(119, 231, 255, .35); }
+.goal-counter span { color: #86a8b3; font-size: .7rem; letter-spacing: .13em; text-transform: uppercase; }
+.goal-empty { display: grid; justify-items: center; gap: 1rem; padding: 4rem 2rem !important; text-align: center; }
+.goal-card { position: relative; min-height: 230px; padding: 1.4rem !important; overflow: hidden; }
+.goal-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
+.goal-card--complete { opacity: .65; }
+.goal-card--complete::before { background: #5de0aa; box-shadow: 0 0 12px #5de0aa; }
+.goal-card__header, .goal-card__controls, .goal-card__actions { display: flex; align-items: center; gap: 1rem; }
+.goal-card__header { justify-content: space-between; margin-bottom: 1rem; }
+.goal-type, .goal-priority { font-size: .66rem; letter-spacing: .14em; }
+.goal-type { color: var(--cyan); }
+.goal-priority { padding: .2rem .45rem; border: 1px solid currentColor; }
+.goal-priority--1 { color: #ff8992; }
+.goal-priority--2 { color: var(--gold); }
+.goal-priority--3 { color: #86a8b3; }
+.goal-card__controls { margin-top: 1.25rem; }
+.goal-card__controls .mud-input-control { flex: 1; }
+.goal-card__actions { justify-content: space-between; margin-top: 1rem; }
 .page-title { text-transform: uppercase; color: #eafcff; text-shadow: 0 0 22px rgba(119,231,255,.2); }
 .orokin-panel { position: relative; }
 .orokin-panel::before { content: ""; position: absolute; inset: -1px auto auto -1px; width: 42px; height: 2px; background: var(--gold); }

@@ -107,6 +107,7 @@ builder.Services.AddHttpClient<WarframeApiService>(client =>
     client.DefaultRequestHeaders.UserAgent.ParseAdd("WarframeInventory/2.0");
 });
 builder.Services.AddScoped<DataSyncService>();
+builder.Services.AddScoped<UserGoalService>();
 builder.Services.AddHostedService<CatalogSyncBackgroundService>();
 
 var app = builder.Build();
