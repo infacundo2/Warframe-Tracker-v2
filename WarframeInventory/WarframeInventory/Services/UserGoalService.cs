@@ -68,6 +68,29 @@ public sealed class UserGoalService
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task<int> EnsureManyAsync(
+        string userId,
+        IEnumerable<(string TargetType, string TargetUnique, string DisplayName)> targets,
+        CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var normalized = targets.Where(x => !string.IsNullOrWhiteSpace(x.TargetUnique))
+            .DistinctBy(x => (x.TargetType, x.TargetUnique)).ToList();
+        var existing = await db.UserGoals.AsNoTracking().Where(x => x.UserId == userId)
+            .Select(x => new { x.TargetType, x.TargetUnique }).ToListAsync(ct);
+        var additions = normalized.Where(target => !existing.Any(x =>
+            x.TargetType == target.TargetType && x.TargetUnique == target.TargetUnique))
+            .Select(target => new UserGoal
+            {
+                UserId = userId, TargetType = target.TargetType,
+                TargetUnique = target.TargetUnique, DisplayName = target.DisplayName, Priority = 2
+            }).ToList();
+        if (additions.Count == 0) return 0;
+        db.UserGoals.AddRange(additions);
+        await db.SaveChangesAsync(ct);
+        return additions.Count;
+    }
+
     public async Task DeleteAsync(
         string userId, int goalId, CancellationToken ct = default)
     {

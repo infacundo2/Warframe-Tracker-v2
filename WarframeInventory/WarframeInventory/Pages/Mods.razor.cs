@@ -16,6 +16,14 @@ public partial class Mods
     private int totalPages = 1;
     private const int pageSize = 10;
     private string userId = "";
+    private string compatibilityFilter = "all";
+    private string polarityFilter = "all";
+    private string rarityFilter = "all";
+    private string collectionFilter = "all";
+    private string ownedFilter = "all";
+    private List<string> compatibilities = [];
+    private List<string> polarities = [];
+    private List<string> rarities = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -25,6 +33,12 @@ public partial class Mods
         userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
         Console.WriteLine($"👤 Usuario autenticado: {user.Identity?.Name} ({userId})");
 
+        compatibilities = await Db.Mods.AsNoTracking().Where(x => x.CompatName != null && x.CompatName != "")
+            .Select(x => x.CompatName!).Distinct().OrderBy(x => x).ToListAsync();
+        polarities = await Db.Mods.AsNoTracking().Where(x => x.Polarity != null && x.Polarity != "")
+            .Select(x => x.Polarity!).Distinct().OrderBy(x => x).ToListAsync();
+        rarities = await Db.Mods.AsNoTracking().Where(x => x.Rarity != null && x.Rarity != "")
+            .Select(x => x.Rarity!).Distinct().OrderBy(x => x).ToListAsync();
         await RefreshAsync();
     }
 
@@ -46,6 +60,27 @@ public partial class Mods
             {
                 string term = searchTerm.ToLower();
                 query = query.Where(m => EF.Functions.Like(m.Name, $"%{term}%"));
+            }
+            if (compatibilityFilter != "all")
+                query = query.Where(x => x.CompatName == compatibilityFilter);
+            if (polarityFilter != "all")
+                query = query.Where(x => x.Polarity == polarityFilter);
+            if (rarityFilter != "all")
+                query = query.Where(x => x.Rarity == rarityFilter);
+            query = collectionFilter switch
+            {
+                "primed" => query.Where(x => x.IsPrime),
+                "augment" => query.Where(x => x.IsAugment),
+                "galvanized" => query.Where(x => x.Name.StartsWith("Galvanized")),
+                "archon" => query.Where(x => x.Name.StartsWith("Archon")),
+                _ => query
+            };
+            if (ownedFilter != "all" && !string.IsNullOrWhiteSpace(userId))
+            {
+                var ownedKeys = Db.UserMods.Where(x => x.UserId == userId && (x.Owned || x.Quantity > 0))
+                    .Select(x => x.ModUnique);
+                query = ownedFilter == "owned" ? query.Where(x => ownedKeys.Contains(x.UniqueName))
+                    : query.Where(x => !ownedKeys.Contains(x.UniqueName));
             }
 
             var totalCount = await query.CountAsync();
@@ -137,6 +172,19 @@ public partial class Mods
         if (newPage == currentPage || newPage < 1 || newPage > totalPages)
             return;
         await LoadPageAsync(newPage);
+    }
+
+    private async Task ChangeFilterAsync(string filter, string value)
+    {
+        switch (filter)
+        {
+            case "compat": compatibilityFilter = value; break;
+            case "polarity": polarityFilter = value; break;
+            case "rarity": rarityFilter = value; break;
+            case "collection": collectionFilter = value; break;
+            case "owned": ownedFilter = value; break;
+        }
+        await RefreshAsync();
     }
 
     private static string GetImageUrl(string? imageName)

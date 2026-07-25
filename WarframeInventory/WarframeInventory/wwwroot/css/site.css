@@ -825,6 +825,35 @@ img { color: transparent; }
     border-top: 1px solid rgba(216, 184, 92, .35);
 }
 .metadata-editor .mud-typography { grid-column: 1 / -1; }
+.mod-filters {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(9rem, 1fr));
+    gap: .65rem;
+}
+.fusion-calculator {
+    padding: 1rem;
+    border: 1px solid rgba(216, 184, 92, .28);
+}
+.fusion-calculator > div {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .7rem;
+    margin: .7rem 0;
+}
+.fusion-calculator span {
+    display: flex;
+    flex-direction: column;
+    color: #8ca8b3;
+    font-size: .65rem;
+    letter-spacing: .08em;
+}
+.fusion-calculator strong { color: #38d8f5; font-size: 1.35rem; }
+@media (max-width: 900px) {
+    .mod-filters { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 520px) {
+    .mod-filters, .fusion-calculator > div { grid-template-columns: 1fr; }
+}
 @media (max-width: 650px) {
     .inventory-stats { grid-template-columns: 1fr; }
 }

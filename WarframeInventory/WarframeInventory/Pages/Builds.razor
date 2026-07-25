@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @using System.Security.Claims
 @inject BuildService BuildManager
+@inject UserGoalService GoalService
 @inject AuthenticationStateProvider AuthState
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
@@ -63,6 +64,12 @@
         </div>
         <MudButton OnClick="SaveAsync" Disabled="@(!CanSave)" Variant="Variant.Filled"
                    Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">Guardar build</MudButton>
+        <MudButton OnClick="CreateMissingGoalsAsync"
+                   Disabled="@(slots.All(x => x.Owned || string.IsNullOrWhiteSpace(x.ModUnique)))"
+                   Variant="Variant.Outlined" Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.TrackChanges">
+            Crear objetivos para mods faltantes
+        </MudButton>
         @if (!string.IsNullOrWhiteSpace(message))
         {
             <MudAlert Severity="Severity.Success" Class="mt-3">@message</MudAlert>
@@ -108,5 +115,13 @@
         await BuildManager.SaveAsync(userId, 0, name, target, tags, capacity, forma, slots);
         workspace = await BuildManager.LoadAsync(userId);
         message = "Build guardada en el archivo del operador.";
+    }
+    private async Task CreateMissingGoalsAsync()
+    {
+        var missing = slots.Where(x => !x.Owned && !string.IsNullOrWhiteSpace(x.ModUnique))
+            .Select(x => ("mod", x.ModUnique, x.Name));
+        var created = await GoalService.EnsureManyAsync(userId, missing);
+        message = created == 0 ? "Los mods faltantes ya estaban en tus objetivos."
+            : $"{created} objetivos de mods creados.";
     }
 }

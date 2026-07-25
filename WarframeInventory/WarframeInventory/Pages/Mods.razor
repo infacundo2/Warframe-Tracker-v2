@@ -22,6 +22,43 @@
                       DebounceInterval="350"
                       OnDebounceIntervalElapsed="RefreshAsync" />
 
+        <div class="mod-filters">
+            <MudSelect T="string" Label="Compatibilidad" Value="@compatibilityFilter"
+                       ValueChanged="@((string value) => ChangeFilterAsync("compat", value))"
+                       Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+                @foreach (var value in compatibilities) { <MudSelectItem T="string" Value="@value">@value</MudSelectItem> }
+            </MudSelect>
+            <MudSelect T="string" Label="Polaridad" Value="@polarityFilter"
+                       ValueChanged="@((string value) => ChangeFilterAsync("polarity", value))"
+                       Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+                @foreach (var value in polarities) { <MudSelectItem T="string" Value="@value">@value</MudSelectItem> }
+            </MudSelect>
+            <MudSelect T="string" Label="Rareza" Value="@rarityFilter"
+                       ValueChanged="@((string value) => ChangeFilterAsync("rarity", value))"
+                       Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+                @foreach (var value in rarities) { <MudSelectItem T="string" Value="@value">@value</MudSelectItem> }
+            </MudSelect>
+            <MudSelect T="string" Label="Colección" Value="@collectionFilter"
+                       ValueChanged="@((string value) => ChangeFilterAsync("collection", value))"
+                       Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+                <MudSelectItem T="string" Value="@("primed")">Primed</MudSelectItem>
+                <MudSelectItem T="string" Value="@("augment")">Augment</MudSelectItem>
+                <MudSelectItem T="string" Value="@("galvanized")">Galvanized</MudSelectItem>
+                <MudSelectItem T="string" Value="@("archon")">Archon</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="string" Label="Inventario" Value="@ownedFilter"
+                       ValueChanged="@((string value) => ChangeFilterAsync("owned", value))"
+                       Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("all")">Todos</MudSelectItem>
+                <MudSelectItem T="string" Value="@("owned")">Poseídos</MudSelectItem>
+                <MudSelectItem T="string" Value="@("missing")">Faltantes</MudSelectItem>
+            </MudSelect>
+        </div>
+
         @if (loading)
         {
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" Class="mx-auto my-8" />

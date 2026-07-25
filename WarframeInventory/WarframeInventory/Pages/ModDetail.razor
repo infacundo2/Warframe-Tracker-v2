@@ -63,6 +63,25 @@
 
             <MudDivider Class="my-4" />
 
+            <MudText Typo="Typo.h6" Class="mb-2">Calculadora de fusión</MudText>
+            <MudPaper Class="fusion-calculator">
+                <MudSlider T="int" @bind-Value="selectedRank" Min="0"
+                           Max="@(mod.FusionLimit ?? 0)" Step="1">
+                    Rango objetivo: @selectedRank / @(mod.FusionLimit ?? 0)
+                </MudSlider>
+                <div>
+                    <span>ENDO ACUMULADO<strong>@FusionEndo.ToString("N0")</strong></span>
+                    <span>CRÉDITOS ESTIMADOS<strong>@FusionCredits.ToString("N0")</strong></span>
+                    <span>DRENAJE RESULTANTE<strong>@ResultingDrain</strong></span>
+                </div>
+                <MudText Typo="Typo.caption">
+                    Endo calculado por rareza y rango. Los créditos son una estimación;
+                    confirma el importe final en la estación de mods.
+                </MudText>
+            </MudPaper>
+
+            <MudDivider Class="my-4" />
+
             <MudText Typo="Typo.h6" Class="mb-2">Niveles de mejora</MudText>
             @if (levelStats == null || levelStats.Count == 0)
             {
@@ -138,6 +157,24 @@
     private int ownedCount = 0;
     private string userId = "";
     private bool goalSelected;
+    private int selectedRank;
+    private int FusionEndo
+    {
+        get
+        {
+            if (mod is null || selectedRank <= 0) return 0;
+            var baseCost = (mod.Rarity ?? "").ToLowerInvariant() switch
+            {
+                "legendary" or "legendaria" => 40,
+                "rare" or "rara" => 30,
+                "uncommon" or "poco común" => 20,
+                _ => 10
+            };
+            return baseCost * ((1 << Math.Min(selectedRank, 20)) - 1);
+        }
+    }
+    private int FusionCredits => (int)Math.Ceiling(FusionEndo * 48.3d);
+    private int ResultingDrain => (mod?.BaseDrain ?? 0) + selectedRank;
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,6 +197,7 @@
                 Console.WriteLine($"❌ No se encontró el mod {decodedName}");
                 return;
             }
+            selectedRank = mod.FusionLimit ?? 0;
 
             if (!string.IsNullOrWhiteSpace(userId))
                 goalSelected = await GoalService.IsGoalAsync(
@@ -210,7 +248,7 @@
 
             // 🔹 Cargar cantidad del usuario
             var owned = await Db.UserMods.FirstOrDefaultAsync(u => u.UserId == userId && u.ModUnique == mod.UniqueName);
-            ownedCount = owned?.Owned == true ? 1 : 0;
+            ownedCount = owned is null ? 0 : Math.Max(owned.Quantity, owned.Owned ? 1 : 0);
             Console.WriteLine($"👤 Usuario {userId} tiene {ownedCount} de este mod");
         }
         catch (Exception ex)

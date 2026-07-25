@@ -23,6 +23,8 @@ en ramas separadas antes de integrarse.
   El constructor ligero guarda builds, calcula capacidad y señala mods faltantes.
 - Gestión avanzada: edición múltiple de reliquias, historial reversible,
   estadísticas semanales y metadatos personales (notas, etiquetas y fecha).
+- Mods y builds: filtros por compatibilidad, polaridad, rareza, colección e
+  inventario; calculadora de fusión y creación de objetivos desde una build.
 
 ## Fase 1 — Objetivos del operador
 
