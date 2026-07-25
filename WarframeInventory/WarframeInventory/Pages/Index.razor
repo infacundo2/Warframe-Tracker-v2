@@ -1,6 +1,9 @@
 @page "/"
 @inject NavigationManager Nav
 @inject CatalogCacheService CatalogCache
+@inject AuthenticationStateProvider AuthState
+@inject CommandCenterService CommandCenter
+@using System.Security.Claims
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <section class="command-hero orokin-panel">
@@ -21,6 +24,92 @@
             </AuthorizeView>
         </div>
     </section>
+
+    @if (_dashboard is not null)
+    {
+        <section class="operator-briefing">
+            <div class="operator-briefing__signal">
+                <span>ANÁLISIS DEL OPERADOR</span>
+                <MudText Typo="Typo.h5">@_dashboard.Insight</MudText>
+            </div>
+
+            <MudGrid>
+                @foreach (var metric in _dashboard.Metrics)
+                {
+                    <MudItem xs="12" sm="6" lg="3">
+                        <MudPaper Class="collection-metric" @onclick="@(() => Nav.NavigateTo("/" + metric.Route))">
+                            <div>
+                                <span>@metric.Label</span>
+                                <b>@metric.ProgressPercent%</b>
+                            </div>
+                            <MudProgressLinear Value="@metric.ProgressPercent" Rounded="true" Color="Color.Primary" />
+                            <small>@metric.Owned de @metric.Total registrados</small>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <div class="operator-summary">
+                <MudPaper Class="operator-stat" @onclick="@(() => Nav.NavigateTo("/goals"))">
+                    <span>OBJETIVOS ACTIVOS</span><b>@_dashboard.ActiveGoals</b>
+                </MudPaper>
+                <MudPaper Class="operator-stat">
+                    <span>A UNA PIEZA</span><b>@_dashboard.OneAwaySets</b>
+                </MudPaper>
+                <MudPaper Class="operator-stat" @onclick="@(() => Nav.NavigateTo("/buildable"))">
+                    <span>SETS CONSTRUIBLES</span><b>@_dashboard.ReadySets</b>
+                </MudPaper>
+                <MudPaper Class="operator-stat">
+                    <span>COPIAS DE RELIQUIAS</span><b>@_dashboard.RelicCopies</b>
+                </MudPaper>
+            </div>
+
+            <MudGrid Class="mt-4">
+                <MudItem xs="12" md="7">
+                    <MudPaper Class="activity-panel">
+                        <div class="panel-heading">
+                            <span>FLUJO DE INVENTARIO</span>
+                            <MudText Typo="Typo.h5">Actividad reciente</MudText>
+                        </div>
+                        @if (_dashboard.RecentEvents.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2">Los próximos cambios de inventario aparecerán aquí.</MudText>
+                        }
+                        else
+                        {
+                            @foreach (var entry in _dashboard.RecentEvents.Take(7))
+                            {
+                                <div class="activity-entry">
+                                    <span class="@($"activity-entry__pulse activity-entry__pulse--{entry.Action.ToLowerInvariant()}")"></span>
+                                    <div>
+                                        <b>@entry.DisplayName</b>
+                                        <small>@CategoryLabel(entry.Category) · @entry.PreviousValue → @entry.NewValue</small>
+                                    </div>
+                                    <time>@RelativeTime(entry.OccurredUtc)</time>
+                                </div>
+                            }
+                        }
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="5">
+                    <MudPaper Class="priority-panel">
+                        <div class="panel-heading">
+                            <span>ACCESO RÁPIDO</span>
+                            <MudText Typo="Typo.h5">Siguiente operación</MudText>
+                        </div>
+                        <MudButton Href="/goals" FullWidth="true" Variant="Variant.Filled"
+                                   Color="Color.Primary" StartIcon="@Icons.Material.Filled.TrackChanges">
+                            Revisar objetivos
+                        </MudButton>
+                        <MudButton Href="/buildable" FullWidth="true" Variant="Variant.Outlined"
+                                   Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Inventory2">
+                            Ver construibles
+                        </MudButton>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </section>
+    }
 
     <MudGrid Class="mt-6">
         @foreach (var entry in Sections)
@@ -59,7 +148,16 @@
         new("RL-04", "Reliquias", "Rastrea recompensas y refinamientos.", "/relics", Icons.Material.Filled.Diamond)
     ];
     private CatalogCounts? _counts;
-    protected override async Task OnInitializedAsync() => _counts = await CatalogCache.GetCountsAsync();
+    private CommandCenterSnapshot? _dashboard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _counts = await CatalogCache.GetCountsAsync();
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        var userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!string.IsNullOrWhiteSpace(userId))
+            _dashboard = await CommandCenter.GetAsync(userId);
+    }
     private int CountFor(string code) => code switch
     {
         "WF-01" => _counts?.Warframes ?? 0,
@@ -67,5 +165,23 @@
         "MD-03" => _counts?.Mods ?? 0,
         _ => _counts?.Relics ?? 0
     };
+    private static string CategoryLabel(string category) => category switch
+    {
+        "warframe" => "Warframe",
+        "weapon" => "Arma",
+        "mod" => "Mod",
+        "relic" => "Reliquia",
+        "component" => "Componente",
+        _ => category
+    };
+
+    private static string RelativeTime(DateTime utc)
+    {
+        var elapsed = DateTime.UtcNow - utc;
+        if (elapsed.TotalMinutes < 1) return "ahora";
+        if (elapsed.TotalHours < 1) return $"hace {(int)elapsed.TotalMinutes} min";
+        if (elapsed.TotalDays < 1) return $"hace {(int)elapsed.TotalHours} h";
+        return $"hace {(int)elapsed.TotalDays} d";
+    }
     private sealed record Section(string Code, string Title, string Description, string Route, string Icon);
 }

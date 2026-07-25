@@ -10,6 +10,8 @@ en ramas separadas antes de integrarse.
   I/E/P/R, probabilidades, vestigios e intentos para 50%, 75% y 90%.
 - Pendiente en fase 2: incorporar costes de recursos cuando exista una fuente
   de catálogo normalizada para esos datos.
+- Fase 3: centro de mando personal e historial automático implementados. Los
+  eventos comienzan a registrarse desde la migración `AddInventoryHistory`.
 
 ## Fase 1 — Objetivos del operador
 

@@ -30,6 +30,110 @@ namespace WarframeInventory.Data
         public DbSet<RelicReward> RelicRewards => Set<RelicReward>();
         public DbSet<DataSyncState> DataSyncStates => Set<DataSyncState>();
         public DbSet<UserGoal> UserGoals => Set<UserGoal>();
+        public DbSet<InventoryEvent> InventoryEvents => Set<InventoryEvent>();
+
+        public override int SaveChanges()
+        {
+            AppendInventoryEvents();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            AppendInventoryEvents();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void AppendInventoryEvents()
+        {
+            ChangeTracker.DetectChanges();
+            var events = new List<InventoryEvent>();
+
+            foreach (var entry in ChangeTracker.Entries<UserWarframe>()
+                         .Where(x => x.State is EntityState.Added or EntityState.Modified))
+            {
+                var previous = entry.State == EntityState.Added
+                    ? 0 : (entry.OriginalValues.GetValue<bool>(nameof(UserWarframe.Owned)) ? 1 : 0);
+                var current = entry.Entity.Owned ? 1 : 0;
+                AddEvent(events, entry.Entity.UserId, "warframe", entry.Entity.WarframeUnique,
+                    entry.Entity.WarframeUnique, previous, current);
+            }
+
+            foreach (var entry in ChangeTracker.Entries<UserWeapon>()
+                         .Where(x => x.State is EntityState.Added or EntityState.Modified))
+            {
+                var previous = entry.State == EntityState.Added
+                    ? 0 : (entry.OriginalValues.GetValue<bool>(nameof(UserWeapon.Owned)) ? 1 : 0);
+                var current = entry.Entity.Owned ? 1 : 0;
+                AddEvent(events, entry.Entity.UserId, "weapon", entry.Entity.WeaponUnique,
+                    entry.Entity.WeaponUnique, previous, current);
+            }
+
+            foreach (var entry in ChangeTracker.Entries<UserMod>()
+                         .Where(x => x.State is EntityState.Added or EntityState.Modified))
+            {
+                var previousQuantity = entry.State == EntityState.Added
+                    ? 0 : entry.OriginalValues.GetValue<int>(nameof(UserMod.Quantity));
+                var previousOwned = entry.State != EntityState.Added
+                                    && entry.OriginalValues.GetValue<bool>(nameof(UserMod.Owned));
+                var previous = previousQuantity > 0 || previousOwned ? Math.Max(1, previousQuantity) : 0;
+                var current = entry.Entity.Quantity > 0 || entry.Entity.Owned
+                    ? Math.Max(1, entry.Entity.Quantity) : 0;
+                AddEvent(events, entry.Entity.UserId, "mod", entry.Entity.ModUnique,
+                    entry.Entity.ModUnique, previous, current);
+            }
+
+            foreach (var entry in ChangeTracker.Entries<UserRelic>()
+                         .Where(x => x.State is EntityState.Added or EntityState.Modified))
+            {
+                var previous = entry.State == EntityState.Added
+                    ? 0 : entry.OriginalValues.GetValue<int>(nameof(UserRelic.Quantity));
+                AddEvent(events, entry.Entity.UserId, "relic", entry.Entity.RelicUnique,
+                    entry.Entity.RelicUnique, previous, entry.Entity.Quantity);
+            }
+
+            foreach (var entry in ChangeTracker.Entries<UserComponent>()
+                         .Where(x => x.State is EntityState.Added or EntityState.Modified))
+            {
+                var previousQuantity = entry.State == EntityState.Added
+                    ? 0 : entry.OriginalValues.GetValue<int>(nameof(UserComponent.Quantity));
+                var previousOwned = entry.State != EntityState.Added
+                                    && entry.OriginalValues.GetValue<bool>(nameof(UserComponent.Owned));
+                var previous = previousQuantity > 0 || previousOwned
+                    ? Math.Max(1, previousQuantity) : 0;
+                var current = entry.Entity.Quantity > 0 || entry.Entity.Owned
+                    ? Math.Max(1, entry.Entity.Quantity) : 0;
+                AddEvent(events, entry.Entity.UserId, "component", entry.Entity.ParentUnique,
+                    entry.Entity.ComponentName, previous, current);
+            }
+
+            if (events.Count > 0)
+                InventoryEvents.AddRange(events);
+        }
+
+        private static void AddEvent(
+            ICollection<InventoryEvent> events,
+            string userId,
+            string category,
+            string targetUnique,
+            string displayName,
+            int previous,
+            int current)
+        {
+            if (string.IsNullOrWhiteSpace(userId) || previous == current)
+                return;
+
+            events.Add(new InventoryEvent
+            {
+                UserId = userId,
+                Category = category,
+                TargetUnique = targetUnique,
+                DisplayName = displayName,
+                Action = current > previous ? "Added" : "Removed",
+                PreviousValue = previous,
+                NewValue = current
+            });
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -77,6 +181,12 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<UserGoal>().Property(x => x.TargetType).HasMaxLength(32);
             modelBuilder.Entity<UserGoal>().Property(x => x.TargetUnique).HasMaxLength(255);
             modelBuilder.Entity<UserGoal>().Property(x => x.DisplayName).HasMaxLength(255);
+            modelBuilder.Entity<InventoryEvent>()
+                .HasIndex(x => new { x.UserId, x.OccurredUtc });
+            modelBuilder.Entity<InventoryEvent>().Property(x => x.Category).HasMaxLength(32);
+            modelBuilder.Entity<InventoryEvent>().Property(x => x.TargetUnique).HasMaxLength(255);
+            modelBuilder.Entity<InventoryEvent>().Property(x => x.DisplayName).HasMaxLength(255);
+            modelBuilder.Entity<InventoryEvent>().Property(x => x.Action).HasMaxLength(32);
 
             modelBuilder.Entity<UserWarframe>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -89,6 +199,8 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<UserMod>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<UserGoal>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
+                .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<InventoryEvent>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<RelicReward>().HasIndex(x => new { x.RelicUnique, x.ItemUnique }).IsUnique();
