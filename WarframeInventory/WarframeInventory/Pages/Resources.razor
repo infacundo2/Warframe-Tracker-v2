@@ -112,6 +112,13 @@
                             </MudExpansionPanel>
                         </MudExpansionPanels>
                     }
+
+                    <MudButton Href="@($"/resources/{Uri.EscapeDataString(resource.UniqueName)}")"
+                               Variant="Variant.Outlined" Color="Color.Primary"
+                               FullWidth="true" Class="mt-3"
+                               EndIcon="@Icons.Material.Filled.ArrowForward">
+                        Abrir análisis de farmeo
+                    </MudButton>
                 </article>
             }
         </div>

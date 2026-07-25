@@ -1,0 +1,212 @@
+@page "/resources/{UniqueName}"
+@inject ResourceCatalogService ResourceCatalog
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="px-6 py-4 resource-detail-page">
+    @if (loading)
+    {
+        <div class="resource-loading">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            <span>Calculando rutas de extracción...</span>
+        </div>
+    }
+    else if (resource is null)
+    {
+        <MudAlert Severity="Severity.Error">No se encontró este recurso.</MudAlert>
+    }
+    else
+    {
+        <MudButton Href="/resources" Variant="Variant.Text"
+                   StartIcon="@Icons.Material.Filled.ArrowBack">
+            Volver a recursos
+        </MudButton>
+
+        <section class="orokin-panel resource-detail-hero">
+            <img src="@ImageUrl(resource.ImageName)" alt="@resource.Name" />
+            <div>
+                <div class="eyebrow">ANÁLISIS DE EXTRACCIÓN // @resource.Category.ToUpperInvariant()</div>
+                <MudText Typo="Typo.h3" Class="page-title">@resource.Name</MudText>
+                <p>@resource.Description</p>
+                @if (!string.IsNullOrWhiteSpace(resource.LocationSummary))
+                {
+                    <div class="resource-location">
+                        <MudIcon Icon="@Icons.Material.Filled.Public" />
+                        <span><b>Regiones:</b> @resource.LocationSummary</span>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <MudAlert Severity="Severity.Info" Class="resource-rate-note">
+            Los porcentajes mostrados corresponden a tablas publicadas para esa fuente concreta.
+            Los recursos regionales obtenidos de enemigos o contenedores normales no tienen una
+            probabilidad individual pública y por eso no se les asigna un porcentaje inventado.
+        </MudAlert>
+
+        @if (resource.Recommendations.Count > 0)
+        {
+            <section class="resource-detail-section">
+                <div class="resource-section-heading">
+                    <div>
+                        <span>RUTAS RECOMENDADAS</span>
+                        <MudText Typo="Typo.h5">Jefes y fuentes destacadas</MudText>
+                    </div>
+                    <small>Las tasas se muestran solo cuando están publicadas</small>
+                </div>
+                <div class="resource-recommendations">
+                    @foreach (var recommendation in resource.Recommendations)
+                    {
+                        <article>
+                            <MudIcon Icon="@Icons.Material.Filled.GpsFixed" />
+                            <div>
+                                <b>@recommendation.Name</b>
+                                <span>@recommendation.Location · @recommendation.SourceKind</span>
+                                <small>@recommendation.Note</small>
+                                @if (recommendation.Chance is not null)
+                                {
+                                    <strong class="recommendation-chance">
+                                        @recommendation.Chance.Value.ToString("0.####")%
+                                    </strong>
+                                }
+                                else
+                                {
+                                    <em>Tasa no publicada</em>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+
+        <section class="resource-detail-section">
+            <div class="resource-section-heading">
+                <div>
+                    <span>TABLAS NORMALIZADAS</span>
+                    <MudText Typo="Typo.h5">Fuentes con probabilidad publicada</MudText>
+                </div>
+                <b>@FilteredDrops.Count() resultados</b>
+            </div>
+
+            @if (resource.Drops.Count > 0)
+            {
+                <div class="resource-detail-stats">
+                    <div><span>Enemigos</span><b>@resource.Drops.Count(drop => drop.SourceKind == "Enemigo")</b></div>
+                    <div><span>Misiones</span><b>@resource.Drops.Count(drop => drop.SourceKind == "Misión")</b></div>
+                    <div><span>Mejor tasa</span><b>@resource.Drops.Max(drop => drop.Chance).ToString("0.####")%</b></div>
+                </div>
+
+                <div class="resource-detail-filters">
+                    <MudTextField @bind-Value="sourceSearch"
+                                  Placeholder="Buscar enemigo, misión, rotación..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Immediate="true" Variant="Variant.Outlined" />
+                    <MudSelect T="string" Label="Tipo de fuente" @bind-Value="sourceKind"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("Todas")">Todas</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Enemigo")">Solo enemigos</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Misión")">Solo misiones y cachés</MudSelectItem>
+                    </MudSelect>
+                    <MudSelect T="double" Label="Probabilidad mínima" @bind-Value="minimumChance"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem T="double" Value="0">Cualquiera</MudSelectItem>
+                        <MudSelectItem T="double" Value="0.1">0,1% o más</MudSelectItem>
+                        <MudSelectItem T="double" Value="1">1% o más</MudSelectItem>
+                        <MudSelectItem T="double" Value="5">5% o más</MudSelectItem>
+                        <MudSelectItem T="double" Value="10">10% o más</MudSelectItem>
+                    </MudSelect>
+                    <MudSelect T="string" Label="Ordenar" @bind-Value="sort"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("chance-desc")">Mayor probabilidad</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("chance-asc")">Menor probabilidad</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("name")">Nombre</MudSelectItem>
+                    </MudSelect>
+                </div>
+
+                <div class="resource-source-table">
+                    @foreach (var drop in FilteredDrops)
+                    {
+                        <article>
+                            <span class="@($"source-kind source-kind--{drop.SourceKind.ToLowerInvariant()}")">
+                                @drop.SourceKind
+                            </span>
+                            <div>
+                                <b>@drop.Location</b>
+                                <small>@drop.Type · @drop.Rarity</small>
+                            </div>
+                            <strong>@drop.Chance.ToString("0.####")%</strong>
+                        </article>
+                    }
+                </div>
+
+                @if (!FilteredDrops.Any())
+                {
+                    <MudAlert Severity="Severity.Warning">
+                        No hay fuentes que coincidan con estos filtros.
+                    </MudAlert>
+                }
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning">
+                    El catálogo indica las regiones de obtención, pero no publica porcentajes
+                    específicos para este recurso.
+                </MudAlert>
+            }
+        </section>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public string? UniqueName { get; set; }
+
+    private ResourceInfo? resource;
+    private bool loading = true;
+    private string sourceSearch = "";
+    private string sourceKind = "Todas";
+    private double minimumChance;
+    private string sort = "chance-desc";
+
+    private IEnumerable<ResourceDrop> FilteredDrops
+    {
+        get
+        {
+            if (resource is null)
+                return [];
+
+            var query = resource.Drops
+                .Where(drop => sourceKind == "Todas" || drop.SourceKind == sourceKind)
+                .Where(drop => drop.Chance >= minimumChance)
+                .Where(drop => string.IsNullOrWhiteSpace(sourceSearch)
+                    || drop.Location.Contains(sourceSearch, StringComparison.CurrentCultureIgnoreCase)
+                    || drop.Type.Contains(sourceSearch, StringComparison.CurrentCultureIgnoreCase)
+                    || drop.Rarity.Contains(sourceSearch, StringComparison.CurrentCultureIgnoreCase));
+            return sort switch
+            {
+                "chance-asc" => query.OrderBy(drop => drop.Chance)
+                    .ThenBy(drop => drop.Location, StringComparer.CurrentCultureIgnoreCase),
+                "name" => query.OrderBy(drop => drop.Location, StringComparer.CurrentCultureIgnoreCase),
+                _ => query.OrderByDescending(drop => drop.Chance)
+                    .ThenBy(drop => drop.Location, StringComparer.CurrentCultureIgnoreCase)
+            };
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(UniqueName))
+                resource = await ResourceCatalog.GetResourceAsync(Uri.UnescapeDataString(UniqueName));
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private static string ImageUrl(string imageName)
+        => string.IsNullOrWhiteSpace(imageName)
+            ? "/images/item-placeholder.svg"
+            : $"https://cdn.warframestat.us/img/{imageName}";
+}
