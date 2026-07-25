@@ -20,6 +20,10 @@ const tennoAudio = (() => {
     let context;
     let ambientNodes = [];
     let ambientTimer;
+    let ambientOutput;
+    let ambientDelay;
+    let ambientStep = 0;
+    let nextAmbientStep = 0;
     let ambientEnabled = localStorage.getItem("warframe-ambient-audio") === "1";
     let effectsEnabled = localStorage.getItem("warframe-interface-audio") !== "0";
 
@@ -41,45 +45,121 @@ const tennoAudio = (() => {
             try { node.disconnect?.(); } catch { }
         });
         ambientNodes = [];
+        ambientOutput = null;
+        ambientDelay = null;
+        ambientStep = 0;
     };
 
-    const dataBurst = (steps = 5) => {
-        const audio = ensureContext();
-        if (!audio) return;
-        const now = audio.currentTime;
-        for (let index = 0; index < steps; index++) {
-            const oscillator = audio.createOscillator();
-            const gain = audio.createGain();
-            const start = now + index * (0.045 + Math.random() * 0.025);
-            oscillator.type = index % 3 === 0 ? "square" : "sine";
-            oscillator.frequency.value = 780 + Math.random() * 620;
-            gain.gain.setValueAtTime(0.0001, start);
-            gain.gain.exponentialRampToValueAtTime(0.025, start + 0.004);
-            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.026);
-            oscillator.connect(gain).connect(audio.destination);
-            oscillator.start(start);
-            oscillator.stop(start + 0.03);
-            ambientNodes.push(oscillator, gain);
-            oscillator.onended = () => {
-                oscillator.disconnect();
-                gain.disconnect();
-                ambientNodes = ambientNodes.filter(node => node !== oscillator && node !== gain);
-            };
+    const midiFrequency = note => 440 * Math.pow(2, (note - 69) / 12);
+
+    const registerVoice = (oscillator, gain) => {
+        ambientNodes.push(oscillator, gain);
+        oscillator.onended = () => {
+            oscillator.disconnect();
+            gain.disconnect();
+            ambientNodes = ambientNodes.filter(node => node !== oscillator && node !== gain);
+        };
+    };
+
+    const playPad = (time, notes) => {
+        notes.forEach((note, index) => {
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            oscillator.type = index === 1 ? "triangle" : "sine";
+            oscillator.frequency.value = midiFrequency(note);
+            oscillator.detune.value = index * 4 - 4;
+            gain.gain.setValueAtTime(0.0001, time);
+            gain.gain.exponentialRampToValueAtTime(0.055, time + 1.3);
+            gain.gain.setValueAtTime(0.055, time + 4.7);
+            gain.gain.exponentialRampToValueAtTime(0.0001, time + 6.5);
+            oscillator.connect(gain).connect(ambientOutput);
+            oscillator.start(time);
+            oscillator.stop(time + 6.6);
+            registerVoice(oscillator, gain);
+        });
+    };
+
+    const playSubPulse = (time, note) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.value = midiFrequency(note - 12);
+        gain.gain.setValueAtTime(0.0001, time);
+        gain.gain.exponentialRampToValueAtTime(0.065, time + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.72);
+        oscillator.connect(gain).connect(ambientOutput);
+        oscillator.start(time);
+        oscillator.stop(time + 0.75);
+        registerVoice(oscillator, gain);
+    };
+
+    const playDigitalPulse = (time, note) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = "triangle";
+        oscillator.frequency.value = midiFrequency(note);
+        gain.gain.setValueAtTime(0.0001, time);
+        gain.gain.exponentialRampToValueAtTime(0.022, time + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.22);
+        oscillator.connect(gain);
+        gain.connect(ambientOutput);
+        gain.connect(ambientDelay);
+        oscillator.start(time);
+        oscillator.stop(time + 0.24);
+        registerVoice(oscillator, gain);
+    };
+
+    const scheduleMusic = () => {
+        if (!ambientEnabled || !context || !ambientOutput) return;
+        const stepDuration = 60 / 72 / 2;
+        const chords = [
+            [50, 53, 57],
+            [46, 50, 53],
+            [41, 45, 48],
+            [48, 52, 55]
+        ];
+        const melody = [74, 77, 81, 79, 77, 74, 72, 69];
+
+        while (nextAmbientStep < context.currentTime + 0.35) {
+            const chord = chords[Math.floor(ambientStep / 16) % chords.length];
+            if (ambientStep % 16 === 0) playPad(nextAmbientStep, chord);
+            if (ambientStep % 4 === 0) playSubPulse(nextAmbientStep, chord[0]);
+            if (ambientStep % 2 === 1)
+                playDigitalPulse(nextAmbientStep, melody[Math.floor(ambientStep / 2) % melody.length]);
+
+            nextAmbientStep += stepDuration;
+            ambientStep = (ambientStep + 1) % 64;
         }
-    };
-
-    const scheduleAmbient = (immediate = false) => {
-        if (!ambientEnabled) return;
-        window.clearTimeout(ambientTimer);
-        ambientTimer = window.setTimeout(() => {
-            dataBurst(3 + Math.floor(Math.random() * 5));
-            scheduleAmbient();
-        }, immediate ? 80 : 4500 + Math.random() * 6500);
+        ambientTimer = window.setTimeout(scheduleMusic, 90);
     };
 
     const startAmbient = () => {
-        ensureContext();
-        scheduleAmbient(true);
+        const audio = ensureContext();
+        if (!audio || ambientTimer) return;
+
+        ambientOutput = audio.createGain();
+        const filter = audio.createBiquadFilter();
+        const delay = audio.createDelay(1);
+        const feedback = audio.createGain();
+        const delayWet = audio.createGain();
+        ambientDelay = delay;
+
+        ambientOutput.gain.value = 0.32;
+        filter.type = "lowpass";
+        filter.frequency.value = 1450;
+        filter.Q.value = 0.7;
+        delay.delayTime.value = 0.38;
+        feedback.gain.value = 0.24;
+        delayWet.gain.value = 0.26;
+
+        ambientOutput.connect(filter).connect(audio.destination);
+        delay.connect(feedback).connect(delay);
+        delay.connect(delayWet).connect(filter);
+        ambientNodes.push(ambientOutput, filter, delay, feedback, delayWet);
+
+        ambientStep = 0;
+        nextAmbientStep = audio.currentTime + 0.08;
+        scheduleMusic();
     };
 
     const interfacePulse = (strong = false, force = false) => {
