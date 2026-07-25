@@ -15,6 +15,8 @@ en ramas separadas antes de integrarse.
 - Inteligencia de reliquias: laboratorio implementado con comparación I/E/P/R,
   escuadrones de 1–4 jugadores, simulaciones de 1/4/10/20 aperturas, vestigios
   e intentos estimados para alcanzar 50%, 75% y 90%.
+- Fase 4: integración inicial de Worldstate implementada con fisuras PC activas,
+  caché tolerante a fallos y cruce por era con las reliquias del inventario.
 
 ## Fase 1 — Objetivos del operador
 

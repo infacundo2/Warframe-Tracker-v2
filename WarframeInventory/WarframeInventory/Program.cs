@@ -113,6 +113,12 @@ builder.Services.AddScoped<FarmPlannerService>();
 builder.Services.AddScoped<BuildableAnalysisService>();
 builder.Services.AddScoped<CommandCenterService>();
 builder.Services.AddScoped<RelicIntelligenceService>();
+builder.Services.AddHttpClient<WorldstateService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.warframestat.us/");
+    client.Timeout = TimeSpan.FromSeconds(8);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("WarframeInventory/2.0");
+});
 builder.Services.AddHostedService<CatalogSyncBackgroundService>();
 
 var app = builder.Build();

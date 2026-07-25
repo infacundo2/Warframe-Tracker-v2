@@ -1,0 +1,104 @@
+@page "/worldstate"
+@using System.Security.Claims
+@inject WorldstateService WorldstateClient
+@inject AuthenticationStateProvider AuthState
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <section class="worldstate-hero orokin-panel">
+        <div>
+            <div class="eyebrow">NAVEGACIÓN EN TIEMPO REAL // SISTEMA ORIGIN</div>
+            <MudText Typo="Typo.h3" Class="page-title">Fisuras activas</MudText>
+            <MudText Typo="Typo.body1">
+                Operaciones disponibles cruzadas con tus reliquias por era.
+            </MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="RefreshAsync"
+                   StartIcon="@Icons.Material.Filled.Refresh">Actualizar</MudButton>
+    </section>
+
+    @if (loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-5" />
+    }
+    else if (brief is null || brief.Fissures.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mt-5">
+            Worldstate no respondió o no hay fisuras activas. El catálogo y tu inventario siguen disponibles.
+        </MudAlert>
+    }
+    else
+    {
+        <div class="worldstate-grid mt-5">
+            @foreach (var fissure in brief.Fissures)
+            {
+                <MudPaper Class="@($"fissure-card fissure-card--{fissure.Tier.ToLowerInvariant()}")">
+                    <div class="fissure-card__heading">
+                        <b>@fissure.Tier</b>
+                        <span>@Remaining(fissure.Expiry)</span>
+                    </div>
+                    <MudText Typo="Typo.h6">@fissure.Node</MudText>
+                    <small>@fissure.MissionType · @fissure.Enemy</small>
+                    <div class="fissure-tags">
+                        @if (fissure.IsHard)
+                        {
+                            <span>CAMINO DE ACERO</span>
+                        }
+                        @if (fissure.IsStorm)
+                        {
+                            <span>TORMENTA DEL VACÍO</span>
+                        }
+                    </div>
+                    <div class="fissure-owned">
+                        <span>RELIQUIAS @fissure.Tier.ToUpperInvariant() EN INVENTARIO</span>
+                        <strong>@fissure.OwnedRelics</strong>
+                    </div>
+                    @if (fissure.OwnedRelics > 0)
+                    {
+                        <MudButton Href="@($"/relics?era={fissure.Tier}")" FullWidth="true"
+                                   Variant="Variant.Outlined" Color="Color.Primary">
+                            Ver reliquias compatibles
+                        </MudButton>
+                    }
+                </MudPaper>
+            }
+        </div>
+        <MudText Typo="Typo.caption" Class="worldstate-updated">
+            Datos consultados a las @brief.LoadedUtc.ToLocalTime().ToString("HH:mm:ss").
+        </MudText>
+    }
+</MudContainer>
+
+@code {
+    private WorldstateBrief? brief;
+    private bool loading = true;
+    private string userId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        await LoadAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        loading = true;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        brief = await WorldstateClient.LoadAsync(userId);
+        loading = false;
+    }
+
+    private static string Remaining(DateTime expiry)
+    {
+        var remaining = expiry.ToUniversalTime() - DateTime.UtcNow;
+        if (remaining <= TimeSpan.Zero)
+            return "finalizando";
+        return remaining.TotalHours >= 1
+            ? $"{(int)remaining.TotalHours}h {remaining.Minutes}m"
+            : $"{Math.Max(1, remaining.Minutes)}m";
+    }
+}

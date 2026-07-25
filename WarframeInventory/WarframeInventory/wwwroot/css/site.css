@@ -341,6 +341,97 @@ img { color: transparent; }
     .planner-confidence { grid-template-columns: 1fr; }
     .operator-summary { grid-template-columns: repeat(2, 1fr); }
 }
+
+.worldstate-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.worldstate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1rem;
+}
+
+.fissure-card {
+    position: relative;
+    overflow: hidden;
+    padding: 1.25rem;
+    border: 1px solid rgba(56, 216, 245, .22);
+}
+
+.fissure-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    background: #38d8f5;
+    box-shadow: 0 0 1rem #38d8f5;
+}
+
+.fissure-card--meso::before { background: #e7c760; }
+.fissure-card--neo::before { background: #ff8a56; }
+.fissure-card--axi::before { background: #b980ff; }
+.fissure-card--requiem::before { background: #ff5d66; }
+
+.fissure-card__heading,
+.fissure-owned {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.fissure-card__heading b {
+    color: #38d8f5;
+    letter-spacing: .18em;
+}
+
+.fissure-card__heading span,
+.fissure-card small {
+    color: #8ca8b3;
+}
+
+.fissure-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    min-height: 2rem;
+    margin: .75rem 0;
+}
+
+.fissure-tags span {
+    border: 1px solid rgba(216, 184, 92, .5);
+    color: #d8b85c;
+    padding: .2rem .4rem;
+    font-size: .6rem;
+}
+
+.fissure-owned {
+    margin: 1rem 0;
+    padding: .7rem;
+    background: rgba(56, 216, 245, .06);
+}
+
+.fissure-owned span {
+    color: #9cb5c0;
+    font-size: .65rem;
+    letter-spacing: .1em;
+}
+
+.fissure-owned strong {
+    color: #fff;
+    font-size: 1.7rem;
+}
+
+.worldstate-updated {
+    display: block;
+    margin-top: 1rem;
+    text-align: right;
+}
 @media (min-width: 601px) and (max-width: 960px) {
     .stark-login { grid-template-columns: minmax(220px, .7fr) minmax(360px, 1fr); }
     .stark-login__panel { margin: 1.25rem; }
