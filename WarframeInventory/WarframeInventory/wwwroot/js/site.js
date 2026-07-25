@@ -18,8 +18,8 @@ if (window.location.pathname === "/search") {
 
 const tennoAudio = (() => {
     let context;
-    let ambientGain;
     let ambientNodes = [];
+    let ambientTimer;
     let ambientEnabled = localStorage.getItem("warframe-ambient-audio") === "1";
     let effectsEnabled = localStorage.getItem("warframe-interface-audio") !== "0";
 
@@ -34,50 +34,52 @@ const tennoAudio = (() => {
     };
 
     const stopAmbient = () => {
+        window.clearTimeout(ambientTimer);
+        ambientTimer = null;
         ambientNodes.forEach(node => {
             try { node.stop?.(); } catch { }
             try { node.disconnect?.(); } catch { }
         });
         ambientNodes = [];
-        ambientGain?.disconnect();
-        ambientGain = null;
+    };
+
+    const dataBurst = (steps = 5) => {
+        const audio = ensureContext();
+        if (!audio) return;
+        const now = audio.currentTime;
+        for (let index = 0; index < steps; index++) {
+            const oscillator = audio.createOscillator();
+            const gain = audio.createGain();
+            const start = now + index * (0.045 + Math.random() * 0.025);
+            oscillator.type = index % 3 === 0 ? "square" : "sine";
+            oscillator.frequency.value = 780 + Math.random() * 620;
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.exponentialRampToValueAtTime(0.025, start + 0.004);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.026);
+            oscillator.connect(gain).connect(audio.destination);
+            oscillator.start(start);
+            oscillator.stop(start + 0.03);
+            ambientNodes.push(oscillator, gain);
+            oscillator.onended = () => {
+                oscillator.disconnect();
+                gain.disconnect();
+                ambientNodes = ambientNodes.filter(node => node !== oscillator && node !== gain);
+            };
+        }
+    };
+
+    const scheduleAmbient = (immediate = false) => {
+        if (!ambientEnabled) return;
+        window.clearTimeout(ambientTimer);
+        ambientTimer = window.setTimeout(() => {
+            dataBurst(3 + Math.floor(Math.random() * 5));
+            scheduleAmbient();
+        }, immediate ? 80 : 4500 + Math.random() * 6500);
     };
 
     const startAmbient = () => {
-        const audio = ensureContext();
-        if (!audio || ambientNodes.length) return;
-
-        ambientGain = audio.createGain();
-        ambientGain.gain.setValueAtTime(0.0001, audio.currentTime);
-        ambientGain.gain.exponentialRampToValueAtTime(0.13, audio.currentTime + 1.4);
-        ambientGain.connect(audio.destination);
-
-        const filter = audio.createBiquadFilter();
-        filter.type = "lowpass";
-        filter.frequency.value = 720;
-        filter.Q.value = 4;
-        filter.connect(ambientGain);
-
-        const frequencies = [55, 82.41, 110];
-        frequencies.forEach((frequency, index) => {
-            const oscillator = audio.createOscillator();
-            const gain = audio.createGain();
-            oscillator.type = index === 1 ? "triangle" : "sine";
-            oscillator.frequency.value = frequency;
-            oscillator.detune.value = index * 3 - 3;
-            gain.gain.value = index === 1 ? 0.32 : 0.24;
-            oscillator.connect(gain).connect(filter);
-            oscillator.start();
-            ambientNodes.push(oscillator, gain);
-        });
-
-        const lfo = audio.createOscillator();
-        const lfoGain = audio.createGain();
-        lfo.frequency.value = 0.065;
-        lfoGain.gain.value = 280;
-        lfo.connect(lfoGain).connect(filter.frequency);
-        lfo.start();
-        ambientNodes.push(lfo, lfoGain, filter);
+        ensureContext();
+        scheduleAmbient(true);
     };
 
     const interfacePulse = (strong = false, force = false) => {
@@ -86,21 +88,20 @@ const tennoAudio = (() => {
         if (!audio) return;
 
         const now = audio.currentTime;
-        const oscillator = audio.createOscillator();
-        const gain = audio.createGain();
-        const filter = audio.createBiquadFilter();
-        oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(strong ? 920 : 680, now);
-        oscillator.frequency.exponentialRampToValueAtTime(strong ? 420 : 310, now + 0.09);
-        filter.type = "bandpass";
-        filter.frequency.value = 1100;
-        filter.Q.value = 2.5;
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(strong ? 0.19 : 0.11, now + 0.008);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
-        oscillator.connect(filter).connect(gain).connect(audio.destination);
-        oscillator.start(now);
-        oscillator.stop(now + 0.17);
+        const pulses = strong ? 2 : 1;
+        for (let index = 0; index < pulses; index++) {
+            const oscillator = audio.createOscillator();
+            const gain = audio.createGain();
+            const start = now + index * 0.055;
+            oscillator.type = "square";
+            oscillator.frequency.value = strong ? 1120 + index * 240 : 860;
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.exponentialRampToValueAtTime(strong ? 0.055 : 0.026, start + 0.003);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.024);
+            oscillator.connect(gain).connect(audio.destination);
+            oscillator.start(start);
+            oscillator.stop(start + 0.028);
+        }
     };
 
     const updateControls = () => {
@@ -165,8 +166,13 @@ document.addEventListener("pointermove", (event) => {
     document.documentElement.style.setProperty("--pointer-y", y.toFixed(3));
 }, { passive: true });
 
-const tennoCursor = document.getElementById("tenno-cursor");
-if (tennoCursor && window.matchMedia("(pointer: fine)").matches) {
+let tennoCursor;
+if (window.matchMedia("(pointer: fine)").matches) {
+    tennoCursor = document.createElement("div");
+    tennoCursor.id = "tenno-cursor";
+    tennoCursor.setAttribute("aria-hidden", "true");
+    tennoCursor.innerHTML = '<span class="tenno-cursor-core"></span><span class="tenno-cursor-ring"></span>';
+    document.body.appendChild(tennoCursor);
     document.body.classList.add("tenno-cursor-ready");
     document.addEventListener("pointermove", (event) => {
         tennoCursor.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;

@@ -5,11 +5,6 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<div id="tenno-cursor" aria-hidden="true">
-    <span class="tenno-cursor-core"></span>
-    <span class="tenno-cursor-ring"></span>
-</div>
-
 <MudLayout Class="orokin-shell">
     <MudAppBar Class="orokin-appbar" Elevation="0" Fixed="false">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="ToggleDrawer"
@@ -28,9 +23,9 @@
         </button>
         <button id="ambient-audio-toggle" type="button" class="energy-toggle audio-toggle"
                 onclick="warframeTracker.audio.toggleAmbient()"
-                aria-label="Activar ambiente futurista" aria-pressed="false"
-                title="Ambiente futurista">
-            <MudIcon Icon="@Icons.Material.Filled.MusicNote" />
+                aria-label="Activar actividad de terminal" aria-pressed="false"
+                title="Actividad de terminal">
+            <MudIcon Icon="@Icons.Material.Filled.GraphicEq" />
         </button>
         <button id="interface-audio-toggle" type="button" class="energy-toggle audio-toggle"
                 onclick="warframeTracker.audio.toggleEffects()"
