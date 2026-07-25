@@ -848,6 +848,27 @@ img { color: transparent; }
     letter-spacing: .08em;
 }
 .fusion-calculator strong { color: #38d8f5; font-size: 1.35rem; }
+.planner-multi,
+.planner-locations {
+    margin-top: .8rem;
+    padding: .7rem;
+    background: rgba(216, 184, 92, .06);
+    border-left: 1px solid #d8b85c;
+}
+.planner-multi,
+.planner-locations > span {
+    color: #d8b85c;
+    font-size: .65rem;
+    letter-spacing: .12em;
+}
+.planner-multi small,
+.planner-locations small { color: #8ca8b3; }
+.planner-locations > div {
+    display: flex;
+    flex-direction: column;
+    margin-top: .4rem;
+    color: #dce8eb;
+}
 @media (max-width: 900px) {
     .mod-filters { grid-template-columns: 1fr 1fr; }
 }

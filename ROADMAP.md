@@ -27,6 +27,8 @@ en ramas separadas antes de integrarse.
   inventario; calculadora de fusión y creación de objetivos desde una build.
 - Validación HTTP: rutas principales y detalles reales responden correctamente;
   la evidencia y la limitación visual del entorno están en `VALIDATION.md`.
+- Planificador y herramientas: rutas de misión, estrategias corta/multiobjetivo,
+  comparación de mods/reliquias y exportación CSV añadidas.
 
 ## Fase 1 — Objetivos del operador
 

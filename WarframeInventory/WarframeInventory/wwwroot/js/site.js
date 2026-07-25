@@ -17,8 +17,8 @@ if (window.location.pathname === "/search") {
 }
 
 window.warframeTracker = {
-    downloadText: (filename, content) => {
-        const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+    downloadText: (filename, content, contentType = "application/json;charset=utf-8") => {
+        const blob = new Blob([content], { type: contentType });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;

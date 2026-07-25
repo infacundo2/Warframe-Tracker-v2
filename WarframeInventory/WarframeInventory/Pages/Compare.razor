@@ -9,6 +9,8 @@
                    Variant="Variant.Outlined">
             <MudSelectItem T="string" Value="@("warframe")">Warframes</MudSelectItem>
             <MudSelectItem T="string" Value="@("weapon")">Armas</MudSelectItem>
+            <MudSelectItem T="string" Value="@("mod")">Mods</MudSelectItem>
+            <MudSelectItem T="string" Value="@("relic")">Reliquias y refinamientos</MudSelectItem>
         </MudSelect>
     </section>
 
@@ -45,8 +47,13 @@
                     {
                         <div class="compare-stat"><span>@stat.Label</span><b>@stat.Value</b></div>
                     }
-                    <MudButton Href="@item.RelationRoute" Variant="Variant.Outlined"
-                               Color="Color.Primary" FullWidth="true">Ver mapa de relaciones</MudButton>
+                    @if (!string.IsNullOrWhiteSpace(item.RelationRoute))
+                    {
+                        <MudButton Href="@item.RelationRoute" Variant="Variant.Outlined"
+                                   Color="Color.Primary" FullWidth="true">
+                            @(type == "relic" ? "Abrir laboratorio" : "Ver mapa de relaciones")
+                        </MudButton>
+                    }
                 }
             </MudPaper>
         }

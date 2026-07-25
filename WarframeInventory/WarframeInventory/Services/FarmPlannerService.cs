@@ -43,6 +43,22 @@ public sealed class FarmPlannerService
         var userRelics = await db.UserRelics.AsNoTracking()
             .Where(x => x.UserId == userId && x.Quantity > 0)
             .ToDictionaryAsync(x => x.RelicUnique, x => x.Quantity, ct);
+        var activeGoalTargets = await db.UserGoals.AsNoTracking()
+            .Where(x => x.UserId == userId && !x.IsCompleted)
+            .Select(x => new { x.TargetUnique, x.DisplayName }).ToListAsync(ct);
+        var goalNamesByRelic = new Dictionary<string, HashSet<string>>();
+        foreach (var target in activeGoalTargets)
+        {
+            var linkedKeys = await db.RelicRewards.AsNoTracking()
+                .Where(x => x.ItemUnique.StartsWith(target.TargetUnique))
+                .Select(x => x.RelicUnique).Distinct().ToListAsync(ct);
+            foreach (var key in linkedKeys)
+            {
+                if (!goalNamesByRelic.TryGetValue(key, out var names))
+                    goalNamesByRelic[key] = names = [];
+                names.Add(target.DisplayName);
+            }
+        }
         var routes = new List<FarmRoute>();
 
         foreach (var component in missing)
@@ -85,6 +101,13 @@ public sealed class FarmPlannerService
                 };
                 var recommended = RecommendRefinement(strategy, chances, owned);
                 var probability = chances.GetValueOrDefault(recommended);
+                var locations = variants.SelectMany(x => ParseRelicLocations(x.DropsJson))
+                    .GroupBy(x => $"{x.Location}|{x.Rotation}", StringComparer.OrdinalIgnoreCase)
+                    .Select(x => x.OrderByDescending(y => y.Chance).First())
+                    .OrderByDescending(x => x.Chance).Take(6).ToList();
+                var usefulGoals = variants.SelectMany(x =>
+                        goalNamesByRelic.GetValueOrDefault(x.UniqueName) ?? [])
+                    .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
 
                 routes.Add(new FarmRoute(
                     component.Name,
@@ -98,7 +121,9 @@ public sealed class FarmPlannerService
                     TraceCost(recommended),
                     AttemptsFor(probability, .50),
                     AttemptsFor(probability, .75),
-                    AttemptsFor(probability, .90)));
+                    AttemptsFor(probability, .90),
+                    locations,
+                    usefulGoals));
             }
         }
 
@@ -108,6 +133,10 @@ public sealed class FarmPlannerService
             "available" => routes.OrderBy(x => x.Vaulted).ThenByDescending(x => x.TotalOwned),
             "chance" => routes.OrderByDescending(x => x.RecommendedChance),
             "traces" => routes.OrderBy(x => x.TraceCost).ThenByDescending(x => x.TotalOwned),
+            "shortest" => routes.OrderBy(x => x.Vaulted)
+                .ThenBy(x => x.Attempts75).ThenByDescending(x => x.Locations.Count),
+            "multi" => routes.OrderByDescending(x => x.UsefulGoals.Count)
+                .ThenByDescending(x => x.TotalOwned).ThenBy(x => x.Vaulted),
             _ => routes.OrderByDescending(x => x.TotalOwned > 0).ThenBy(x => x.Vaulted)
         };
 
@@ -224,6 +253,39 @@ public sealed class FarmPlannerService
         var probability = Math.Clamp(percentage / 100d, .000001, .999999);
         return (int)Math.Ceiling(Math.Log(1 - confidence) / Math.Log(1 - probability));
     }
+
+    private static IReadOnlyList<RelicLocation> ParseRelicLocations(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+                return [];
+            var result = new List<RelicLocation>();
+            foreach (var item in document.RootElement.EnumerateArray())
+            {
+                var location = ReadString(item, "location");
+                if (string.IsNullOrWhiteSpace(location))
+                    continue;
+                result.Add(new RelicLocation(
+                    location,
+                    ReadString(item, "type"),
+                    ReadString(item, "rotation"),
+                    item.TryGetProperty("chance", out var chance) && chance.TryGetDouble(out var value)
+                        ? NormalizeChance(value) : 0));
+            }
+            return result;
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static string ReadString(JsonElement element, string name)
+        => element.TryGetProperty(name, out var value) ? value.GetString() ?? "" : "";
 }
 
 public sealed record FarmPlan(
@@ -244,8 +306,12 @@ public sealed record FarmRoute(
     int TraceCost,
     int Attempts50,
     int Attempts75,
-    int Attempts90)
+    int Attempts90,
+    IReadOnlyList<RelicLocation> Locations,
+    IReadOnlyList<string> UsefulGoals)
 {
     public int TotalOwned => Owned.Values.Sum();
     public double RecommendedChance => Chances.GetValueOrDefault(RecommendedRefinement);
 }
+public sealed record RelicLocation(
+    string Location, string MissionType, string Rotation, double Chance);

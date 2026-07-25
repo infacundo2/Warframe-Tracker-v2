@@ -39,6 +39,8 @@
                 <MudSelectItem T="string" Value="@("chance")">Máxima probabilidad</MudSelectItem>
                 <MudSelectItem T="string" Value="@("owned")">Solo priorizar las que poseo</MudSelectItem>
                 <MudSelectItem T="string" Value="@("available")">Priorizar disponibles</MudSelectItem>
+                <MudSelectItem T="string" Value="@("shortest")">Ruta más corta</MudSelectItem>
+                <MudSelectItem T="string" Value="@("multi")">Servir a varios objetivos</MudSelectItem>
             </MudSelect>
         </section>
 
@@ -106,6 +108,32 @@
                                         <div><span>75% de éxito</span><b>@route.Attempts75 aperturas</b></div>
                                         <div><span>90% de éxito</span><b>@route.Attempts90 aperturas</b></div>
                                     </div>
+                                    @if (route.UsefulGoals.Count > 1)
+                                    {
+                                        <div class="planner-multi">
+                                            <span>SIRVE A @route.UsefulGoals.Count OBJETIVOS</span>
+                                            <small>@string.Join(" · ", route.UsefulGoals.Take(3))</small>
+                                        </div>
+                                    }
+                                    @if (route.Locations.Count > 0 && !route.Vaulted)
+                                    {
+                                        <div class="planner-locations">
+                                            <span>DÓNDE CONSEGUIRLA</span>
+                                            @foreach (var location in route.Locations.Take(3))
+                                            {
+                                                <div>
+                                                    <b>@location.Location</b>
+                                                    <small>@location.MissionType
+                                                        @if (!string.IsNullOrWhiteSpace(location.Rotation))
+                                                        {
+                                                            <text> · Rotación @location.Rotation</text>
+                                                        }
+                                                        · @location.Chance.ToString("0.00")%
+                                                    </small>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
                                 </MudPaper>
                             </MudItem>
                         }

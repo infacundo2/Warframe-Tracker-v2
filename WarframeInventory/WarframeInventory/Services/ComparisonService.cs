@@ -16,11 +16,20 @@ public sealed class ComparisonService
         string type, CancellationToken ct = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
-        return type == "warframe"
-            ? await db.Warframes.AsNoTracking().OrderBy(x => x.Name)
+        return type switch
+        {
+            "warframe" => await db.Warframes.AsNoTracking().OrderBy(x => x.Name)
                 .Select(x => new CompareOption(x.UniqueName, x.Name)).ToListAsync(ct)
-            : await db.Weapons.AsNoTracking().OrderBy(x => x.Name)
-                .Select(x => new CompareOption(x.UniqueName, x.Name)).ToListAsync(ct);
+            ,
+            "weapon" => await db.Weapons.AsNoTracking().OrderBy(x => x.Name)
+                .Select(x => new CompareOption(x.UniqueName, x.Name)).ToListAsync(ct),
+            "mod" => await db.Mods.AsNoTracking().OrderBy(x => x.Name)
+                .Select(x => new CompareOption(x.UniqueName, x.Name)).ToListAsync(ct),
+            "relic" => await db.Relics.AsNoTracking().OrderBy(x => x.Name)
+                .Select(x => new CompareOption(x.UniqueName, x.Name + " · " + Refinement(x.UniqueName)))
+                .ToListAsync(ct),
+            _ => []
+        };
     }
 
     public async Task<CompareItem?> LoadAsync(
@@ -37,6 +46,38 @@ public sealed class ComparisonService
                 new("Componentes", ComponentCount(item.ComponentsJson).ToString()),
                 new("Estado", item.Owned ? "Poseído" : "Pendiente")
             ], $"/relations/warframe/{Uri.EscapeDataString(item.UniqueName)}");
+        }
+
+        if (type == "mod")
+        {
+            var mod = await db.Mods.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UniqueName == uniqueName, ct);
+            return mod is null ? null : new CompareItem(mod.Name, mod.ImageName, [
+                new("Rareza", mod.Rarity ?? "Sin datos"),
+                new("Polaridad", mod.Polarity ?? "Sin datos"),
+                new("Compatibilidad", mod.CompatName ?? "Universal"),
+                new("Drenaje base", mod.BaseDrain?.ToString() ?? "Sin datos"),
+                new("Rango máximo", mod.FusionLimit?.ToString() ?? "Sin datos"),
+                new("Colección", mod.IsPrime ? "Primed" : mod.IsAugment ? "Augment" : "Estándar")
+            ], null);
+        }
+
+        if (type == "relic")
+        {
+            var relic = await db.Relics.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UniqueName == uniqueName, ct);
+            if (relic is null) return null;
+            var rewards = await db.RelicRewards.AsNoTracking()
+                .Where(x => x.RelicUnique == uniqueName).ToListAsync(ct);
+            return new CompareItem(
+                $"{relic.Name} · {Refinement(uniqueName)}", relic.ImageName, [
+                    new("Estado", relic.Vaulted ? "Vaulted" : "Disponible"),
+                    new("Refinamiento", Refinement(uniqueName)),
+                    new("Vestigios", TraceCost(Refinement(uniqueName)).ToString()),
+                    new("Recompensas", rewards.Count.ToString()),
+                    new("Probabilidad rara", $"{rewards.MinBy(x => x.Chance)?.Chance ?? 0:0.00}%"),
+                    new("Probabilidad común", $"{rewards.MaxBy(x => x.Chance)?.Chance ?? 0:0.00}%")
+                ], $"/relics/{Uri.EscapeDataString(uniqueName)}/laboratorio");
         }
 
         var weapon = await db.Weapons.AsNoTracking()
@@ -90,6 +131,15 @@ public sealed class ComparisonService
     }
 
     private static int ComponentCount(string? json) => Deserialize(json).Count;
+    private static string Refinement(string uniqueName)
+        => uniqueName.EndsWith("Silver", StringComparison.OrdinalIgnoreCase) ? "Excepcional"
+            : uniqueName.EndsWith("Gold", StringComparison.OrdinalIgnoreCase) ? "Perfecta"
+            : uniqueName.EndsWith("Platinum", StringComparison.OrdinalIgnoreCase) ? "Radiante"
+            : "Intacta";
+    private static int TraceCost(string refinement) => refinement switch
+    {
+        "Excepcional" => 25, "Perfecta" => 50, "Radiante" => 100, _ => 0
+    };
     private static List<WarframeComponent> Deserialize(string? json)
     {
         try
@@ -104,7 +154,7 @@ public sealed class ComparisonService
 
 public sealed record CompareOption(string UniqueName, string Name);
 public sealed record CompareItem(
-    string Name, string? ImageName, IReadOnlyList<CompareStat> Stats, string RelationRoute);
+    string Name, string? ImageName, IReadOnlyList<CompareStat> Stats, string? RelationRoute);
 public sealed record CompareStat(string Label, string Value);
 public sealed record RelationMap(string Name, IReadOnlyList<RelationComponent> Components);
 public sealed record RelationComponent(string Name, IReadOnlyList<RelationRelic> Relics);

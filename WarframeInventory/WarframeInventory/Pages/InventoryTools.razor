@@ -21,6 +21,9 @@
                 <MudButton OnClick="ExportAsync" Variant="Variant.Filled" Color="Color.Primary">
                     Descargar copia
                 </MudButton>
+                <MudButton OnClick="ExportCsvAsync" Variant="Variant.Outlined" Color="Color.Primary">
+                    Descargar CSV
+                </MudButton>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="6">
@@ -52,6 +55,12 @@
         var json = await InventoryTransferService.ExportAsync(userId);
         await Js.InvokeVoidAsync("warframeTracker.downloadText",
             $"warframe-inventory-{DateTime.Now:yyyyMMdd}.json", json);
+    }
+    private async Task ExportCsvAsync()
+    {
+        var csv = await InventoryTransferService.ExportCsvAsync(userId);
+        await Js.InvokeVoidAsync("warframeTracker.downloadText",
+            $"warframe-inventory-{DateTime.Now:yyyyMMdd}.csv", csv, "text/csv;charset=utf-8");
     }
     private async Task ImportAsync(InputFileChangeEventArgs args)
     {

@@ -34,6 +34,19 @@ public sealed class InventoryToolsService
         return JsonSerializer.Serialize(payload, JsonOptions);
     }
 
+    public async Task<string> ExportCsvAsync(string userId, CancellationToken ct = default)
+    {
+        var transfer = JsonSerializer.Deserialize<InventoryTransfer>(await ExportAsync(userId, ct))!;
+        var lines = new List<string> { "category,unique_name,parent_unique,display_name,quantity" };
+        lines.AddRange(transfer.Warframes.Select(x => Csv("warframe", x.UniqueName, "", "", x.Quantity)));
+        lines.AddRange(transfer.Weapons.Select(x => Csv("weapon", x.UniqueName, "", "", x.Quantity)));
+        lines.AddRange(transfer.Mods.Select(x => Csv("mod", x.UniqueName, "", "", x.Quantity)));
+        lines.AddRange(transfer.Relics.Select(x => Csv("relic", x.UniqueName, "", "", x.Quantity)));
+        lines.AddRange(transfer.Components.Select(x =>
+            Csv("component", "", x.ParentUnique, x.ComponentName, x.Quantity)));
+        return string.Join(Environment.NewLine, lines);
+    }
+
     public async Task<ImportSummary> ImportAsync(
         string userId, string json, CancellationToken ct = default)
     {
@@ -108,6 +121,12 @@ public sealed class InventoryToolsService
     private static bool Valid(OwnedEntry entry)
         => !string.IsNullOrWhiteSpace(entry.UniqueName) && entry.UniqueName.Length <= 255
            && entry.Quantity is >= 0 and <= 9999;
+
+    private static string Csv(
+        string category, string unique, string parent, string display, int quantity)
+        => string.Join(",", new[] { category, unique, parent, display }
+            .Select(value => $"\"{value.Replace("\"", "\"\"")}\"")
+            .Append(quantity.ToString()));
 }
 
 public sealed record InventoryTransfer(
