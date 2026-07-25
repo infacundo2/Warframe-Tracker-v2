@@ -6,6 +6,7 @@ namespace WarframeInventory.Models
         public string UserId { get; set; } = "";
         public string WarframeUnique { get; set; } = "";
         public bool Owned { get; set; }
+        public string OwnershipState { get; set; } = "missing";
     }
 
     public class UserWeapon
@@ -14,6 +15,7 @@ namespace WarframeInventory.Models
         public string UserId { get; set; } = "";
         public string WeaponUnique { get; set; } = "";
         public bool Owned { get; set; }
+        public string OwnershipState { get; set; } = "missing";
     }
 
     public class UserComponent

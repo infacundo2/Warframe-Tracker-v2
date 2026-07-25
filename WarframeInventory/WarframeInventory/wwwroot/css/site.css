@@ -600,6 +600,25 @@ img { color: transparent; }
     text-decoration: underline;
     cursor: pointer;
 }
+.duplicate-mods { border: 1px solid rgba(216, 184, 92, .3); }
+.duplicate-mod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: .5rem;
+    margin-top: .8rem;
+}
+.duplicate-mod-grid a {
+    display: flex;
+    flex-direction: column;
+    padding: .6rem;
+    color: #dce8eb;
+    background: rgba(216, 184, 92, .05);
+    border-left: 1px solid #d8b85c;
+    text-decoration: none;
+}
+.duplicate-mod-grid span { color: #d8b85c; }
+.duplicate-mod-grid small { color: #8ca8b3; }
+.ownership-select { min-width: 8.5rem; }
 
 .search-results {
     display: grid;

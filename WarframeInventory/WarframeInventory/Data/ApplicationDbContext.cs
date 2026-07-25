@@ -178,6 +178,8 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<UserComponent>().HasIndex(x => new { x.UserId, x.ParentUnique, x.ComponentName }).IsUnique();
             modelBuilder.Entity<UserRelic>().HasIndex(x => new { x.UserId, x.RelicUnique }).IsUnique();
             modelBuilder.Entity<UserMod>().HasIndex(x => new { x.UserId, x.ModUnique }).IsUnique();
+            modelBuilder.Entity<UserWarframe>().Property(x => x.OwnershipState).HasMaxLength(24);
+            modelBuilder.Entity<UserWeapon>().Property(x => x.OwnershipState).HasMaxLength(24);
             modelBuilder.Entity<UserGoal>()
                 .HasIndex(x => new { x.UserId, x.TargetType, x.TargetUnique })
                 .IsUnique();

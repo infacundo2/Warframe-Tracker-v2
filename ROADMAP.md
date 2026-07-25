@@ -35,6 +35,8 @@ en ramas separadas antes de integrarse.
   de capacidad por rango, polaridad coincidente/conflictiva y Forma sugerida.
 - Inteligencia final: comandos de búsqueda por intención, precios online v2,
   valor esperado por refinamiento e historial manual de aperturas.
+- Inventario final: duplicados de mods con Endo estimado y estados separados
+  para plano, set completo y objeto construido, conservados en JSON/CSV.
 
 ## Fase 1 — Objetivos del operador
 

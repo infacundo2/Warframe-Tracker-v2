@@ -47,12 +47,16 @@
                             </MudCardContent>
 
                             <MudCardActions>
-                                <MudCheckBox T="bool"
-                                    Checked="@wf.IsOwned"
-                                    Label="Lo tengo"
-                                    Color="Color.Primary"
-                                    Disabled="@string.IsNullOrEmpty(userId)"
-                                    CheckedChanged="@(async (bool v) => await ToggleOwnedAsync(wf, v))" />
+                                <MudSelect T="string" Value="@wf.OwnershipState"
+                                           ValueChanged="@(value => ChangeStateAsync(wf, value))"
+                                           Label="Estado" Dense="true"
+                                           Disabled="@string.IsNullOrEmpty(userId)"
+                                           Class="ownership-select">
+                                    <MudSelectItem T="string" Value="@("missing")">Pendiente</MudSelectItem>
+                                    <MudSelectItem T="string" Value="@("blueprint")">Solo plano</MudSelectItem>
+                                    <MudSelectItem T="string" Value="@("set")">Set completo</MudSelectItem>
+                                    <MudSelectItem T="string" Value="@("built")">Construido</MudSelectItem>
+                                </MudSelect>
 
                                 <MudSpacer />
                                 <MudButton Variant="Variant.Text" Color="Color.Primary"
@@ -151,7 +155,9 @@
                     ? "/images/item-placeholder.svg"
                     : $"https://cdn.warframestat.us/img/{w.ImageName}",
                 Loaded = true,
-                IsOwned = ownedList.Any(o => o.WarframeUnique == w.UniqueName && o.Owned)
+                IsOwned = ownedList.Any(o => o.WarframeUnique == w.UniqueName && o.Owned),
+                OwnershipState = ownedList.FirstOrDefault(o => o.WarframeUnique == w.UniqueName) is { } row
+                    ? NormalizeState(row.OwnershipState, row.Owned) : "missing"
             }).ToList();
 
             loading = false;
@@ -205,6 +211,24 @@
             Console.WriteLine($"❌ Error al guardar {wf.Name}: {ex}");
         }
     }
+    private async Task ChangeStateAsync(WarframeViewModel wf, string state)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var existing = await Db.UserWarframes.FirstOrDefaultAsync(
+            x => x.UserId == userId && x.WarframeUnique == wf.UniqueName);
+        if (existing is null)
+        {
+            existing = new UserWarframe { UserId = userId, WarframeUnique = wf.UniqueName };
+            Db.UserWarframes.Add(existing);
+        }
+        existing.OwnershipState = state;
+        existing.Owned = state == "built";
+        await Db.SaveChangesAsync();
+        wf.OwnershipState = state;
+        wf.IsOwned = existing.Owned;
+    }
+    private static string NormalizeState(string? state, bool owned)
+        => string.IsNullOrWhiteSpace(state) || state == "missing" && owned ? owned ? "built" : "missing" : state;
 
 
     private async Task OnPageChanged(int newPage)
@@ -224,5 +248,6 @@
         public string TempImage { get; set; } = "";
         public bool Loaded { get; set; }
         public bool IsOwned { get; set; }
+        public string OwnershipState { get; set; } = "missing";
     }
 }

@@ -12,6 +12,26 @@
     <MudStack Spacing="3">
         <MudText Typo="Typo.h4" Color="Color.Primary">Mods</MudText>
 
+        @if (duplicateMods.Count > 0)
+        {
+            <MudExpansionPanels Class="duplicate-mods">
+                <MudExpansionPanel Text="@($"{duplicateMods.Sum(x => x.ExtraCopies)} copias duplicadas · ~{duplicateMods.Sum(x => x.EstimatedEndo):N0} Endo")">
+                    <MudText Typo="Typo.caption">
+                        Estimación para copias sin rango. Revisa el valor final antes de disolver en el juego.
+                    </MudText>
+                    <div class="duplicate-mod-grid">
+                        @foreach (var duplicate in duplicateMods.Take(30))
+                        {
+                            <a href="@($"/mods/{Uri.EscapeDataString(duplicate.UniqueName)}")">
+                                <b>@duplicate.Name</b><span>@duplicate.ExtraCopies extras</span>
+                                <small>~@duplicate.EstimatedEndo Endo</small>
+                            </a>
+                        }
+                    </div>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+
         <!-- 🔍 Búsqueda -->
         <MudTextField @bind-Value="searchTerm"
                       Placeholder="Buscar mod..."
@@ -82,6 +102,10 @@
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@m.Name</MudText>
                                 <MudText Typo="Typo.caption">@m.Polarity • @m.Rarity</MudText>
+                                @if (m.Quantity > 1)
+                                {
+                                    <MudChip Size="Size.Small" Color="Color.Warning">@m.Quantity copias</MudChip>
+                                }
                                 <MudText Typo="Typo.body2" Class="line-clamp-3 mt-1">@m.Description</MudText>
                             </MudCardContent>
                             <MudCardActions>

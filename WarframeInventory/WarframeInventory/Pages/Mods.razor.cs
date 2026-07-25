@@ -24,6 +24,7 @@ public partial class Mods
     private List<string> compatibilities = [];
     private List<string> polarities = [];
     private List<string> rarities = [];
+    private List<DuplicateModView> duplicateMods = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -39,6 +40,23 @@ public partial class Mods
             .Select(x => x.Polarity!).Distinct().OrderBy(x => x).ToListAsync();
         rarities = await Db.Mods.AsNoTracking().Where(x => x.Rarity != null && x.Rarity != "")
             .Select(x => x.Rarity!).Distinct().OrderBy(x => x).ToListAsync();
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            duplicateMods = await (
+                from inventory in Db.UserMods.AsNoTracking()
+                join mod in Db.Mods.AsNoTracking() on inventory.ModUnique equals mod.UniqueName
+                where inventory.UserId == userId && inventory.Quantity > 1
+                orderby inventory.Quantity descending
+                select new DuplicateModView
+                {
+                    UniqueName = mod.UniqueName,
+                    Name = mod.Name,
+                    Rarity = mod.Rarity ?? "",
+                    Quantity = inventory.Quantity
+                }).ToListAsync();
+            foreach (var duplicate in duplicateMods)
+                duplicate.EstimatedEndo = duplicate.ExtraCopies * DissolveValue(duplicate.Rarity);
+        }
         await RefreshAsync();
     }
 
@@ -112,7 +130,8 @@ public partial class Mods
                 Polarity = m.Polarity,
                 Rarity = m.Rarity,
                 ImageName = m.ImageName,
-                IsOwned = ownedList.Any(o => o.ModUnique == m.UniqueName && o.Owned)
+                IsOwned = ownedList.Any(o => o.ModUnique == m.UniqueName && o.Owned),
+                Quantity = ownedList.FirstOrDefault(o => o.ModUnique == m.UniqueName)?.Quantity ?? 0
             }).ToList();
 
             loading = false;
@@ -191,6 +210,13 @@ public partial class Mods
         => string.IsNullOrWhiteSpace(imageName)
             ? "/images/item-placeholder.svg"
             : $"https://cdn.warframestat.us/img/{imageName}";
+    private static int DissolveValue(string rarity) => rarity.ToLowerInvariant() switch
+    {
+        "legendary" or "legendaria" => 20,
+        "rare" or "rara" => 15,
+        "uncommon" or "poco común" => 10,
+        _ => 5
+    };
 
     private class ModViewModel
     {
@@ -202,5 +228,15 @@ public partial class Mods
         public string? Rarity { get; set; }
         public string? ImageName { get; set; }
         public bool IsOwned { get; set; }
+        public int Quantity { get; set; }
+    }
+    private sealed class DuplicateModView
+    {
+        public string UniqueName { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Rarity { get; set; } = "";
+        public int Quantity { get; set; }
+        public int ExtraCopies => Math.Max(0, Quantity - 1);
+        public int EstimatedEndo { get; set; }
     }
 }

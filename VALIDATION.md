@@ -32,6 +32,9 @@ en 3,08 s incluyendo seis precios limitados, valor esperado e historial manual.
 La integración usa `/v2/orders/item/{slug}/top`, caché de cinco minutos y una
 cadencia inferior al límite público de tres solicitudes por segundo.
 
+Después de añadir estados de propiedad y duplicados, `/warframes`, `/weapons`,
+`/mods` e `/inventory-tools` se repitieron en Release con HTTP 200.
+
 ## Limitación del entorno
 
 El navegador integrado no pudo inicializarse por falta de la política de sandbox

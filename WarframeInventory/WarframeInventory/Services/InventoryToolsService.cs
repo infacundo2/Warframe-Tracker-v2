@@ -30,7 +30,13 @@ public sealed class InventoryToolsService
                 .Select(x => new OwnedEntry(x.RelicUnique, x.Quantity)).ToListAsync(ct),
             await db.UserComponents.AsNoTracking().Where(x => x.UserId == userId)
                 .Select(x => new ComponentEntry(x.ParentUnique, x.ComponentName, x.Quantity > 0
-                    ? x.Quantity : x.Owned ? 1 : 0)).ToListAsync(ct));
+                    ? x.Quantity : x.Owned ? 1 : 0)).ToListAsync(ct),
+            (await db.UserWarframes.AsNoTracking().Where(x => x.UserId == userId)
+                .Select(x => new StateEntry("warframe", x.WarframeUnique, x.OwnershipState))
+                .ToListAsync(ct))
+            .Concat(await db.UserWeapons.AsNoTracking().Where(x => x.UserId == userId)
+                .Select(x => new StateEntry("weapon", x.WeaponUnique, x.OwnershipState))
+                .ToListAsync(ct)).ToList());
         return JsonSerializer.Serialize(payload, JsonOptions);
     }
 
@@ -44,6 +50,8 @@ public sealed class InventoryToolsService
         lines.AddRange(transfer.Relics.Select(x => Csv("relic", x.UniqueName, "", "", x.Quantity)));
         lines.AddRange(transfer.Components.Select(x =>
             Csv("component", "", x.ParentUnique, x.ComponentName, x.Quantity)));
+        lines.AddRange((transfer.States ?? []).Select(x =>
+            Csv($"{x.Category}-state", x.UniqueName, "", x.State, 0)));
         return string.Join(Environment.NewLine, lines);
     }
 
@@ -114,6 +122,22 @@ public sealed class InventoryToolsService
             else { row.Quantity = Math.Max(0, entry.Quantity); row.Owned = entry.Quantity > 0; }
             changes++;
         }
+        foreach (var entry in payload.States ?? [])
+        {
+            var state = NormalizeState(entry.State);
+            if (entry.Category == "warframe")
+            {
+                var row = await db.UserWarframes.FirstOrDefaultAsync(x =>
+                    x.UserId == userId && x.WarframeUnique == entry.UniqueName, ct);
+                if (row is not null) { row.OwnershipState = state; row.Owned = state == "built"; }
+            }
+            else if (entry.Category == "weapon")
+            {
+                var row = await db.UserWeapons.FirstOrDefaultAsync(x =>
+                    x.UserId == userId && x.WeaponUnique == entry.UniqueName, ct);
+                if (row is not null) { row.OwnershipState = state; row.Owned = state == "built"; }
+            }
+        }
         await db.SaveChangesAsync(ct);
         return new ImportSummary(changes);
     }
@@ -127,12 +151,16 @@ public sealed class InventoryToolsService
         => string.Join(",", new[] { category, unique, parent, display }
             .Select(value => $"\"{value.Replace("\"", "\"\"")}\"")
             .Append(quantity.ToString()));
+    private static string NormalizeState(string? state)
+        => state is "blueprint" or "set" or "built" ? state : "missing";
 }
 
 public sealed record InventoryTransfer(
     int Version, DateTime ExportedUtc,
     List<OwnedEntry> Warframes, List<OwnedEntry> Weapons, List<OwnedEntry> Mods,
-    List<OwnedEntry> Relics, List<ComponentEntry> Components);
+    List<OwnedEntry> Relics, List<ComponentEntry> Components,
+    List<StateEntry>? States = null);
 public sealed record OwnedEntry(string UniqueName, int Quantity);
 public sealed record ComponentEntry(string ParentUnique, string ComponentName, int Quantity);
+public sealed record StateEntry(string Category, string UniqueName, string State);
 public sealed record ImportSummary(int ChangedEntries);

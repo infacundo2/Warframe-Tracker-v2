@@ -48,12 +48,16 @@
                             </MudCardContent>
 
                             <MudCardActions>
-                                <MudCheckBox T="bool"
-                                             Checked="@w.IsOwned"
-                                             Label="Lo tengo"
-                                             Color="Color.Success"
-                                             Disabled="@string.IsNullOrEmpty(userId)"
-                                             CheckedChanged="@(async (bool v) => await ToggleOwnedAsync(w, v))" />
+                                <MudSelect T="string" Value="@w.OwnershipState"
+                                           ValueChanged="@(value => ChangeStateAsync(w, value))"
+                                           Label="Estado" Dense="true"
+                                           Disabled="@string.IsNullOrEmpty(userId)"
+                                           Class="ownership-select">
+                                    <MudSelectItem T="string" Value="@("missing")">Pendiente</MudSelectItem>
+                                    <MudSelectItem T="string" Value="@("blueprint")">Solo plano</MudSelectItem>
+                                    <MudSelectItem T="string" Value="@("set")">Set completo</MudSelectItem>
+                                    <MudSelectItem T="string" Value="@("built")">Construida</MudSelectItem>
+                                </MudSelect>
                                 <MudSpacer />
                                 <MudButton Variant="Variant.Text" Color="Color.Primary"
                                            Href="@($"/weapons/{Uri.EscapeDataString(w.UniqueName)}")">
@@ -146,7 +150,9 @@
                 Description = w.Description,
                 Type = w.Type,
                 ImageName = w.ImageName,
-                IsOwned = ownedList.Any(o => o.WeaponUnique == w.UniqueName && o.Owned)
+                IsOwned = ownedList.Any(o => o.WeaponUnique == w.UniqueName && o.Owned),
+                OwnershipState = ownedList.FirstOrDefault(o => o.WeaponUnique == w.UniqueName) is { } row
+                    ? NormalizeState(row.OwnershipState, row.Owned) : "missing"
             }).ToList();
 
             loading = false;
@@ -200,6 +206,24 @@
             Console.WriteLine($"❌ Error al guardar {weapon.Name}: {ex}");
         }
     }
+    private async Task ChangeStateAsync(WeaponViewModel weapon, string state)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var existing = await Db.UserWeapons.FirstOrDefaultAsync(
+            x => x.UserId == userId && x.WeaponUnique == weapon.UniqueName);
+        if (existing is null)
+        {
+            existing = new UserWeapon { UserId = userId, WeaponUnique = weapon.UniqueName };
+            Db.UserWeapons.Add(existing);
+        }
+        existing.OwnershipState = state;
+        existing.Owned = state == "built";
+        await Db.SaveChangesAsync();
+        weapon.OwnershipState = state;
+        weapon.IsOwned = existing.Owned;
+    }
+    private static string NormalizeState(string? state, bool owned)
+        => string.IsNullOrWhiteSpace(state) || state == "missing" && owned ? owned ? "built" : "missing" : state;
 
     private async Task OnPageChanged(int newPage)
     {
@@ -222,5 +246,6 @@
         public string? Type { get; set; }
         public string? ImageName { get; set; }
         public bool IsOwned { get; set; }
+        public string OwnershipState { get; set; } = "missing";
     }
 }
