@@ -433,6 +433,86 @@ img { color: transparent; }
     text-align: right;
 }
 
+.world-section {
+    margin-bottom: 1rem;
+    padding: 1.25rem;
+    background: rgba(7, 16, 24, .76);
+    border: 1px solid rgba(56, 216, 245, .14);
+}
+.world-section--fill { height: calc(100% - 1rem); }
+.world-section__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+.world-section__heading span {
+    color: #d8b85c;
+    font-size: .65rem;
+    letter-spacing: .15em;
+}
+.world-section__heading > b {
+    color: #38d8f5;
+    font-size: 1.7rem;
+}
+.fissure-goals {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: .8rem;
+    padding: .55rem;
+    border-left: 1px solid #d8b85c;
+}
+.fissure-goals span { color: #d8b85c; font-size: .6rem; }
+.fissure-goals b { font-size: .8rem; }
+.cycle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: .65rem;
+}
+.cycle-card {
+    display: flex;
+    flex-direction: column;
+    padding: .8rem;
+    border-top: 1px solid #38d8f5;
+}
+.cycle-card span { color: #8ca8b3; }
+.cycle-card b { color: #eafcff; font-size: 1.25rem; }
+.cycle-card small { color: #38d8f5; }
+.invasion-entry,
+.alert-entry,
+.nightwave-entry,
+.trader-inventory > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .7rem 0;
+    border-bottom: 1px solid rgba(56, 216, 245, .1);
+}
+.invasion-entry > div,
+.alert-entry,
+.nightwave-entry > div,
+.trader-inventory > div {
+    display: flex;
+    flex-direction: column;
+}
+.invasion-entry small,
+.alert-entry small,
+.nightwave-entry small,
+.trader-inventory small { color: #8ca8b3; }
+.invasion-entry > div:last-child { color: #d8b85c; text-align: right; }
+.trader-status {
+    display: flex;
+    justify-content: space-between;
+    padding: .75rem;
+    color: #38d8f5;
+    background: rgba(56, 216, 245, .06);
+}
+.trader-inventory {
+    max-height: 26rem;
+    overflow: auto;
+}
+.nightwave-entry strong { color: #d8b85c; }
+
 .command-trigger {
     display: flex;
     align-items: center;

@@ -7,10 +7,8 @@
     <section class="worldstate-hero orokin-panel">
         <div>
             <div class="eyebrow">NAVEGACIÓN EN TIEMPO REAL // SISTEMA ORIGIN</div>
-            <MudText Typo="Typo.h3" Class="page-title">Fisuras activas</MudText>
-            <MudText Typo="Typo.body1">
-                Operaciones disponibles cruzadas con tus reliquias por era.
-            </MudText>
+            <MudText Typo="Typo.h3" Class="page-title">Sistema Origin</MudText>
+            <MudText>Fisuras, ciclos, invasiones, Baro y Nightwave en una sola consola.</MudText>
         </div>
         <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="RefreshAsync"
                    StartIcon="@Icons.Material.Filled.Refresh">Actualizar</MudButton>
@@ -20,48 +18,146 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-5" />
     }
-    else if (brief is null || brief.Fissures.Count == 0)
+    else if (brief is null)
     {
         <MudAlert Severity="Severity.Warning" Class="mt-5">
-            Worldstate no respondió o no hay fisuras activas. El catálogo y tu inventario siguen disponibles.
+            Worldstate no respondió. El catálogo y tu inventario siguen disponibles.
         </MudAlert>
     }
     else
     {
-        <div class="worldstate-grid mt-5">
-            @foreach (var fissure in brief.Fissures)
-            {
-                <MudPaper Class="@($"fissure-card fissure-card--{fissure.Tier.ToLowerInvariant()}")">
-                    <div class="fissure-card__heading">
-                        <b>@fissure.Tier</b>
-                        <span>@Remaining(fissure.Expiry)</span>
-                    </div>
-                    <MudText Typo="Typo.h6">@fissure.Node</MudText>
-                    <small>@fissure.MissionType · @fissure.Enemy</small>
-                    <div class="fissure-tags">
-                        @if (fissure.IsHard)
+        <section class="world-section mt-5">
+            <div class="world-section__heading">
+                <div><span>OPERACIONES DEL VACÍO</span><MudText Typo="Typo.h5">Fisuras activas</MudText></div>
+                <b>@brief.Fissures.Count</b>
+            </div>
+            <div class="worldstate-grid">
+                @foreach (var fissure in brief.Fissures)
+                {
+                    <MudPaper Class="@($"fissure-card fissure-card--{fissure.Tier.ToLowerInvariant()}")">
+                        <div class="fissure-card__heading">
+                            <b>@fissure.Tier</b><span>@Remaining(fissure.Expiry)</span>
+                        </div>
+                        <MudText Typo="Typo.h6">@fissure.Node</MudText>
+                        <small>@fissure.MissionType · @fissure.Enemy</small>
+                        <div class="fissure-tags">
+                            @if (fissure.IsHard) { <span>CAMINO DE ACERO</span> }
+                            @if (fissure.IsStorm) { <span>TORMENTA DEL VACÍO</span> }
+                        </div>
+                        <div class="fissure-owned">
+                            <span>RELIQUIAS @fissure.Tier.ToUpperInvariant() EN INVENTARIO</span>
+                            <strong>@fissure.OwnedRelics</strong>
+                        </div>
+                        @if (fissure.RelatedGoals.Count > 0)
                         {
-                            <span>CAMINO DE ACERO</span>
+                            <div class="fissure-goals">
+                                <span>ÚTIL PARA OBJETIVOS</span>
+                                @foreach (var goal in fissure.RelatedGoals.Take(3)) { <b>@goal</b> }
+                            </div>
                         }
-                        @if (fissure.IsStorm)
+                        @if (fissure.OwnedRelics > 0)
                         {
-                            <span>TORMENTA DEL VACÍO</span>
+                            <MudButton Href="@($"/relics?era={fissure.Tier}")" FullWidth="true"
+                                       Variant="Variant.Outlined" Color="Color.Primary">
+                                Ver reliquias compatibles
+                            </MudButton>
                         }
+                    </MudPaper>
+                }
+            </div>
+        </section>
+
+        <section class="world-section">
+            <div class="world-section__heading">
+                <div><span>RELOJES PLANETARIOS</span><MudText Typo="Typo.h5">Ciclos</MudText></div>
+            </div>
+            <div class="cycle-grid">
+                @foreach (var cycle in brief.Cycles)
+                {
+                    <MudPaper Class="cycle-card">
+                        <span>@cycle.Location</span><b>@CycleState(cycle.State)</b>
+                        <small>@Remaining(cycle.Expiry)</small>
+                    </MudPaper>
+                }
+            </div>
+        </section>
+
+        <MudGrid>
+            <MudItem xs="12" lg="7">
+                <section class="world-section world-section--fill">
+                    <div class="world-section__heading">
+                        <div><span>CONFLICTOS ACTIVOS</span><MudText Typo="Typo.h5">Invasiones</MudText></div>
+                        <b>@brief.Invasions.Count</b>
                     </div>
-                    <div class="fissure-owned">
-                        <span>RELIQUIAS @fissure.Tier.ToUpperInvariant() EN INVENTARIO</span>
-                        <strong>@fissure.OwnedRelics</strong>
-                    </div>
-                    @if (fissure.OwnedRelics > 0)
+                    @if (brief.Invasions.Count == 0) { <MudText>No hay invasiones pendientes.</MudText> }
+                    @foreach (var invasion in brief.Invasions.Take(8))
                     {
-                        <MudButton Href="@($"/relics?era={fissure.Tier}")" FullWidth="true"
-                                   Variant="Variant.Outlined" Color="Color.Primary">
-                            Ver reliquias compatibles
-                        </MudButton>
+                        <div class="invasion-entry">
+                            <div><b>@invasion.Node</b><small>@invasion.Attacker vs. @invasion.Defender</small></div>
+                            <div><span>@invasion.AttackerReward</span><span>@invasion.DefenderReward</span></div>
+                        </div>
                     }
-                </MudPaper>
-            }
-        </div>
+                </section>
+            </MudItem>
+            <MudItem xs="12" lg="5">
+                <section class="world-section world-section--fill">
+                    <div class="world-section__heading">
+                        <div><span>SEÑALES PRIORITARIAS</span><MudText Typo="Typo.h5">Alertas</MudText></div>
+                        <b>@brief.Alerts.Count</b>
+                    </div>
+                    @if (brief.Alerts.Count == 0) { <MudText>No hay alertas activas.</MudText> }
+                    @foreach (var alert in brief.Alerts)
+                    {
+                        <div class="alert-entry">
+                            <b>@alert.Node · @alert.MissionType</b><span>@alert.Reward</span>
+                            <small>@Remaining(alert.Expiry)</small>
+                        </div>
+                    }
+                </section>
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <section class="world-section world-section--fill">
+                    <div class="world-section__heading">
+                        <div><span>COMERCIANTE DEL VACÍO</span><MudText Typo="Typo.h5">Baro Ki'Teer</MudText></div>
+                    </div>
+                    @if (brief.VoidTrader is null) { <MudText>Sin información del comerciante.</MudText> }
+                    else
+                    {
+                        <div class="trader-status">
+                            <b>@brief.VoidTrader.Location</b><span>@TraderStatus(brief.VoidTrader)</span>
+                        </div>
+                        <div class="trader-inventory">
+                            @foreach (var item in brief.VoidTrader.Inventory.Take(12))
+                            {
+                                <div><b>@item.Name</b><small>@item.Ducats ducados · @item.Credits.ToString("N0") créditos</small></div>
+                            }
+                        </div>
+                    }
+                </section>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <section class="world-section world-section--fill">
+                    <div class="world-section__heading">
+                        <div><span>ONDA NOCTURNA</span><MudText Typo="Typo.h5">Desafíos activos</MudText></div>
+                        <b>@(brief.Nightwave?.Challenges.Count ?? 0)</b>
+                    </div>
+                    @if (brief.Nightwave is null) { <MudText>Sin información de Nightwave.</MudText> }
+                    else
+                    {
+                        @foreach (var challenge in brief.Nightwave.Challenges.Take(10))
+                        {
+                            <div class="nightwave-entry">
+                                <div><b>@challenge.Title</b><small>@challenge.Description</small></div>
+                                <strong>@challenge.Reputation</strong>
+                            </div>
+                        }
+                    }
+                </section>
+            </MudItem>
+        </MudGrid>
         <MudText Typo="Typo.caption" Class="worldstate-updated">
             Datos consultados a las @brief.LoadedUtc.ToLocalTime().ToString("HH:mm:ss").
         </MudText>
@@ -72,33 +168,32 @@
     private WorldstateBrief? brief;
     private bool loading = true;
     private string userId = "";
-
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthState.GetAuthenticationStateAsync();
         userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
         await LoadAsync();
     }
-
-    private async Task RefreshAsync()
-    {
-        loading = true;
-        await LoadAsync();
-    }
-
-    private async Task LoadAsync()
-    {
-        brief = await WorldstateClient.LoadAsync(userId);
-        loading = false;
-    }
-
+    private async Task RefreshAsync() { loading = true; await LoadAsync(); }
+    private async Task LoadAsync() { brief = await WorldstateClient.LoadAsync(userId); loading = false; }
     private static string Remaining(DateTime expiry)
     {
         var remaining = expiry.ToUniversalTime() - DateTime.UtcNow;
-        if (remaining <= TimeSpan.Zero)
-            return "finalizando";
-        return remaining.TotalHours >= 1
-            ? $"{(int)remaining.TotalHours}h {remaining.Minutes}m"
+        if (remaining <= TimeSpan.Zero) return "finalizando";
+        return remaining.TotalHours >= 1 ? $"{(int)remaining.TotalHours}h {remaining.Minutes}m"
             : $"{Math.Max(1, remaining.Minutes)}m";
+    }
+    private static string CycleState(string state) => state.ToLowerInvariant() switch
+    {
+        "day" => "Día", "night" => "Noche", "warm" => "Cálido", "cold" => "Frío",
+        "fass" => "Fass", "vome" => "Vome", "corpus" => "Corpus", "grineer" => "Grineer",
+        _ => state
+    };
+    private static string TraderStatus(VoidTraderBrief trader)
+    {
+        var now = DateTime.UtcNow;
+        return now >= trader.Activation.ToUniversalTime() && now < trader.Expiry.ToUniversalTime()
+            ? $"Disponible · {Remaining(trader.Expiry)}"
+            : $"Llega en {Remaining(trader.Activation)}";
     }
 }
