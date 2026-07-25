@@ -45,7 +45,12 @@ namespace WarframeInventory.Models
             public string Name { get; set; } = "";
             public string UniqueName { get; set; } = "";
             public bool Vaulted { get; set; }
-            public int Quantity { get; set; } // cuántas reliquias tiene el jugador
+            public int IntactQuantity { get; set; }
+            public int ExceptionalQuantity { get; set; }
+            public int FlawlessQuantity { get; set; }
+            public int RadiantQuantity { get; set; }
+            public int TotalQuantity =>
+                IntactQuantity + ExceptionalQuantity + FlawlessQuantity + RadiantQuantity;
         }
 
 

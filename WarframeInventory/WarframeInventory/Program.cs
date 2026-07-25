@@ -137,4 +137,11 @@ app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
+if (args.Contains("--sync-catalog", StringComparer.OrdinalIgnoreCase))
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<DataSyncService>().SyncAllAsync();
+    return;
+}
+
 app.Run();

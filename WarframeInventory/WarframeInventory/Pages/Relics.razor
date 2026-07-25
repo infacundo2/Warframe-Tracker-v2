@@ -20,6 +20,17 @@
                       DebounceInterval="350"
                       OnDebounceIntervalElapsed="@(() => LoadPageAsync(1))" />
 
+        <MudSelect T="string"
+                   Label="Estado de la reliquia"
+                   Value="@availabilityFilter"
+                   ValueChanged="OnAvailabilityChanged"
+                   Variant="Variant.Outlined"
+                   Class="catalog-filter">
+            <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+            <MudSelectItem T="string" Value="@("available")">Solo disponibles</MudSelectItem>
+            <MudSelectItem T="string" Value="@("vaulted")">Solo vaulted</MudSelectItem>
+        </MudSelect>
+
         @if (loading)
         {
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" Class="mx-auto my-8" />
@@ -79,6 +90,7 @@
     private List<RelicViewModel> pagedRelics = new();
     private bool loading = true;
     private string? searchTerm = "";
+    private string availabilityFilter = "all";
     private int currentPage = 1;
     private int totalPages = 1;
     private const int pageSize = 10;
@@ -102,6 +114,13 @@
             string term = searchTerm.ToLower();
             query = query.Where(r => EF.Functions.Like(r.Name, $"%{term}%"));
         }
+
+        query = availabilityFilter switch
+        {
+            "available" => query.Where(r => !r.Vaulted),
+            "vaulted" => query.Where(r => r.Vaulted),
+            _ => query
+        };
 
         int totalCount = await query.CountAsync();
         totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
@@ -172,6 +191,12 @@
     private async Task OnPageChanged(int newPage)
     {
         await LoadPageAsync(newPage);
+    }
+
+    private async Task OnAvailabilityChanged(string value)
+    {
+        availabilityFilter = value;
+        await LoadPageAsync(1);
     }
 
     private static string GetImageUrl(string? imageName)

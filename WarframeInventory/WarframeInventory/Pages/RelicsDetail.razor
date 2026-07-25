@@ -80,6 +80,21 @@
             <!-- ==================== RECOMPENSAS ==================== -->
             <MudText Typo="Typo.h6" Class="mb-2">Recompensas al abrir</MudText>
 
+            <MudSelect T="string"
+                       Label="Estado de refinamiento"
+                       @bind-Value="selectedRefinement"
+                       Variant="Variant.Outlined"
+                       Class="catalog-filter mb-2">
+                <MudSelectItem T="string" Value="@("Intacta")">Intacta · 0 vestigios</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Excepcional")">Excepcional · 25 vestigios</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Perfecta")">Perfecta · 50 vestigios</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Radiante")">Radiante · 100 vestigios</MudSelectItem>
+            </MudSelect>
+
+            <MudText Typo="Typo.caption" Class="mb-3">
+                Probabilidad individual para cada recompensa en estado <b>@selectedRefinement</b>.
+            </MudText>
+
             @if (rewards == null || rewards.Count == 0)
             {
                 <MudText Typo="Typo.caption">Sin recompensas registradas.</MudText>
@@ -90,13 +105,18 @@
                     <HeaderContent>
                         <MudTh>Ítem</MudTh>
                         <MudTh>Rareza</MudTh>
-                        <MudTh>Probabilidad</MudTh>
+                        <MudTh>Probabilidad (@selectedRefinement)</MudTh>
                         <MudTh>Warframe Market</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Ítem">@context.ItemName</MudTd>
                         <MudTd DataLabel="Rareza">@context.Rarity</MudTd>
-                        <MudTd DataLabel="Probabilidad">@context.Chance.ToString("0.##")%</MudTd>
+                        <MudTd DataLabel="Probabilidad">
+                            @{
+                                var chance = context.GetChance(selectedRefinement);
+                            }
+                            @(chance.HasValue ? $"{chance.Value:0.00}%" : "Sin datos")
+                        </MudTd>
                         <MudTd DataLabel="Warframe Market">
                             @if (!string.IsNullOrEmpty(context.MarketUrl))
                             {
@@ -156,11 +176,12 @@
     [Parameter] public string? uniqueName { get; set; }
 
     private Relic? relic;
-    private List<RelicReward>? rewards;
+    private List<RelicRewardView>? rewards;
     private List<RelicDrop>? dropLocations;
     private List<RelicVariant> variantCounts = new();
     private bool loading = true;
     private string userId = "";
+    private string selectedRefinement = "Intacta";
 
     protected override async Task OnInitializedAsync()
     {
@@ -194,10 +215,7 @@
             variantCounts = variants.Select(v => new RelicVariant
             {
                 UniqueName = v.UniqueName,
-                DisplayName = v.UniqueName.Contains("EBronze") ? "Intacta" :
-                            v.UniqueName.Contains("ESilver") ? "Excepcional" :
-                            v.UniqueName.Contains("EGold") ? "Perfecta" :
-                            v.UniqueName.Contains("EPlatinum") ? "Radiante" : "Desconocida",
+                DisplayName = GetRefinementName(v.UniqueName),
                 ImageName = v.ImageName ?? "",
                 Quantity = userRelics.FirstOrDefault(u => u.RelicUnique == v.UniqueName)?.Quantity ?? 0
             })
@@ -213,19 +231,32 @@
 
 
             // --- RECOMPENSAS ---
-            rewards = await Db.RelicRewards.AsNoTracking()
-                .Where(x => x.RelicUnique == relic.UniqueName)
-                .OrderByDescending(x => x.Chance)
-                .Select(x => new RelicReward
-                {
-                    ItemName = x.ItemName,
-                    Rarity = x.Rarity ?? "",
-                    Chance = x.Chance,
-                    MarketUrl = string.IsNullOrEmpty(x.MarketUrlName)
-                        ? null
-                        : $"https://warframe.market/items/{x.MarketUrlName}"
-                })
+            var rewardsByVariant = await Db.RelicRewards.AsNoTracking()
+                .Where(x => variantKeys.Contains(x.RelicUnique))
                 .ToListAsync();
+
+            rewards = rewardsByVariant
+                .GroupBy(x => x.ItemUnique)
+                .Select(group =>
+                {
+                    var first = group.First();
+                    var chances = group
+                        .GroupBy(x => GetRefinementName(x.RelicUnique))
+                        .ToDictionary(x => x.Key, x => x.First().Chance);
+
+                    return new RelicRewardView
+                    {
+                        ItemName = first.ItemName,
+                        Rarity = GetRewardRarity(chances.Values),
+                        Chances = chances,
+                        MarketUrl = string.IsNullOrEmpty(first.MarketUrlName)
+                            ? null
+                            : $"https://warframe.market/items/{first.MarketUrlName}"
+                    };
+                })
+                .OrderByDescending(x => x.GetChance("Intacta") ?? 0)
+                .ThenBy(x => x.ItemName)
+                .ToList();
 
             // --- DROPS ---
             if (!string.IsNullOrWhiteSpace(relic.DropsJson))
@@ -288,13 +319,35 @@
             ? "/images/item-placeholder.svg"
             : $"https://cdn.warframestat.us/img/{imageName}";
 
+    private static string GetRefinementName(string uniqueName)
+        => uniqueName.EndsWith("Silver", StringComparison.OrdinalIgnoreCase) ? "Excepcional" :
+           uniqueName.EndsWith("Gold", StringComparison.OrdinalIgnoreCase) ? "Perfecta" :
+           uniqueName.EndsWith("Platinum", StringComparison.OrdinalIgnoreCase) ? "Radiante" :
+           "Intacta";
+
+    private static string GetRewardRarity(IEnumerable<double> chances)
+    {
+        var values = chances.ToList();
+        if (values.Count == 0)
+            return "Desconocida";
+
+        if (values.Max() > 20)
+            return "Común";
+        if (values.Min() <= 2.01)
+            return "Rara";
+        return "Poco común";
+    }
+
     // ==== Clases auxiliares ====
-    private class RelicReward
+    private class RelicRewardView
     {
         public string ItemName { get; set; } = "";
         public string Rarity { get; set; } = "";
-        public double Chance { get; set; }
+        public Dictionary<string, double> Chances { get; set; } = new();
         public string? MarketUrl { get; set; }
+
+        public double? GetChance(string refinement)
+            => Chances.TryGetValue(refinement, out var chance) ? chance : null;
     }
 
     private class RelicDrop

@@ -47,6 +47,19 @@
             }
             else
             {
+                @if (components.Any(c => c.RelicLinks?.Count > 0))
+                {
+                    <MudSelect T="string"
+                               Label="Filtrar reliquias"
+                               @bind-Value="relicAvailabilityFilter"
+                               Variant="Variant.Outlined"
+                               Class="catalog-filter mb-3">
+                        <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("available")">Solo disponibles</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("vaulted")">Solo vaulted</MudSelectItem>
+                    </MudSelect>
+                }
+
                 @foreach (var c in components)
                 {
                     <MudPaper Class="p-3 mb-3" Elevation="1">
@@ -80,7 +93,14 @@
                                     @if (c.RelicLinks != null && c.RelicLinks.Count > 0)
                                     {
                                         <MudText Typo="Typo.caption"><b>Reliquias que lo dropean:</b></MudText>
-                                        @foreach (var rel in c.RelicLinks)
+                                        var filteredRelics = FilterRelics(c.RelicLinks).ToList();
+                                        @if (filteredRelics.Count == 0)
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Warning">
+                                                Este componente no tiene reliquias que coincidan con el filtro.
+                                            </MudText>
+                                        }
+                                        @foreach (var rel in filteredRelics)
                                         {
                                             <MudPaper Class="p-2 mb-1" Elevation="0">
                                                 <MudText Typo="Typo.body2">
@@ -89,13 +109,13 @@
                                                         @(rel.Vaulted ? "Vaulted" : "Disponible")
                                                       </i>
                                                 </MudText>
-                                                <MudNumericField T="int"
-                                                                 Value="@rel.Quantity"
-                                                                 Label="Cantidad"
-                                                                 Min="0"
-                                                                 Max="99"
-                                                                 Immediate="true"
-                                                                 Class="w-24 mt-1" />
+                                                <div class="relic-inventory-summary">
+                                                    <span class="relic-total">Total @rel.TotalQuantity</span>
+                                                    <span title="Intactas">I <b>@rel.IntactQuantity</b></span>
+                                                    <span title="Excepcionales">E <b>@rel.ExceptionalQuantity</b></span>
+                                                    <span title="Perfectas">P <b>@rel.FlawlessQuantity</b></span>
+                                                    <span title="Radiantes">R <b>@rel.RadiantQuantity</b></span>
+                                                </div>
                                             </MudPaper>
                                         }
                                     }
@@ -120,6 +140,15 @@
     private List<WarframeComponent>? components;
     private bool loading = true;
     private string userId = "";
+    private string relicAvailabilityFilter = "all";
+
+    private IEnumerable<RelicLink> FilterRelics(IEnumerable<RelicLink> relics)
+        => relicAvailabilityFilter switch
+        {
+            "available" => relics.Where(r => !r.Vaulted),
+            "vaulted" => relics.Where(r => r.Vaulted),
+            _ => relics
+        };
 
     protected override async Task OnInitializedAsync()
     {
@@ -185,7 +214,7 @@
                 .Distinct()
                 .ToList();
 
-            var relics = new List<Relic>();
+            var links = new List<RelicLink>();
             foreach (var relicNameRaw in relicNames)
             {
                 var cleanName = relicNameRaw
@@ -194,27 +223,56 @@
                     .Replace(" (Radiant)", "", StringComparison.OrdinalIgnoreCase)
                     .Replace(" (Flawless)", "", StringComparison.OrdinalIgnoreCase)
                     .Replace(" (Exceptional)", "", StringComparison.OrdinalIgnoreCase)
+                    .Replace(" (Intact)", "", StringComparison.OrdinalIgnoreCase)
+                    .Replace(" (Radiante)", "", StringComparison.OrdinalIgnoreCase)
+                    .Replace(" (Perfecta)", "", StringComparison.OrdinalIgnoreCase)
+                    .Replace(" (Excepcional)", "", StringComparison.OrdinalIgnoreCase)
+                    .Replace(" (Intacta)", "", StringComparison.OrdinalIgnoreCase)
                     .Trim();
 
-                var core = cleanName.ToLower();
-                var found = await Db.Relics.AsNoTracking()
-                    .FirstOrDefaultAsync(r =>
-                        r.Name.ToLower().Contains(core) || r.UniqueName.ToLower().Contains(core));
+                var core = cleanName.ToLowerInvariant();
+                var expectedSpanishName = $"reliquia {core}";
+                var expectedEnglishName = $"{core} relic";
+                var variants = await Db.Relics.AsNoTracking()
+                    .Where(r => r.Name.ToLower() == core
+                                || r.Name.ToLower() == expectedSpanishName
+                                || r.Name.ToLower() == expectedEnglishName)
+                    .ToListAsync();
 
-                if (found != null)
-                    relics.Add(found);
+                if (variants.Count == 0)
+                    continue;
+
+                var variantKeys = variants.Select(r => r.UniqueName).ToList();
+                var ownedByUnique = string.IsNullOrWhiteSpace(userId)
+                    ? new Dictionary<string, int>()
+                    : await Db.UserRelics.AsNoTracking()
+                        .Where(x => x.UserId == userId && variantKeys.Contains(x.RelicUnique))
+                        .ToDictionaryAsync(x => x.RelicUnique, x => x.Quantity);
+
+                int QuantityFor(string refinement) => variants
+                    .Where(v => GetRefinementName(v.UniqueName) == refinement)
+                    .Sum(v => ownedByUnique.GetValueOrDefault(v.UniqueName));
+
+                var intact = variants.FirstOrDefault(v => GetRefinementName(v.UniqueName) == "Intacta")
+                             ?? variants[0];
+                links.Add(new RelicLink
+                {
+                    Name = variants[0].Name,
+                    UniqueName = intact.UniqueName,
+                    Vaulted = variants.All(v => v.Vaulted),
+                    IntactQuantity = QuantityFor("Intacta"),
+                    ExceptionalQuantity = QuantityFor("Excepcional"),
+                    FlawlessQuantity = QuantityFor("Perfecta"),
+                    RadiantQuantity = QuantityFor("Radiante")
+                });
             }
 
-            if (relics.Count > 0)
-                comp.RelicLinks = relics.Select(r => new RelicLink
-                {
-                    Name = r.Name,
-                    UniqueName = r.UniqueName,
-                    Vaulted = r.Vaulted,
-                    Quantity = 0
-                }).ToList();
+            comp.RelicLinks = links
+                .GroupBy(x => x.Name)
+                .Select(x => x.First())
+                .ToList();
 
-            Console.WriteLine($"🧩 {comp.Name}: {relics.Count} reliquias asociadas");
+            Console.WriteLine($"🧩 {comp.Name}: {links.Count} reliquias asociadas");
         }
         catch (Exception ex)
         {
@@ -265,4 +323,10 @@
         => string.IsNullOrWhiteSpace(imageName)
             ? "_content/MudBlazor/images/placeholder.png"
             : $"https://cdn.warframestat.us/img/{imageName}";
+
+    private static string GetRefinementName(string uniqueName)
+        => uniqueName.EndsWith("Silver", StringComparison.OrdinalIgnoreCase) ? "Excepcional" :
+           uniqueName.EndsWith("Gold", StringComparison.OrdinalIgnoreCase) ? "Perfecta" :
+           uniqueName.EndsWith("Platinum", StringComparison.OrdinalIgnoreCase) ? "Radiante" :
+           "Intacta";
 }

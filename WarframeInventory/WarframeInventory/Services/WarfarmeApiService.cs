@@ -30,6 +30,57 @@ namespace WarframeInventory.Services
 
         private static string? ToJson(object? o) => o == null ? null : JsonSerializer.Serialize(o);
 
+        private static string? BuildModAcquisitionJson(JsonObject item)
+        {
+            var methods = new List<ModDrop>();
+
+            if (item["drops"] is JsonArray drops)
+            {
+                methods.AddRange(drops.OfType<JsonObject>().Select(drop => new ModDrop
+                {
+                    Chance = drop["chance"]?.GetValue<double?>() ?? 0,
+                    Location = drop["location"]?.GetValue<string?>(),
+                    Rarity = drop["rarity"]?.GetValue<string?>(),
+                    Type = drop["type"]?.GetValue<string?>(),
+                    Method = "Drop"
+                }));
+            }
+
+            if (item["transmutable"]?.GetValue<bool?>() == true)
+            {
+                methods.Add(new ModDrop
+                {
+                    Location = "Transmutación de mods",
+                    Type = "Método alternativo",
+                    Method = "Transmutación"
+                });
+            }
+
+            if (item["tradable"]?.GetValue<bool?>() == true)
+            {
+                methods.Add(new ModDrop
+                {
+                    Location = "Intercambio con otros jugadores",
+                    Type = "Método alternativo",
+                    Method = "Intercambio"
+                });
+            }
+
+            var wikiUrl = item["wikiaUrl"]?.GetValue<string?>();
+            if (!string.IsNullOrWhiteSpace(wikiUrl))
+            {
+                methods.Add(new ModDrop
+                {
+                    Location = "Consultar métodos adicionales",
+                    Type = "Wiki de Warframe",
+                    Method = "Guía",
+                    Url = wikiUrl
+                });
+            }
+
+            return methods.Count == 0 ? null : JsonSerializer.Serialize(methods);
+        }
+
         // -------------------------------
         // 🔹 WARFRAMES (con componentes serializados)
         // -------------------------------
@@ -103,7 +154,7 @@ namespace WarframeInventory.Services
             {
                 var levelStats = n["levelStats"];
                 string? levelStatsJson = levelStats == null ? null : levelStats.ToJsonString();
-                string? dropsJson = n["drops"]?.ToJsonString(); // 🔹 nuevo
+                string? dropsJson = BuildModAcquisitionJson(n);
 
                 var descText = AsStringFlexible(n["description"]);
 
@@ -221,21 +272,30 @@ namespace WarframeInventory.Services
                         if (item is null)
                             continue;
 
-                        var itemUnique = item["uniqueName"]?.GetValue<string?>()
-                                         ?? item["name"]?.GetValue<string?>()
-                                         ?? "";
+                        var relicUnique = n["uniqueName"]?.GetValue<string?>() ?? "";
+                        var itemName = item["name"]?.GetValue<string?>() ?? "";
+                        var marketUrlName = item["warframeMarket"]?["urlName"]?.GetValue<string?>();
+                        var apiItemUnique = item["uniqueName"]?.GetValue<string?>();
+
+                        // warframe-items devuelve en algunas reliquias el UniqueName de la
+                        // propia reliquia para sus seis recompensas. No puede usarse como
+                        // identidad del premio porque colapsaría toda la tabla en una fila.
+                        var itemUnique = string.IsNullOrWhiteSpace(apiItemUnique)
+                                         || string.Equals(apiItemUnique, relicUnique, StringComparison.Ordinal)
+                            ? marketUrlName ?? itemName
+                            : apiItemUnique;
                         if (string.IsNullOrWhiteSpace(itemUnique))
                             continue;
 
                         rewards.Add(JsonSerializer.Deserialize<object>(rewardNode.ToJsonString())!);
                         normalizedRewards.Add(new RelicReward
                         {
-                            RelicUnique = n["uniqueName"]?.GetValue<string?>() ?? "",
+                            RelicUnique = relicUnique,
                             ItemUnique = itemUnique,
-                            ItemName = item["name"]?.GetValue<string?>() ?? itemUnique,
+                            ItemName = string.IsNullOrWhiteSpace(itemName) ? itemUnique : itemName,
                             Rarity = rewardNode["rarity"]?.GetValue<string?>(),
                             Chance = rewardNode["chance"]?.GetValue<double?>() ?? 0,
-                            MarketUrlName = item["warframeMarket"]?["urlName"]?.GetValue<string?>()
+                            MarketUrlName = marketUrlName
                         });
                     }
                 }

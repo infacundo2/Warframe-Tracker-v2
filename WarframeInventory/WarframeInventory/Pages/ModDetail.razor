@@ -75,10 +75,12 @@
 
             <MudDivider Class="my-4" />
 
-            <MudText Typo="Typo.h6" Class="mb-2">Ubicaciones de drop</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">Cómo conseguirlo</MudText>
             @if (drops == null || drops.Count == 0)
             {
-                <MudText Typo="Typo.caption">Sin drops registrados.</MudText>
+                <MudText Typo="Typo.caption">
+                    La fuente de datos no registra todavía un método de obtención para este mod.
+                </MudText>
             }
             else
             {
@@ -86,8 +88,29 @@
                     @foreach (var d in drops)
                     {
                         <MudListItem>
-                            <b>@(d.Location ?? "Desconocido")</b> — @(d.Rarity ?? "N/A")
-                            <span style="color:gray;">(@d.ChanceFormatted)</span>
+                            <div>
+                                <b>@(d.Location ?? "Desconocido")</b>
+                                @if (!string.IsNullOrWhiteSpace(d.Method))
+                                {
+                                    <span class="acquisition-method"> · @d.Method</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(d.Rarity))
+                                {
+                                    <span> — @d.Rarity</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(d.ChanceFormatted))
+                                {
+                                    <span style="color:gray;"> (@d.ChanceFormatted)</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(d.Url))
+                                {
+                                    <div>
+                                        <MudLink Href="@d.Url" Target="_blank" Rel="noopener noreferrer">
+                                            Abrir guía
+                                        </MudLink>
+                                    </div>
+                                }
+                            </div>
                         </MudListItem>
                     }
                 </MudList>

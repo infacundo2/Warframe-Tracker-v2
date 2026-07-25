@@ -164,6 +164,23 @@ public sealed class DataSyncService
                 entity.DropsJson = item.DropsJson;
             }
 
+            if (import.Rewards.Count > 0)
+            {
+                var incomingRewardKeys = import.Rewards
+                    .Select(x => x.ItemUnique)
+                    .ToHashSet(StringComparer.Ordinal);
+                var staleKeys = existingRewards.Keys
+                    .Where(x => x.RelicUnique == item.UniqueName
+                                && !incomingRewardKeys.Contains(x.ItemUnique))
+                    .ToList();
+
+                foreach (var staleKey in staleKeys)
+                {
+                    db.RelicRewards.Remove(existingRewards[staleKey]);
+                    existingRewards.Remove(staleKey);
+                }
+            }
+
             foreach (var reward in import.Rewards)
             {
                 var key = (reward.RelicUnique, reward.ItemUnique);

@@ -2,57 +2,82 @@
 @using Microsoft.AspNetCore.Identity
 @inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-10">
-    <MudPaper Class="p-6">
-        <MudText Typo="Typo.h5" Align="Align.Center">Iniciar Sesión</MudText>
+<main class="stark-login">
+    <section class="stark-login__visual" aria-hidden="true">
+        <div class="arc-reactor">
+            <span class="arc-reactor__core"></span>
+            <span class="arc-reactor__ring arc-reactor__ring--one"></span>
+            <span class="arc-reactor__ring arc-reactor__ring--two"></span>
+            <span class="arc-reactor__ring arc-reactor__ring--three"></span>
+        </div>
+        <div class="hud-readout hud-readout--top">SISTEMA // TENNO OS</div>
+        <div class="hud-readout hud-readout--bottom">ENLACE CIFRADO · ESTABLE</div>
+        <div class="hud-scanline"></div>
+    </section>
 
-        <!-- 
-            ✅ Este formulario se envía directamente al backend (MVC), no por Blazor.
-            ✅ forceLoad: true en el botón de acceso desde el Index garantiza recarga completa.
-        -->
+    <MudPaper Class="stark-login__panel" Square="true">
+        <div class="stark-login__status">
+            <span class="status-pulse"></span>
+            AUTORIZACIÓN DE OPERADOR
+            <span>SYS.01</span>
+        </div>
 
-        <form method="post" action="/auth/login-mvc" onsubmit="return syncLoginFields();">
+        <div class="stark-login__heading">
+            <div class="eyebrow">ACCESO SEGURO // WARFRAME TRACKER</div>
+            <MudText Typo="Typo.h3">Identifícate</MudText>
+            <MudText Typo="Typo.body1">Restablece el enlace con tu inventario personal.</MudText>
+        </div>
+
+        <form class="stark-login__form" method="post" action="/auth/login-mvc"
+              onsubmit="return syncLoginFields();">
             <MudTextField @bind-Value="Username"
-                        Label="Usuario"
-                        Variant="Variant.Outlined"
-                        Class="mt-3"
-                        Required="true"
-                        Name="username" />
+                          Label="Identificador de operador"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          Name="username"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.PersonOutline" />
 
             <MudTextField @bind-Value="Password"
-                        Label="Contraseña"
-                        Variant="Variant.Outlined"
-                        InputType="InputType.Password"
-                        Class="mt-3"
-                        Required="true"
-                        Name="password" />
+                          Label="Código de acceso"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Required="true"
+                          Name="password"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock" />
 
-            <MudCheckBox @bind-Checked="RememberMe"
-                        Label="Recordarme"
-                        Class="mt-2"
-                        Name="rememberMe" />
+            <div class="stark-login__options">
+                <MudCheckBox @bind-Checked="RememberMe"
+                             Label="Mantener enlace"
+                             Name="rememberMe"
+                             Color="Color.Primary" />
+                <span>CANAL TLS ACTIVO</span>
+            </div>
 
             <MudButton Type="Submit"
-                    Color="Color.Primary"
-                    Variant="Variant.Filled"
-                    Class="mt-4"
-                    ButtonType="ButtonType.Submit">
-                Entrar
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       Class="stark-login__submit"
+                       EndIcon="@Icons.Material.Filled.ArrowForward"
+                       ButtonType="ButtonType.Submit">
+                Iniciar enlace
             </MudButton>
         </form>
 
-
         @if (Nav.Uri.Contains("error="))
         {
-            <MudText Color="Color.Error" Class="mt-3" Align="Align.Center">
+            <div class="stark-login__error" role="alert">
                 @Uri.UnescapeDataString(Nav.Uri.Split("error=")[1])
-            </MudText>
+            </div>
         }
 
-        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
-            ¿No tienes cuenta?
-            <MudLink Href="/auth/register">Registrarse</MudLink>
-        </MudText>
+        <div class="stark-login__footer">
+            <span>¿OPERADOR NUEVO?</span>
+            <MudLink Href="/auth/register">Crear credenciales</MudLink>
+        </div>
     </MudPaper>
 
    <script>
@@ -68,9 +93,7 @@
             return true; // permite enviar el form
         }
     </script>
-
-
-</MudContainer>
+</main>
 
 @code {
     private string Username = string.Empty;

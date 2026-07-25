@@ -16,7 +16,15 @@ namespace WarframeInventory.Models
         [JsonPropertyName("type")]
         public string? Type { get; set; }
 
+        [JsonPropertyName("method")]
+        public string? Method { get; set; }
+
+        [JsonPropertyName("url")]
+        public string? Url { get; set; }
+
         // Propiedad auxiliar para mostrar porcentaje formateado
-        public string ChanceFormatted => $"{Chance * 100:0.##}%";
+        public string? ChanceFormatted => Chance <= 0
+            ? null
+            : $"{(Chance <= 1 ? Chance * 100 : Chance):0.##}%";
     }
 }
