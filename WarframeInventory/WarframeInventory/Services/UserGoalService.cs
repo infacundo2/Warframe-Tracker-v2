@@ -26,6 +26,7 @@ public sealed class UserGoalService
         string targetType,
         string targetUnique,
         string displayName,
+        int desiredQuantity = 1,
         CancellationToken ct = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
@@ -47,7 +48,8 @@ public sealed class UserGoalService
             TargetType = targetType,
             TargetUnique = targetUnique,
             DisplayName = displayName,
-            Priority = 2
+            Priority = 2,
+            DesiredQuantity = Math.Clamp(desiredQuantity, 1, 9999)
         });
         await db.SaveChangesAsync(ct);
         return true;
@@ -65,6 +67,17 @@ public sealed class UserGoalService
         goal.Priority = Math.Clamp(priority, 1, 3);
         goal.IsCompleted = completed;
         goal.CompletedUtc = completed ? goal.CompletedUtc ?? DateTime.UtcNow : null;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateDesiredQuantityAsync(
+        string userId, int goalId, int desiredQuantity, CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var goal = await db.UserGoals.FirstOrDefaultAsync(
+            x => x.Id == goalId && x.UserId == userId, ct);
+        if (goal is null || goal.TargetType != "relic") return;
+        goal.DesiredQuantity = Math.Clamp(desiredQuantity, 1, 9999);
         await db.SaveChangesAsync(ct);
     }
 

@@ -23,7 +23,8 @@ public sealed class BuildService
             .Select(x => x.ModUnique).ToListAsync(ct);
         var mods = await db.Mods.AsNoTracking().OrderBy(x => x.Name)
             .Select(x => new BuildMod(x.UniqueName, x.Name, x.BaseDrain ?? 0,
-                x.Polarity ?? "", ownedMods.Contains(x.UniqueName))).ToListAsync(ct);
+                x.FusionLimit ?? 0, x.Polarity ?? "", ownedMods.Contains(x.UniqueName)))
+            .ToListAsync(ct);
         var builds = await db.SavedBuilds.AsNoTracking().Where(x => x.UserId == userId)
             .OrderByDescending(x => x.UpdatedUtc).ToListAsync(ct);
         return new BuildWorkspace(targets, mods, builds);
@@ -69,5 +70,16 @@ public sealed record BuildWorkspace(
     IReadOnlyList<BuildMod> Mods,
     IReadOnlyList<SavedBuild> Builds);
 public sealed record BuildTarget(string Type, string UniqueName, string Name);
-public sealed record BuildMod(string UniqueName, string Name, int Drain, string Polarity, bool Owned);
-public sealed record BuildSlot(string ModUnique, string Name, int Drain, string Polarity, bool Owned);
+public sealed record BuildMod(
+    string UniqueName, string Name, int Drain, int MaxRank, string Polarity, bool Owned);
+public sealed record BuildSlot(string ModUnique, string Name, int Drain, string Polarity, bool Owned)
+{
+    public int Rank { get; init; }
+    public int MaxRank { get; init; }
+    public string SlotPolarity { get; init; } = "";
+    public int RankedDrain => Drain + Math.Clamp(Rank, 0, MaxRank);
+    public int EffectiveDrain => string.IsNullOrWhiteSpace(SlotPolarity) ? RankedDrain
+        : string.Equals(SlotPolarity, Polarity, StringComparison.OrdinalIgnoreCase)
+            ? (int)Math.Ceiling(RankedDrain / 2d)
+            : (int)Math.Ceiling(RankedDrain * 1.25d);
+}

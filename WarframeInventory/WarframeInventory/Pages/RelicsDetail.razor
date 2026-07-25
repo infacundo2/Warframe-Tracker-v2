@@ -5,6 +5,7 @@
 @using System.Security.Claims
 @inject WarframeInventory.Data.ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthState
+@inject UserGoalService GoalService
 @using WarframeInventory.Models
 @using MudBlazor
 
@@ -32,6 +33,13 @@
                     <MudText Typo="Typo.body2" Class="mt-2 mb-3">
                         @(relic.Vaulted ? "Vaulted" : "Disponible") — @(relic.Tradable ? "Intercambiable" : "No intercambiable")
                     </MudText>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="@(goalSelected ? Color.Secondary : Color.Primary)"
+                               StartIcon="@Icons.Material.Filled.TrackChanges"
+                               Disabled="@string.IsNullOrWhiteSpace(userId)"
+                               OnClick="ToggleGoalAsync">
+                        @(goalSelected ? "Quitar de objetivos" : "Reunir esta reliquia")
+                    </MudButton>
                 </MudItem>
             </MudGrid>
 
@@ -190,6 +198,7 @@
     private bool loading = true;
     private string userId = "";
     private string selectedRefinement = "Intacta";
+    private bool goalSelected;
 
     protected override async Task OnInitializedAsync()
     {
@@ -207,6 +216,8 @@
             relic = await Db.Relics.AsNoTracking().FirstOrDefaultAsync(r => r.UniqueName == decoded);
             if (relic == null)
                 return;
+            if (!string.IsNullOrWhiteSpace(userId))
+                goalSelected = await GoalService.IsGoalAsync(userId, "relic", relic.UniqueName);
 
             // 🔹 Obtener variantes (Intacta, Excepcional, Flawless, Radiante)
             var variants = await Db.Relics.AsNoTracking()
@@ -344,6 +355,13 @@
         if (values.Min() <= 2.01)
             return "Rara";
         return "Poco común";
+    }
+
+    private async Task ToggleGoalAsync()
+    {
+        if (relic is null || string.IsNullOrWhiteSpace(userId)) return;
+        goalSelected = await GoalService.ToggleAsync(
+            userId, "relic", relic.UniqueName, relic.Name, 1);
     }
 
     // ==== Clases auxiliares ====

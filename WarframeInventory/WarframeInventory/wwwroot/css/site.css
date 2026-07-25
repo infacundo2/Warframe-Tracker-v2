@@ -1045,6 +1045,12 @@ img { color: transparent; }
 }
 .build-slot.is-missing { border-color: rgba(255, 93, 102, .65); }
 .build-slot small { color: #8ca8b3; }
+.build-slot__settings {
+    display: grid;
+    grid-template-columns: .7fr 1.3fr;
+    gap: .4rem;
+    margin-top: .5rem;
+}
 .saved-builds {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));

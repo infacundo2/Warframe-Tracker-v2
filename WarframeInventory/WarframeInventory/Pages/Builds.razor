@@ -40,7 +40,9 @@
                              Variant="Variant.Outlined" />
         </MudPaper>
         <div class="build-summary">
-            <span>CAPACIDAD USADA <b class="@(TotalDrain > capacity ? "is-over" : "")">@TotalDrain / @capacity</b></span>
+            <span>CAPACIDAD CON POLARIDADES <b class="@(EffectiveDrain > capacity ? "is-over" : "")">@EffectiveDrain / @capacity</b></span>
+            <span>SIN POLARIDADES <b class="@(RawDrain > capacity ? "is-over" : "")">@RawDrain / @capacity</b></span>
+            <span>FORMA SUGERIDA <b>@SuggestedForma</b></span>
             <span>MODS FALTANTES <b>@slots.Count(x => !x.Owned)</b></span>
         </div>
         <div class="build-slots">
@@ -61,7 +63,22 @@
                     </MudSelect>
                     @if (!string.IsNullOrWhiteSpace(slots[slotIndex].ModUnique))
                     {
-                        <small>@slots[slotIndex].Polarity · @slots[slotIndex].Drain capacidad</small>
+                        <div class="build-slot__settings">
+                            <MudNumericField T="int" Value="@slots[slotIndex].Rank"
+                                             ValueChanged="@((int value) => SetRank(slotIndex, value))"
+                                             Label="Rango" Min="0" Max="@slots[slotIndex].MaxRank"
+                                             Variant="Variant.Outlined" />
+                            <MudSelect T="string" Value="@slots[slotIndex].SlotPolarity"
+                                       ValueChanged="@((string value) => SetPolarity(slotIndex, value))"
+                                       Label="Polaridad de ranura" Variant="Variant.Outlined"
+                                       Clearable="true">
+                                @foreach (var polarity in Polarities)
+                                {
+                                    <MudSelectItem T="string" Value="@polarity">@polarity</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </div>
+                        <small>@slots[slotIndex].Polarity · @slots[slotIndex].EffectiveDrain capacidad efectiva</small>
                     }
                 </MudPaper>
             }
@@ -111,7 +128,13 @@
     private int capacity = 30, forma;
     private List<BuildSlot> slots = Enumerable.Range(0, 8)
         .Select(_ => new BuildSlot("", "", 0, "", true)).ToList();
-    private int TotalDrain => slots.Sum(x => x.Drain);
+    private int RawDrain => slots.Sum(x => x.RankedDrain);
+    private int EffectiveDrain => slots.Sum(x => x.EffectiveDrain);
+    private int SuggestedForma => slots.Count(x => !string.IsNullOrWhiteSpace(x.ModUnique)
+        && !string.IsNullOrWhiteSpace(x.SlotPolarity));
+    private IEnumerable<string> Polarities => workspace is null ? []
+        : workspace.Mods.Select(x => x.Polarity)
+            .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x);
     private bool CanSave => !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(targetUnique);
     protected override async Task OnInitializedAsync()
     {
@@ -126,8 +149,13 @@
     {
         var mod = workspace?.Mods.FirstOrDefault(x => x.UniqueName == value);
         slots[index] = mod is null ? new("", "", 0, "", true)
-            : new(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned);
+            : new(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned)
+                { MaxRank = mod.MaxRank, Rank = mod.MaxRank };
     }
+    private void SetRank(int index, int value)
+        => slots[index] = slots[index] with { Rank = Math.Clamp(value, 0, slots[index].MaxRank) };
+    private void SetPolarity(int index, string value)
+        => slots[index] = slots[index] with { SlotPolarity = value ?? "" };
     private async Task SaveAsync()
     {
         var target = workspace!.Targets.First(x => x.UniqueName == targetUnique);
@@ -206,7 +234,12 @@
         {
             var mod = workspace?.Mods.FirstOrDefault(x => x.UniqueName == slot.ModUnique);
             return mod is null ? new BuildSlot("", "", 0, "", true)
-                : new BuildSlot(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned);
+                : new BuildSlot(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned)
+                {
+                    MaxRank = mod.MaxRank,
+                    Rank = Math.Clamp(slot.Rank, 0, mod.MaxRank),
+                    SlotPolarity = slot.SlotPolarity
+                };
         }).ToList();
         return normalized.Concat(Enumerable.Range(0, 8)
             .Select(_ => new BuildSlot("", "", 0, "", true))).Take(8).ToList();

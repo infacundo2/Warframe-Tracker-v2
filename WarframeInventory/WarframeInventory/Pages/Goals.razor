@@ -73,7 +73,7 @@
                         {
                             <div class="goal-progress">
                                 <div>
-                                    <span>PROGRESO DEL SET</span>
+                                    <span>@(goal.TargetType == "relic" ? "PROGRESO DE CANTIDAD" : "PROGRESO DEL SET")</span>
                                     <b>@analysis.ProgressPercent%</b>
                                 </div>
                                 <MudProgressLinear Value="@analysis.ProgressPercent"
@@ -82,6 +82,10 @@
                                 @if (analysis.IsOneAway)
                                 {
                                     <span class="goal-one-away">A una pieza de completarse</span>
+                                }
+                                @if (goal.TargetType == "relic")
+                                {
+                                    <span>@analysis.CurrentQuantity de @analysis.DesiredQuantity copias</span>
                                 }
                                 else if (analysis.MissingCount > 0)
                                 {
@@ -129,6 +133,13 @@
                                          CheckedChanged="@(value => ChangeCompletedAsync(goal, value))"
                                          Label="Completado"
                                          Color="Color.Success" />
+                            @if (goal.TargetType == "relic")
+                            {
+                                <MudNumericField T="int" Value="@goal.DesiredQuantity"
+                                                 ValueChanged="@(value => ChangeDesiredAsync(goal, value))"
+                                                 Label="Cantidad objetivo" Min="1" Max="9999"
+                                                 Variant="Variant.Outlined" />
+                            }
                         </div>
 
                         <div class="goal-card__actions">
@@ -193,6 +204,12 @@
         goal.IsCompleted = value;
         goal.CompletedUtc = value ? DateTime.UtcNow : null;
         await GoalService.UpdateAsync(userId, goal.Id, goal.Priority, value);
+    }
+    private async Task ChangeDesiredAsync(UserGoal goal, int value)
+    {
+        goal.DesiredQuantity = Math.Clamp(value, 1, 9999);
+        await GoalService.UpdateDesiredQuantityAsync(userId, goal.Id, goal.DesiredQuantity);
+        analyses = await AnalysisService.AnalyzeAsync(userId, goals);
     }
 
     private async Task DeleteAsync(UserGoal goal)

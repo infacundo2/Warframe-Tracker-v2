@@ -106,9 +106,17 @@ public sealed class GoalAnalysisService
 
         var variants = relics.Where(x => x.Name == target.Name).ToList();
         var total = variants.Sum(x => relicQuantities.GetValueOrDefault(x.UniqueName));
-        return new GoalAnalysis(goal.Id, total > 0 ? 100 : 0, 1, total > 0 ? 0 : 1,
-            total > 0 ? [] : [target.Name],
-            [new GoalRelicSummary(target.Name, target.Vaulted, total)], total > 0);
+        var desired = Math.Max(1, goal.DesiredQuantity);
+        var complete = total >= desired;
+        return new GoalAnalysis(goal.Id,
+            (int)Math.Min(100, Math.Round(total * 100d / desired)),
+            desired, Math.Max(0, desired - total),
+            complete ? [] : [$"{desired - total} × {target.Name}"],
+            [new GoalRelicSummary(target.Name, target.Vaulted, total)], complete)
+        {
+            CurrentQuantity = total,
+            DesiredQuantity = desired
+        };
     }
 
     private static GoalAnalysis AnalyzeComponents(
@@ -218,6 +226,8 @@ public sealed record GoalAnalysis(
     bool IsOwned)
 {
     public bool IsOneAway => MissingCount == 1;
+    public int CurrentQuantity { get; init; }
+    public int DesiredQuantity { get; init; }
     public static GoalAnalysis Empty(int goalId) => new(goalId, 0, 0, 0, [], [], false);
 }
 
