@@ -91,7 +91,7 @@ a { text-underline-offset: .2em; }
 .goal-counter strong { color: var(--cyan); font-size: 3rem; line-height: 1; text-shadow: 0 0 22px rgba(119, 231, 255, .35); }
 .goal-counter span { color: #86a8b3; font-size: .7rem; letter-spacing: .13em; text-transform: uppercase; }
 .goal-empty { display: grid; justify-items: center; gap: 1rem; padding: 4rem 2rem !important; text-align: center; }
-.goal-card { position: relative; min-height: 230px; padding: 1.4rem !important; overflow: hidden; }
+.goal-card { position: relative; min-height: 320px; padding: 1.4rem !important; overflow: hidden; }
 .goal-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
 .goal-card--complete { opacity: .65; }
 .goal-card--complete::before { background: #5de0aa; box-shadow: 0 0 12px #5de0aa; }
@@ -106,6 +106,23 @@ a { text-underline-offset: .2em; }
 .goal-card__controls { margin-top: 1.25rem; }
 .goal-card__controls .mud-input-control { flex: 1; }
 .goal-card__actions { justify-content: space-between; margin-top: 1rem; }
+.goal-progress { display: grid; gap: .45rem; margin-top: 1rem; }
+.goal-progress > div { display: flex; justify-content: space-between; color: #86a8b3; font-size: .65rem; letter-spacing: .12em; }
+.goal-progress > div b { color: var(--cyan); font-size: .85rem; }
+.goal-progress > span { color: #86a8b3; font-size: .72rem; }
+.goal-progress .goal-one-away { color: var(--gold); }
+.goal-missing, .goal-relics { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .75rem; }
+.goal-missing span {
+    padding: .2rem .4rem;
+    color: #b4cbd3;
+    font-size: .7rem;
+    border: 1px solid rgba(119, 231, 255, .16);
+}
+.goal-relics { display: grid; }
+.goal-relics__title { color: var(--gold); font-size: .62rem; letter-spacing: .14em; }
+.goal-relic { color: #a9c3cc; font-size: .72rem; }
+.goal-relic b { color: #fff; }
+.goal-relic i { margin-left: .35rem; color: #6fcfae; }
 .page-title { text-transform: uppercase; color: #eafcff; text-shadow: 0 0 22px rgba(119,231,255,.2); }
 .orokin-panel { position: relative; }
 .orokin-panel::before { content: ""; position: absolute; inset: -1px auto auto -1px; width: 42px; height: 2px; background: var(--gold); }

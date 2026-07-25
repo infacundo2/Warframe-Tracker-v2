@@ -5,6 +5,7 @@
 @inject IDbContextFactory<WarframeInventory.Data.ApplicationDbContext> DbFactory
 @inject AuthenticationStateProvider AuthState
 @inject UserGoalService GoalService
+@inject GoalAnalysisService AnalysisService
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
     <section class="goal-hero orokin-panel">
@@ -65,6 +66,54 @@
                             Creado @goal.CreatedUtc.ToLocalTime().ToString("dd/MM/yyyy")
                         </MudText>
 
+                        @{
+                            analyses.TryGetValue(goal.Id, out var analysis);
+                        }
+                        @if (analysis is not null)
+                        {
+                            <div class="goal-progress">
+                                <div>
+                                    <span>PROGRESO DEL SET</span>
+                                    <b>@analysis.ProgressPercent%</b>
+                                </div>
+                                <MudProgressLinear Value="@analysis.ProgressPercent"
+                                                   Color="@(analysis.ProgressPercent == 100 ? Color.Success : Color.Primary)"
+                                                   Rounded="true" />
+                                @if (analysis.IsOneAway)
+                                {
+                                    <span class="goal-one-away">A una pieza de completarse</span>
+                                }
+                                else if (analysis.MissingCount > 0)
+                                {
+                                    <span>@analysis.MissingCount componentes pendientes</span>
+                                }
+                            </div>
+
+                            @if (analysis.MissingComponents.Count > 0)
+                            {
+                                <div class="goal-missing">
+                                    @foreach (var component in analysis.MissingComponents.Take(4))
+                                    {
+                                        <span>@component</span>
+                                    }
+                                </div>
+                            }
+
+                            @if (analysis.RelatedRelics.Count > 0)
+                            {
+                                <div class="goal-relics">
+                                    <span class="goal-relics__title">RELIQUIAS ÚTILES</span>
+                                    @foreach (var relic in analysis.RelatedRelics.Take(3))
+                                    {
+                                        <span class="goal-relic">
+                                            @relic.Name · <b>@relic.OwnedQuantity</b>
+                                            <i>@(relic.Vaulted ? "Vaulted" : "Disponible")</i>
+                                        </span>
+                                    }
+                                </div>
+                            }
+                        }
+
                         <div class="goal-card__controls">
                             <MudSelect T="int"
                                        Label="Prioridad"
@@ -100,6 +149,8 @@
 
 @code {
     private readonly List<UserGoal> goals = [];
+    private IReadOnlyDictionary<int, GoalAnalysis> analyses =
+        new Dictionary<int, GoalAnalysis>();
     private string userId = "";
     private bool loading = true;
 
@@ -114,6 +165,7 @@
             goals.AddRange(await db.UserGoals.AsNoTracking()
                 .Where(x => x.UserId == userId)
                 .ToListAsync());
+            analyses = await AnalysisService.AnalyzeAsync(userId, goals);
         }
 
         loading = false;
