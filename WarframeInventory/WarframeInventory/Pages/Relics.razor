@@ -108,7 +108,11 @@
         loading = true;
         StateHasChanged();
 
-        var query = Db.Relics.AsQueryable();
+        // Las cuatro variantes siguen cargadas para el inventario I/E/P/R.
+        // El catálogo muestra solo la representación Intacta (Bronze).
+        var query = Db.Relics
+            .Where(r => r.UniqueName.EndsWith("Bronze"))
+            .AsQueryable();
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             string term = searchTerm.ToLower();

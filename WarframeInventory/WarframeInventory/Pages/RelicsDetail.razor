@@ -255,7 +255,7 @@
                 .ToListAsync();
 
             rewards = rewardsByVariant
-                .GroupBy(x => x.ItemUnique)
+                .GroupBy(RewardLogicalKey, StringComparer.CurrentCultureIgnoreCase)
                 .Select(group =>
                 {
                     var first = group.First();
@@ -347,6 +347,17 @@
            uniqueName.EndsWith("Gold", StringComparison.OrdinalIgnoreCase) ? "Perfecta" :
            uniqueName.EndsWith("Platinum", StringComparison.OrdinalIgnoreCase) ? "Radiante" :
            "Intacta";
+
+    private static string RewardLogicalKey(RelicReward reward)
+    {
+        if (!string.IsNullOrWhiteSpace(reward.MarketUrlName))
+            return "market:" + reward.MarketUrlName;
+
+        var normalizedName = string.Join(" ", reward.ItemName.Split(
+            new[] { ' ', '\t', '\r', '\n' },
+            StringSplitOptions.RemoveEmptyEntries));
+        return "name:" + normalizedName.ToUpperInvariant();
+    }
 
     private static string GetRewardRarity(IEnumerable<double> chances)
     {

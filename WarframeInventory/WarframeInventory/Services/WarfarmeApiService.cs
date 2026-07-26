@@ -279,15 +279,16 @@ namespace WarframeInventory.Services
                         var relicUnique = n["uniqueName"]?.GetValue<string?>() ?? "";
                         var itemName = item["name"]?.GetValue<string?>() ?? "";
                         var marketUrlName = item["warframeMarket"]?["urlName"]?.GetValue<string?>();
-                        var apiItemUnique = item["uniqueName"]?.GetValue<string?>();
+                        if (string.IsNullOrWhiteSpace(itemName)
+                            && string.IsNullOrWhiteSpace(marketUrlName))
+                            continue;
 
-                        // warframe-items devuelve en algunas reliquias el UniqueName de la
-                        // propia reliquia para sus seis recompensas. No puede usarse como
-                        // identidad del premio porque colapsaría toda la tabla en una fila.
-                        var itemUnique = string.IsNullOrWhiteSpace(apiItemUnique)
-                                         || string.Equals(apiItemUnique, relicUnique, StringComparison.Ordinal)
-                            ? marketUrlName ?? itemName
-                            : apiItemUnique;
+                        // La API reutiliza a veces el identificador de la variante Bronze en
+                        // las recompensas Silver/Gold/Platinum. La identidad lógica debe ser
+                        // estable entre refinamientos para conservar sus seis probabilidades.
+                        var itemUnique = !string.IsNullOrWhiteSpace(marketUrlName)
+                            ? $"market:{marketUrlName}"
+                            : $"name:{NormalizeRewardName(itemName)}";
                         if (string.IsNullOrWhiteSpace(itemUnique))
                             continue;
 
@@ -354,8 +355,12 @@ namespace WarframeInventory.Services
             return list;
         }
 
-
-
+        private static string NormalizeRewardName(string value)
+            => string.Join(' ', value.Split(
+                    [' ', '\t', '\r', '\n'],
+                    StringSplitOptions.RemoveEmptyEntries))
+                .Trim()
+                .ToUpperInvariant();
     }
 
     public sealed record RelicImport(Relic Relic, IReadOnlyCollection<RelicReward> Rewards);
