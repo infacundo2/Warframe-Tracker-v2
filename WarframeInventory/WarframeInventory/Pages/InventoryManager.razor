@@ -41,7 +41,7 @@
                             <label class="bulk-row">
                                 <MudCheckBox T="bool" Value="@selected.Contains(relic.UniqueName)"
                                              ValueChanged="@((bool value) => Toggle(relic.UniqueName, value))" />
-                                <span><b>@relic.Name</b><small>@(relic.Vaulted ? "Vaulted" : "Disponible")</small></span>
+                                <span><b>@relic.Name</b><small>@(relic.Vaulted ? "En bóveda" : "Disponible")</small></span>
                                 <strong>@relic.Quantity</strong>
                             </label>
                         }

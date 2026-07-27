@@ -29,9 +29,9 @@
 
                 <MudItem xs="12" md="8">
                     <MudText Typo="Typo.h4" Color="Color.Primary">@relic.Name</MudText>
-                    <MudText Typo="Typo.subtitle2">@relic.Category</MudText>
+                    <MudText Typo="Typo.subtitle2">@WarframeSpanishText.Type(relic.Category)</MudText>
                     <MudText Typo="Typo.body2" Class="mt-2 mb-3">
-                        @(relic.Vaulted ? "Vaulted" : "Disponible") — @(relic.Tradable ? "Intercambiable" : "No intercambiable")
+                        @(relic.Vaulted ? "En bóveda" : "Disponible") — @(relic.Tradable ? "Intercambiable" : "No intercambiable")
                     </MudText>
                     <MudButton Variant="Variant.Outlined"
                                Color="@(goalSelected ? Color.Secondary : Color.Primary)"
@@ -141,7 +141,7 @@
                             }
                             else
                             {
-                                <MudText Typo="Typo.caption">N/A</MudText>
+                                <MudText Typo="Typo.caption">No disponible</MudText>
                             }
                         </MudTd>
                     </RowTemplate>
@@ -181,7 +181,7 @@
             else
             {
                 <MudText Typo="Typo.caption" Color="Color.Error">
-                    Esta reliquia está Vaulted y ya no se puede obtener en misiones.
+                    Esta reliquia está en la bóveda y ya no se puede obtener en misiones.
                 </MudText>
             }
         </MudPaper>
@@ -265,7 +265,7 @@
 
                     return new RelicRewardView
                     {
-                        ItemName = first.ItemName,
+                        ItemName = WarframeSpanishText.Reward(first.ItemName),
                         Rarity = GetRewardRarity(chances.Values),
                         Chances = chances,
                         MarketUrl = string.IsNullOrEmpty(first.MarketUrlName)
@@ -284,6 +284,14 @@
                 {
                     dropLocations = (JsonSerializer.Deserialize<List<RelicDrop>>(relic.DropsJson,
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [])
+                        .Select(drop =>
+                        {
+                            drop.Location = WarframeSpanishText.Location(drop.Location);
+                            drop.Type = WarframeSpanishText.Type(drop.Type);
+                            drop.Rotation = WarframeSpanishText.Location(drop.Rotation);
+                            drop.Rarity = WarframeSpanishText.Rarity(drop.Rarity);
+                            return drop;
+                        })
                         .OrderBy(drop => drop.Chance)
                         .ThenBy(drop => drop.Location, StringComparer.CurrentCultureIgnoreCase)
                         .ThenBy(drop => drop.Rotation, StringComparer.CurrentCultureIgnoreCase)

@@ -1,74 +1,106 @@
 @page "/auth/register"
-@using Microsoft.AspNetCore.Identity
-@inject NavigationManager Nav
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-10">
-    <MudPaper Class="p-6">
-        <MudText Typo="Typo.h5" Align="Align.Center">Crear cuenta</MudText>
+    <MudPaper Class="p-6 orokin-panel">
+        <MudText Typo="Typo.overline" Color="Color.Secondary">NUEVO PERFIL DE OPERADOR</MudText>
+        <MudText Typo="Typo.h4" Class="mt-1">Crear cuenta</MudText>
+        <MudText Typo="Typo.body2" Class="mt-2 mb-4">
+            Registra tus credenciales para guardar el progreso de tu inventario.
+        </MudText>
 
-        <!-- 
-            ✅ Formulario MVC clásico (no Blazor).
-            ✅ Usa la misma lógica que login-mvc.
-        -->
-        <form method="post" action="/auth/register-mvc" onsubmit="console.log('➡️ Registro enviado');">
+        @if (!string.IsNullOrWhiteSpace(Error))
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4">
+                @Error
+            </MudAlert>
+        }
+
+        <form method="post" action="/auth/register-mvc">
             <MudTextField @bind-Value="Username"
-                          Label="Usuario"
+                          Name="username"
+                          Label="Nombre de usuario"
+                          HelperText="De 3 a 24 caracteres: letras sin tilde, números, punto, guion o guion bajo."
                           Variant="Variant.Outlined"
+                          Immediate="true"
+                          MaxLength="24"
                           Class="mt-3"
-                          Required="true" />
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.PersonOutline" />
 
             <MudTextField @bind-Value="Email"
+                          Name="email"
                           Label="Correo electrónico"
+                          HelperText="Lo utilizaremos como identificador único de tu cuenta."
                           Variant="Variant.Outlined"
                           InputType="InputType.Email"
+                          Immediate="true"
                           Class="mt-3"
-                          Required="true" />
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.AlternateEmail" />
 
             <MudTextField @bind-Value="Password"
+                          Name="password"
                           Label="Contraseña"
+                          HelperText="Mínimo 10 caracteres, una letra minúscula y un número."
                           Variant="Variant.Outlined"
                           InputType="InputType.Password"
+                          Immediate="true"
                           Class="mt-3"
-                          Required="true" />
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock" />
 
             <MudTextField @bind-Value="ConfirmPassword"
+                          Name="confirmPassword"
                           Label="Confirmar contraseña"
                           Variant="Variant.Outlined"
                           InputType="InputType.Password"
+                          Immediate="true"
                           Class="mt-3"
-                          Required="true" />
-
-            <!-- Campos HTML reales que viajan en el POST -->
-            <input type="hidden" name="username" value="@Username" />
-            <input type="hidden" name="email" value="@Email" />
-            <input type="hidden" name="password" value="@Password" />
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock" />
 
             <MudButton Type="Submit"
                        Color="Color.Primary"
                        Variant="Variant.Filled"
-                       Class="mt-4"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       Class="mt-5"
                        ButtonType="ButtonType.Submit">
-                Registrarse
+                Crear cuenta
             </MudButton>
         </form>
 
-        @if (Nav.Uri.Contains("error="))
-        {
-            <MudText Color="Color.Error" Class="mt-3" Align="Align.Center">
-                @Uri.UnescapeDataString(Nav.Uri.Split("error=")[1])
-            </MudText>
-        }
-
         <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
-            ¿Ya tienes cuenta?
+            ¿Ya tienes una cuenta?
             <MudLink Href="/auth/login">Iniciar sesión</MudLink>
         </MudText>
     </MudPaper>
 </MudContainer>
 
 @code {
-    private string Username = string.Empty;
-    private string Email = string.Empty;
-    private string Password = string.Empty;
-    private string ConfirmPassword = string.Empty;
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    [SupplyParameterFromQuery(Name = "usuario")]
+    public string? SavedUsername { get; set; }
+
+    [SupplyParameterFromQuery(Name = "correo")]
+    public string? SavedEmail { get; set; }
+
+    private string Username = "";
+    private string Email = "";
+    private string Password = "";
+    private string ConfirmPassword = "";
+
+    protected override void OnParametersSet()
+    {
+        Username = SavedUsername ?? "";
+        Email = SavedEmail ?? "";
+        Password = "";
+        ConfirmPassword = "";
+    }
 }

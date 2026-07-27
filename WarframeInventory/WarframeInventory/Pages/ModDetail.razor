@@ -42,7 +42,7 @@
                     <MudText Typo="Typo.body1" Class="mt-2 mb-3">@mod.Description</MudText>
 
                     <MudList Dense="true">
-                        <MudListItem><b>Rareza:</b> @mod.Rarity</MudListItem>
+                        <MudListItem><b>Rareza:</b> @WarframeSpanishText.Rarity(mod.Rarity)</MudListItem>
                         <MudListItem><b>Polaridad:</b> @mod.Polarity</MudListItem>
                         <MudListItem><b>Compatibilidad:</b> @mod.CompatName</MudListItem>
                         <MudListItem><b>Límite de fusión:</b> @mod.FusionLimit</MudListItem>
@@ -117,14 +117,14 @@
                     {
                         <MudListItem>
                             <div>
-                                <b>@(d.Location ?? "Desconocido")</b>
+                                <b>@WarframeSpanishText.Location(d.Location ?? "Desconocido")</b>
                                 @if (!string.IsNullOrWhiteSpace(d.Method))
                                 {
-                                    <span class="acquisition-method"> · @d.Method</span>
+                                    <span class="acquisition-method"> · @WarframeSpanishText.Type(d.Method)</span>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(d.Rarity))
                                 {
-                                    <span> — @d.Rarity</span>
+                                    <span> — @WarframeSpanishText.Rarity(d.Rarity)</span>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(d.ChanceFormatted))
                                 {

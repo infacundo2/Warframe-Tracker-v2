@@ -62,7 +62,7 @@
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@r.Name</MudText>
                                 <MudText Typo="Typo.caption">@r.Category</MudText>
-                                <MudText Typo="Typo.caption">@(r.Vaulted ? "Vaulted" : "Disponible")</MudText>
+                                <MudText Typo="Typo.caption">@(r.Vaulted ? "En bóveda" : "Disponible")</MudText>
 
                                 <MudNumericField T="int"
                                                  Value="@r.OwnedCount"

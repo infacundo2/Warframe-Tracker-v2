@@ -101,7 +101,7 @@
                                  />
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@m.Name</MudText>
-                                <MudText Typo="Typo.caption">@m.Polarity • @m.Rarity</MudText>
+                                <MudText Typo="Typo.caption">@m.Polarity • @WarframeSpanishText.Rarity(m.Rarity)</MudText>
                                 @if (m.Quantity > 1)
                                 {
                                     <MudChip Size="Size.Small" Color="Color.Warning">@m.Quantity copias</MudChip>

@@ -28,7 +28,7 @@
                 @foreach (var target in workspace.Targets)
                 {
                     <MudSelectItem T="string" Value="@target.UniqueName">
-                        @target.Name · @target.Type
+                        @target.Name · @WarframeSpanishText.Type(target.Type)
                     </MudSelectItem>
                 }
             </MudSelect>

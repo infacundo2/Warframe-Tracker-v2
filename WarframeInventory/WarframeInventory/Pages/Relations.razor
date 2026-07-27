@@ -19,7 +19,7 @@
                 @foreach (var component in map.Components)
                 {
                     <section class="relation-branch">
-                        <div class="relation-component">@component.Name</div>
+                        <div class="relation-component">@WarframeSpanishText.Reward(component.Name)</div>
                         <div class="relation-relics">
                             @if (component.Relics.Count == 0)
                             {
@@ -29,7 +29,7 @@
                             {
                                 <a href="@($"/relics/{Uri.EscapeDataString(relic.UniqueName)}")">
                                     <b>@relic.Name</b>
-                                    <small>@(relic.Vaulted ? "Vaulted" : "Disponible") · @relic.IntactChance.ToString("0.00")%</small>
+                                    <small>@(relic.Vaulted ? "En bóveda" : "Disponible") · @relic.IntactChance.ToString("0.00")%</small>
                                 </a>
                             }
                         </div>

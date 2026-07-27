@@ -6,9 +6,9 @@
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
     <section class="worldstate-hero orokin-panel">
         <div>
-            <div class="eyebrow">NAVEGACIÓN EN TIEMPO REAL // SISTEMA ORIGIN</div>
-            <MudText Typo="Typo.h3" Class="page-title">Sistema Origin</MudText>
-            <MudText>Fisuras, ciclos, invasiones, Baro y Nightwave en una sola consola.</MudText>
+            <div class="eyebrow">NAVEGACIÓN EN TIEMPO REAL // SISTEMA ORIGEN</div>
+            <MudText Typo="Typo.h3" Class="page-title">Sistema Origen</MudText>
+            <MudText>Fisuras, ciclos, invasiones, Baro y Onda Nocturna en una sola consola.</MudText>
         </div>
         <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="RefreshAsync"
                    StartIcon="@Icons.Material.Filled.Refresh">Actualizar</MudButton>
@@ -21,7 +21,7 @@
     else if (brief is null)
     {
         <MudAlert Severity="Severity.Warning" Class="mt-5">
-            Worldstate no respondió. El catálogo y tu inventario siguen disponibles.
+            El estado del mundo no respondió. El catálogo y tu inventario siguen disponibles.
         </MudAlert>
     }
     else
@@ -38,8 +38,8 @@
                         <div class="fissure-card__heading">
                             <b>@fissure.Tier</b><span>@Remaining(fissure.Expiry)</span>
                         </div>
-                        <MudText Typo="Typo.h6">@fissure.Node</MudText>
-                        <small>@fissure.MissionType · @fissure.Enemy</small>
+                        <MudText Typo="Typo.h6">@WarframeSpanishText.Location(fissure.Node)</MudText>
+                        <small>@WarframeSpanishText.Type(fissure.MissionType) · @WarframeSpanishText.Type(fissure.Enemy)</small>
                         <div class="fissure-tags">
                             @if (fissure.IsHard) { <span>CAMINO DE ACERO</span> }
                             @if (fissure.IsStorm) { <span>TORMENTA DEL VACÍO</span> }
@@ -75,7 +75,7 @@
                 @foreach (var cycle in brief.Cycles)
                 {
                     <MudPaper Class="cycle-card">
-                        <span>@cycle.Location</span><b>@CycleState(cycle.State)</b>
+                        <span>@WarframeSpanishText.Location(cycle.Location)</span><b>@CycleState(cycle.State)</b>
                         <small>@Remaining(cycle.Expiry)</small>
                     </MudPaper>
                 }
@@ -93,8 +93,8 @@
                     @foreach (var invasion in brief.Invasions.Take(8))
                     {
                         <div class="invasion-entry">
-                            <div><b>@invasion.Node</b><small>@invasion.Attacker vs. @invasion.Defender</small></div>
-                            <div><span>@invasion.AttackerReward</span><span>@invasion.DefenderReward</span></div>
+                            <div><b>@WarframeSpanishText.Location(invasion.Node)</b><small>@invasion.Attacker contra @invasion.Defender</small></div>
+                            <div><span>@WarframeSpanishText.Reward(invasion.AttackerReward)</span><span>@WarframeSpanishText.Reward(invasion.DefenderReward)</span></div>
                         </div>
                     }
                 </section>
@@ -109,7 +109,7 @@
                     @foreach (var alert in brief.Alerts)
                     {
                         <div class="alert-entry">
-                            <b>@alert.Node · @alert.MissionType</b><span>@alert.Reward</span>
+                            <b>@WarframeSpanishText.Location(alert.Node) · @WarframeSpanishText.Type(alert.MissionType)</b><span>@WarframeSpanishText.Reward(alert.Reward)</span>
                             <small>@Remaining(alert.Expiry)</small>
                         </div>
                     }
@@ -127,12 +127,12 @@
                     else
                     {
                         <div class="trader-status">
-                            <b>@brief.VoidTrader.Location</b><span>@TraderStatus(brief.VoidTrader)</span>
+                            <b>@WarframeSpanishText.Location(brief.VoidTrader.Location)</b><span>@TraderStatus(brief.VoidTrader)</span>
                         </div>
                         <div class="trader-inventory">
                             @foreach (var item in brief.VoidTrader.Inventory.Take(12))
                             {
-                                <div><b>@item.Name</b><small>@item.Ducats ducados · @item.Credits.ToString("N0") créditos</small></div>
+                                <div><b>@WarframeSpanishText.Reward(item.Name)</b><small>@item.Ducats ducados · @item.Credits.ToString("N0") créditos</small></div>
                             }
                         </div>
                     }
@@ -144,7 +144,7 @@
                         <div><span>ONDA NOCTURNA</span><MudText Typo="Typo.h5">Desafíos activos</MudText></div>
                         <b>@(brief.Nightwave?.Challenges.Count ?? 0)</b>
                     </div>
-                    @if (brief.Nightwave is null) { <MudText>Sin información de Nightwave.</MudText> }
+                    @if (brief.Nightwave is null) { <MudText>Sin información de Onda Nocturna.</MudText> }
                     else
                     {
                         @foreach (var challenge in brief.Nightwave.Challenges.Take(10))

@@ -23,7 +23,7 @@
         </div>
 
         <div class="stark-login__heading">
-            <div class="eyebrow">ACCESO SEGURO // WARFRAME TRACKER</div>
+            <div class="eyebrow">ACCESO SEGURO // REGISTRO WARFRAME</div>
             <MudText Typo="Typo.h3">Identifícate</MudText>
             <MudText Typo="Typo.body1">Restablece el enlace con tu inventario personal.</MudText>
         </div>
@@ -67,10 +67,10 @@
             </MudButton>
         </form>
 
-        @if (Nav.Uri.Contains("error="))
+        @if (!string.IsNullOrWhiteSpace(Error))
         {
             <div class="stark-login__error" role="alert">
-                @Uri.UnescapeDataString(Nav.Uri.Split("error=")[1])
+                @Error
             </div>
         }
 
@@ -96,7 +96,19 @@
 </main>
 
 @code {
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    [SupplyParameterFromQuery(Name = "usuario")]
+    public string? SavedUsername { get; set; }
+
     private string Username = string.Empty;
     private string Password = string.Empty;
     private bool RememberMe = false;
+
+    protected override void OnParametersSet()
+    {
+        Username = SavedUsername ?? "";
+        Password = "";
+    }
 }

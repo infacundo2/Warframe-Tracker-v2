@@ -270,9 +270,9 @@ public sealed class FarmPlannerService
                 if (string.IsNullOrWhiteSpace(location))
                     continue;
                 result.Add(new RelicLocation(
-                    location,
-                    ReadString(item, "type"),
-                    ReadString(item, "rotation"),
+                    WarframeSpanishText.Location(location),
+                    WarframeSpanishText.Type(ReadString(item, "type")),
+                    WarframeSpanishText.Location(ReadString(item, "rotation")),
                     item.TryGetProperty("chance", out var chance) && chance.TryGetDouble(out var value)
                         ? NormalizeChance(value) : 0));
             }

@@ -63,7 +63,7 @@
                         <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" />
                         <div>
                             <span>COMPONENTE PENDIENTE</span>
-                            <MudText Typo="Typo.h5">@componentGroup.Key</MudText>
+                            <MudText Typo="Typo.h5">@WarframeSpanishText.Reward(componentGroup.Key)</MudText>
                         </div>
                     </div>
 
@@ -76,7 +76,7 @@
                                         <MudLink Href="@($"/relics/{Uri.EscapeDataString(route.RelicUnique)}")">
                                             @route.RelicName
                                         </MudLink>
-                                        <span>@(route.Vaulted ? "VAULTED" : "DISPONIBLE")</span>
+                                        <span>@(route.Vaulted ? "EN BÓVEDA" : "DISPONIBLE")</span>
                                     </div>
 
                                     <div class="planner-owned">

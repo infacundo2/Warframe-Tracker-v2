@@ -62,6 +62,11 @@ La aplicación también usa las tablas `AspNet*` de Identity y
   MudBlazor. No se añadió Tailwind para evitar peso y colisiones.
 - Se eliminó el controlador de autenticación API duplicado.
 - Login con rate limiting, lockout, email único y contraseña mínima reforzada.
+- Registro y acceso completamente en español, con errores específicos por
+  campo y conservación del usuario/correo válidos tras una validación fallida.
+- `WarframeSpanishText` traduce al presentar zonas, tipos de misión, rarezas y
+  componentes de reliquias. Las claves originales de la API permanecen en la
+  base para no romper relaciones, búsquedas ni enlaces de Warframe Market.
 - Nunca volver a registrar cookies, tokens o cadenas de conexión.
 - Sincronización de reliquias mediante el token público con permiso `Relics`
   de AlecaFrame. El token se cifra con ASP.NET Core Data Protection, nunca se
@@ -125,6 +130,8 @@ pueble `RelicRewards`. No borrar los catálogos actuales si la API falla.
 - `Services/DataSyncService.cs`: upsert optimizado.
 - `Services/CatalogSyncBackgroundService.cs`: programación cada 24 horas.
 - `Services/WarfarmeApiService.cs`: descarga y parsing de la API.
+- `Services/WarframeSpanishText.cs`: traducción segura de datos residuales en
+  inglés sin modificar identificadores técnicos.
 - `Data/ApplicationDbContext.cs`: modelo e índices.
 - `Migrations/20260727092214_AddRelicSyncProfile.cs`: migración más reciente.
 - `Services/AlecaFrameRelicClient.cs`: descarga y decodificación binaria segura.

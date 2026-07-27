@@ -49,7 +49,7 @@ public sealed class RelicIntelligenceService
 
                 return new RelicLabReward(
                     first.ItemUnique,
-                    first.ItemName,
+                    WarframeSpanishText.Reward(first.ItemName),
                     rarity,
                     chances,
                     Recommend(rarity, variants.All(x => x.Vaulted)),

@@ -50,8 +50,8 @@
                     <img src="@ImageUrl(hit.ImageName)" alt="" />
                     <span>
                         <small>@Label(hit.Category)</small>
-                        <b>@hit.Name</b>
-                        <em>@hit.Subtitle</em>
+                        <b>@DisplayName(hit)</b>
+                        <em>@DisplaySubtitle(hit)</em>
                     </span>
                     <MudIcon Icon="@Icons.Material.Filled.ArrowForward" />
                 </button>
@@ -73,7 +73,7 @@
     private CancellationTokenSource? searchCts;
     private string userId = "";
     private static readonly string[] Examples =
-        ["reliquias vaulted que poseo", "armas Prime incompletas",
+        ["reliquias en bóveda que poseo", "armas Prime incompletas",
          "reliquias con Ash Systems", "mods para Trinity"];
 
     protected override async Task OnInitializedAsync()
@@ -123,6 +123,16 @@
     }
 
     private static string Label(string value) => Categories.GetValueOrDefault(value, value);
+    private static string DisplayName(SearchHit hit)
+        => hit.Category == "component"
+            ? WarframeSpanishText.Reward(hit.Name)
+            : hit.Name;
+    private static string DisplaySubtitle(SearchHit hit)
+        => hit.Subtitle.Equals("Vaulted", StringComparison.OrdinalIgnoreCase)
+            ? "En bóveda"
+            : hit.Category is "weapon" or "mod"
+                ? WarframeSpanishText.Type(hit.Subtitle)
+                : hit.Subtitle;
     private static string ImageUrl(string? image)
         => string.IsNullOrWhiteSpace(image) ? "/images/item-placeholder.svg"
             : $"https://cdn.warframestat.us/img/{image}";

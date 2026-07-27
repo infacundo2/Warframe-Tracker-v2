@@ -102,14 +102,15 @@ public sealed class ResourceCatalogService
                 && !LocationPattern.IsMatch(description)))
             return null;
 
-        var location = LocationPattern.Match(description).Groups["location"].Value.Trim();
+        var location = WarframeSpanishText.Location(
+            LocationPattern.Match(description).Groups["location"].Value.Trim());
         var cleanDescription = LocationPattern.Replace(description, "").Trim();
         var drops = item["drops"] is JsonArray dropNodes
             ? dropNodes.OfType<JsonObject>()
                 .Select(drop => new ResourceDrop(
-                    Text(drop, "location"),
-                    Text(drop, "type"),
-                    Text(drop, "rarity"),
+                    WarframeSpanishText.Location(Text(drop, "location")),
+                    WarframeSpanishText.Type(Text(drop, "type")),
+                    WarframeSpanishText.Rarity(Text(drop, "rarity")),
                     Number(drop, "chance"),
                     SourceKind(Text(drop, "location"))))
                 .Where(drop => !string.IsNullOrWhiteSpace(drop.Location))
@@ -152,8 +153,11 @@ public sealed class ResourceCatalogService
     private static string SourceKind(string location)
         => location.Contains('/', StringComparison.Ordinal)
            || location.Contains("Rotation", StringComparison.OrdinalIgnoreCase)
+           || location.Contains("Rotación", StringComparison.OrdinalIgnoreCase)
            || location.Contains("Caches", StringComparison.OrdinalIgnoreCase)
+           || location.Contains("Alijos", StringComparison.OrdinalIgnoreCase)
            || location.Contains("Mission", StringComparison.OrdinalIgnoreCase)
+           || location.Contains("Misión", StringComparison.OrdinalIgnoreCase)
             ? "Misión"
             : "Enemigo";
 

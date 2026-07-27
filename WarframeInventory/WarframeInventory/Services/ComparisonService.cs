@@ -53,12 +53,13 @@ public sealed class ComparisonService
             var mod = await db.Mods.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.UniqueName == uniqueName, ct);
             return mod is null ? null : new CompareItem(mod.Name, mod.ImageName, [
-                new("Rareza", mod.Rarity ?? "Sin datos"),
+                new("Rareza", string.IsNullOrWhiteSpace(mod.Rarity)
+                    ? "Sin datos" : WarframeSpanishText.Rarity(mod.Rarity)),
                 new("Polaridad", mod.Polarity ?? "Sin datos"),
                 new("Compatibilidad", mod.CompatName ?? "Universal"),
                 new("Drenaje base", mod.BaseDrain?.ToString() ?? "Sin datos"),
                 new("Rango máximo", mod.FusionLimit?.ToString() ?? "Sin datos"),
-                new("Colección", mod.IsPrime ? "Primed" : mod.IsAugment ? "Augment" : "Estándar")
+                new("Colección", mod.IsPrime ? "Prime" : mod.IsAugment ? "Aumento" : "Estándar")
             ], null);
         }
 
@@ -71,7 +72,7 @@ public sealed class ComparisonService
                 .Where(x => x.RelicUnique == uniqueName).ToListAsync(ct);
             return new CompareItem(
                 $"{relic.Name} · {Refinement(uniqueName)}", relic.ImageName, [
-                    new("Estado", relic.Vaulted ? "Vaulted" : "Disponible"),
+                    new("Estado", relic.Vaulted ? "En bóveda" : "Disponible"),
                     new("Refinamiento", Refinement(uniqueName)),
                     new("Vestigios", TraceCost(Refinement(uniqueName)).ToString()),
                     new("Recompensas", rewards.Count.ToString()),
@@ -83,7 +84,8 @@ public sealed class ComparisonService
         var weapon = await db.Weapons.AsNoTracking()
             .FirstOrDefaultAsync(x => x.UniqueName == uniqueName, ct);
         return weapon is null ? null : new CompareItem(weapon.Name, weapon.ImageName, [
-            new("Tipo", weapon.Type ?? "Sin datos"),
+            new("Tipo", string.IsNullOrWhiteSpace(weapon.Type)
+                ? "Sin datos" : WarframeSpanishText.Type(weapon.Type)),
             new("Maestría", weapon.MasteryReq?.ToString() ?? "Sin datos"),
             new("Prime", weapon.IsPrime ? "Sí" : "No"),
             new("Componentes", ComponentCount(weapon.ComponentsJson).ToString()),
