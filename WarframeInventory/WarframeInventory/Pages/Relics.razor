@@ -10,6 +10,16 @@
               Class="px-6 py-4 min-h-[80vh] flex flex-col justify-start">
     <MudStack Spacing="3">
         <MudText Typo="Typo.h4" Color="Color.Primary">Reliquias</MudText>
+        <AuthorizeView>
+            <Authorized>
+                <MudButton Href="/relic-sync"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudSync">
+                    Sincronizar con AlecaFrame
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
 
         <MudTextField @bind-Value="searchTerm"
                       Placeholder="Buscar reliquia..."

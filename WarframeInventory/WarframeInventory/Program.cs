@@ -19,6 +19,11 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(
     builder.Environment.IsDevelopment() ? LogLevel.Information : LogLevel.Warning);
+// El token público viaja como parámetro de consulta hacia AlecaFrame. Evitamos que
+// el registrador automático de HttpClient escriba esa URL completa en la consola.
+builder.Logging.AddFilter(
+    "System.Net.Http.HttpClient.AlecaFrameRelicClient",
+    LogLevel.Warning);
 
 var configuration = builder.Configuration;
 var host = configuration["ConnectionStrings:DB_HOST"] ?? "localhost";
@@ -133,6 +138,13 @@ builder.Services.AddScoped<ComparisonService>();
 builder.Services.AddScoped<InventoryToolsService>();
 builder.Services.AddScoped<BuildService>();
 builder.Services.AddScoped<InventoryAdvancedService>();
+builder.Services.AddHttpClient<AlecaFrameRelicClient>(client =>
+{
+    client.BaseAddress = new Uri("https://stats.alecaframe.com/");
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("WarframeInventory/2.0");
+});
+builder.Services.AddScoped<RelicSyncService>();
 builder.Services.AddHttpClient<WorldstateService>(client =>
 {
     client.BaseAddress = new Uri("https://api.warframestat.us/");

@@ -15,7 +15,8 @@ usuarios autenticados pueden registrar propiedad y cantidades de inventario.
 - Rutas `/`, `/warframes`, `/weapons`, `/mods`, `/relics`, `/auth/login` y
   `/auth/register` verificadas con HTTP 200.
 - .NET SDK utilizado: 8.0.423.
-- La migración `20260724190740_OptimizeWarframeSchema` ya fue aplicada a la BD.
+- Las migraciones están aplicadas hasta
+  `20260727092214_AddRelicSyncProfile`.
 - Ocho filas de inventario que referenciaban usuarios inexistentes fueron
   preservadas en `OrphanedWarframeInventory`; no se perdió el contenido.
 
@@ -29,6 +30,7 @@ Catálogo:
 - `Relics`
 - `RelicRewards`
 - `DataSyncStates`
+- `RelicSyncProfiles`
 
 Inventario:
 
@@ -61,6 +63,12 @@ La aplicación también usa las tablas `AspNet*` de Identity y
 - Se eliminó el controlador de autenticación API duplicado.
 - Login con rate limiting, lockout, email único y contraseña mínima reforzada.
 - Nunca volver a registrar cookies, tokens o cadenas de conexión.
+- Sincronización de reliquias mediante el token público con permiso `Relics`
+  de AlecaFrame. El token se cifra con ASP.NET Core Data Protection, nunca se
+  imprime en logs y no se solicitan credenciales de Warframe.
+- La importación externa siempre crea una vista previa y solo aplica las filas
+  confirmadas. Respuestas vacías, formatos inválidos o catálogos con demasiadas
+  entradas desconocidas se bloquean sin modificar el inventario.
 
 ## Configuración local
 
@@ -118,7 +126,10 @@ pueble `RelicRewards`. No borrar los catálogos actuales si la API falla.
 - `Services/CatalogSyncBackgroundService.cs`: programación cada 24 horas.
 - `Services/WarfarmeApiService.cs`: descarga y parsing de la API.
 - `Data/ApplicationDbContext.cs`: modelo e índices.
-- `Migrations/20260724190740_OptimizeWarframeSchema.cs`: migración aplicada.
+- `Migrations/20260727092214_AddRelicSyncProfile.cs`: migración más reciente.
+- `Services/AlecaFrameRelicClient.cs`: descarga y decodificación binaria segura.
+- `Services/RelicSyncService.cs`: vista previa, protección del token y aplicación.
+- `Pages/RelicSync.razor`: flujo de conexión y confirmación del usuario.
 - `Shared/MainLayout.razor` y `wwwroot/css/site.css`: diseño principal.
 - `render.yaml` y `Dockerfile`: despliegue.
 

@@ -44,6 +44,22 @@ La matriz final volvió a comprobar 15 rutas en Release, incluidas autenticació
 centro de mando, catálogos, objetivos, Worldstate, builds y herramientas de
 inventario: todas respondieron HTTP 200.
 
+## Sincronización de AlecaFrame — 2026-07-27
+
+- Compilación Release: 0 errores y 0 advertencias.
+- Migración `20260727092214_AddRelicSyncProfile` aplicada correctamente.
+- El decodificador binario se verificó con Lith Intacta, Axi Radiante y Réquiem
+  Perfecta, incluidas cantidades y nombres de dos y tres caracteres.
+- El catálogo español fue auditado: 3.072 variantes válidas y cero códigos
+  vacíos. La duplicación externa conocida de Lith G12 se conserva sin sobrescribir
+  ni poner en cero hasta que la fuente la desambigüe.
+- Smoke test Release HTTP 200 en `/`, `/relics`, `/relic-sync`,
+  `/inventory-tools` y `/auth/login`, sin indicador de error Blazor.
+- La API rechaza tokens inválidos sin aplicar cambios y el cliente no registra
+  la URL que contiene el token.
+- El navegador integrado volvió a estar indisponible por la política de sandbox;
+  la pantalla se validó mediante compilación y smoke HTTP.
+
 ## Limitación del entorno
 
 El navegador integrado no pudo inicializarse por falta de la política de sandbox

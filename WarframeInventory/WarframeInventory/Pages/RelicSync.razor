@@ -1,0 +1,344 @@
+@page "/relic-sync"
+@attribute [Authorize]
+@using System.Security.Claims
+@inject RelicSyncService SyncService
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Sincronización de reliquias</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="relic-sync-page">
+    <section class="orokin-panel relic-sync-hero">
+        <div>
+            <div class="eyebrow">ENLACE DE INVENTARIO // ALECAFRAME</div>
+            <MudText Typo="Typo.h3" Class="page-title">Sincronización de reliquias</MudText>
+            <MudText>
+                Importa automáticamente tus cantidades Intacta, Excepcional, Perfecta y Radiante
+                sin entregar credenciales de Warframe.
+            </MudText>
+        </div>
+        <div class="relic-sync-status @(status.HasSavedToken ? "is-connected" : "")">
+            <MudIcon Icon="@(status.HasSavedToken
+                              ? Icons.Material.Filled.Link
+                              : Icons.Material.Filled.LinkOff)" />
+            <div>
+                <span>@(status.HasSavedToken ? "TOKEN CIFRADO" : "SIN CONEXIÓN")</span>
+                <strong>@StatusText</strong>
+            </div>
+        </div>
+    </section>
+
+    <MudGrid Class="mt-4">
+        <MudItem xs="12" md="5">
+            <MudPaper Class="relic-sync-card">
+                <MudText Typo="Typo.h5">1. Crear el enlace</MudText>
+                <ol class="relic-sync-steps">
+                    <li>Abre AlecaFrame y entra en <b>Stats</b>.</li>
+                    <li>Selecciona <b>Create Public Link</b>.</li>
+                    <li>Activa únicamente el permiso <b>Relics</b>.</li>
+                    <li>Genera el enlace y copia su token.</li>
+                </ol>
+                <a class="relic-sync-doc-link"
+                   href="https://docs.alecaframe.com/api"
+                   target="_blank" rel="noopener noreferrer">
+                    Ver instrucciones oficiales
+                    <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" />
+                </a>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-3">
+                    Si AlecaFrame está desactualizado, entra a un repetidor o dojo y vuelve al
+                    orbitador antes de analizar.
+                </MudAlert>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudPaper Class="relic-sync-card">
+                <MudText Typo="Typo.h5">2. Analizar inventario</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    El análisis no cambia ninguna cantidad. Primero verás una comparación completa.
+                </MudText>
+                <MudTextField T="string"
+                              @bind-Value="token"
+                              Label="Token público de AlecaFrame"
+                              Placeholder="Pega el token o usa el que ya está guardado"
+                              InputType="InputType.Password"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.VpnKey"
+                              Disabled="@busy" />
+                <MudCheckBox T="bool"
+                             @bind-Checked="rememberToken"
+                             Label="Guardar token cifrado para próximas sincronizaciones"
+                             Color="Color.Primary"
+                             Disabled="@busy" />
+                <div class="relic-sync-actions">
+                    <MudButton OnClick="PreviewAsync"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.ManageSearch"
+                               Disabled="@busy">
+                        Analizar ahora
+                    </MudButton>
+                    @if (status.HasSavedToken)
+                    {
+                        <MudButton OnClick="DisconnectAsync"
+                                   Variant="Variant.Text"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.LinkOff"
+                                   Disabled="@busy">
+                            Olvidar token
+                        </MudButton>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (busy)
+    {
+        <MudPaper Class="relic-sync-progress mt-4">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            <div>
+                <b>@busyMessage</b>
+                <span>Consultando y relacionando las variantes de forma segura.</span>
+            </div>
+        </MudPaper>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <MudAlert Severity="@messageSeverity" Class="mt-4" Variant="Variant.Outlined">
+            @message
+        </MudAlert>
+    }
+
+    @if (preview is not null)
+    {
+        <section class="orokin-panel relic-sync-preview mt-4">
+            <div class="relic-sync-preview__heading">
+                <div>
+                    <div class="eyebrow">VISTA PREVIA // NINGÚN CAMBIO APLICADO</div>
+                    <MudText Typo="Typo.h4">Confirma la sincronización</MudText>
+                </div>
+                <MudButton OnClick="ApplyAsync"
+                           Variant="Variant.Filled"
+                           Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.DoneAll"
+                           Disabled="@(busy || preview.Changes.Count == 0)">
+                    Aplicar @preview.Changes.Count cambios
+                </MudButton>
+            </div>
+
+            <div class="relic-sync-metrics">
+                <div><span>Entradas recibidas</span><b>@preview.SourceCount</b></div>
+                <div><span>Variantes reconocidas</span><b>@preview.MatchedCount</b></div>
+                <div><span>Aumentan o cambian</span><b>@IncreaseCount</b></div>
+                <div><span>Quedan en cero</span><b>@RemovalCount</b></div>
+            </div>
+
+            @if (preview.UnknownRelics.Count > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+                    @preview.UnknownRelics.Count entradas no existen todavía en el catálogo local
+                    y se omitirán: @string.Join(", ", preview.UnknownRelics.Take(8))
+                    @(preview.UnknownRelics.Count > 8 ? "…" : "")
+                </MudAlert>
+            }
+
+            @if (preview.Changes.Count == 0)
+            {
+                <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+                    Tu inventario local ya coincide con AlecaFrame.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTextField T="string"
+                              @bind-Value="changeFilter"
+                              Label="Filtrar cambios"
+                              Immediate="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Class="mb-3" />
+                <div class="relic-sync-table-wrap">
+                    <table class="relic-sync-table">
+                        <thead>
+                            <tr>
+                                <th>Reliquia</th>
+                                <th>Refinamiento</th>
+                                <th>Actual</th>
+                                <th>Nuevo</th>
+                                <th>Cambio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var change in FilteredChanges)
+                            {
+                                <tr>
+                                    <td>@change.Name</td>
+                                    <td><span class="refinement-chip">@ShortRefinement(change.Refinement) · @change.Refinement</span></td>
+                                    <td>@change.PreviousQuantity</td>
+                                    <td><b>@change.NewQuantity</b></td>
+                                    <td class="@(change.NewQuantity > change.PreviousQuantity
+                                                     ? "change-positive"
+                                                     : "change-negative")">
+                                        @SignedDifference(change)
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+
+    <MudPaper Class="relic-sync-privacy mt-4">
+        <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" />
+        <div>
+            <b>Qué guardamos</b>
+            <span>
+                Solo el token público cifrado, la fecha de sincronización y las cantidades de
+                reliquias. Nunca solicitamos tu correo, contraseña ni código de Warframe.
+            </span>
+        </div>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string userId = "";
+    private string token = "";
+    private string changeFilter = "";
+    private bool rememberToken = true;
+    private bool busy;
+    private string busyMessage = "";
+    private string message = "";
+    private Severity messageSeverity = Severity.Info;
+    private RelicSyncStatus status = RelicSyncStatus.Empty;
+    private RelicSyncPreview? preview;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authentication = await AuthState.GetAuthenticationStateAsync();
+        userId = authentication.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        status = await SyncService.GetStatusAsync(userId);
+    }
+
+    private string StatusText => status.LastSyncUtc is null
+        ? "Aún no sincronizado"
+        : $"Última sincronización: {FormatChileTime(status.LastSyncUtc.Value)}";
+
+    private int IncreaseCount => preview?.Changes.Count(x =>
+        x.NewQuantity > x.PreviousQuantity) ?? 0;
+
+    private int RemovalCount => preview?.Changes.Count(x =>
+        x.PreviousQuantity > 0 && x.NewQuantity == 0) ?? 0;
+
+    private IEnumerable<RelicSyncChange> FilteredChanges =>
+        string.IsNullOrWhiteSpace(changeFilter)
+            ? preview?.Changes ?? []
+            : preview?.Changes.Where(x =>
+                x.Name.Contains(changeFilter, StringComparison.CurrentCultureIgnoreCase)
+                || x.Refinement.Contains(changeFilter, StringComparison.CurrentCultureIgnoreCase))
+              ?? [];
+
+    private async Task PreviewAsync()
+    {
+        await RunBusyAsync("Leyendo inventario de AlecaFrame", async () =>
+        {
+            preview = await SyncService.PreviewAsync(userId, token, rememberToken);
+            status = await SyncService.GetStatusAsync(userId);
+            message = preview.Changes.Count == 0
+                ? "El inventario ya está sincronizado."
+                : $"Análisis terminado: {preview.Changes.Count} cambios pendientes.";
+            messageSeverity = preview.UnknownRelics.Count > 0 ? Severity.Warning : Severity.Info;
+            if (rememberToken)
+                token = "";
+        });
+    }
+
+    private async Task ApplyAsync()
+    {
+        if (preview is null)
+            return;
+        await RunBusyAsync("Aplicando inventario confirmado", async () =>
+        {
+            var changed = await SyncService.ApplyAsync(userId, preview);
+            preview = null;
+            changeFilter = "";
+            status = await SyncService.GetStatusAsync(userId);
+            message = $"Sincronización completada: {changed} cantidades actualizadas.";
+            messageSeverity = Severity.Success;
+        });
+    }
+
+    private async Task DisconnectAsync()
+    {
+        await RunBusyAsync("Eliminando el enlace guardado", async () =>
+        {
+            await SyncService.DisconnectAsync(userId);
+            status = await SyncService.GetStatusAsync(userId);
+            preview = null;
+            token = "";
+            message = "El token cifrado fue eliminado. Tu inventario no se modificó.";
+            messageSeverity = Severity.Info;
+        });
+    }
+
+    private async Task RunBusyAsync(string operation, Func<Task> action)
+    {
+        busy = true;
+        busyMessage = operation;
+        message = "";
+        try
+        {
+            await action();
+        }
+        catch (RelicSyncException exception)
+        {
+            message = exception.Message;
+            messageSeverity = Severity.Error;
+        }
+        catch
+        {
+            message = "Ocurrió un error inesperado. El inventario no fue modificado.";
+            messageSeverity = Severity.Error;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static string ShortRefinement(string refinement) => refinement switch
+    {
+        "Intacta" => "I",
+        "Excepcional" => "E",
+        "Perfecta" => "P",
+        "Radiante" => "R",
+        _ => "?"
+    };
+
+    private static string SignedDifference(RelicSyncChange change)
+    {
+        var difference = change.NewQuantity - change.PreviousQuantity;
+        return difference > 0 ? $"+{difference}" : difference.ToString();
+    }
+
+    private static string FormatChileTime(DateTime utc)
+    {
+        try
+        {
+            var zoneId = OperatingSystem.IsWindows()
+                ? "Pacific SA Standard Time"
+                : "America/Santiago";
+            var local = TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.SpecifyKind(utc, DateTimeKind.Utc),
+                TimeZoneInfo.FindSystemTimeZoneById(zoneId));
+            return local.ToString("dd-MM-yyyy HH:mm");
+        }
+        catch
+        {
+            return utc.ToString("dd-MM-yyyy HH:mm 'UTC'");
+        }
+    }
+}
