@@ -10,9 +10,25 @@ using WarframeInventory.Data;
 using WarframeInventory.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+var desktopMode = builder.Configuration.GetValue<bool>("DesktopMode")
+                  || Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DESKTOP") == "1";
+var localDataRoot = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DATA_DIR");
+if (desktopMode)
+{
+    localDataRoot = string.IsNullOrWhiteSpace(localDataRoot)
+        ? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "WarframeTracker")
+        : Path.GetFullPath(localDataRoot);
+    Directory.CreateDirectory(localDataRoot);
+    builder.WebHost.UseUrls(
+        Environment.GetEnvironmentVariable("WARFRAME_TRACKER_URL")
+        ?? "http://127.0.0.1:43127");
+}
+
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(
-        Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys")))
+        Path.Combine(localDataRoot ?? builder.Environment.ContentRootPath, "DataProtectionKeys")))
     .SetApplicationName("WarframeInventory");
 
 builder.Logging.ClearProviders();
@@ -26,21 +42,31 @@ builder.Logging.AddFilter(
     LogLevel.Warning);
 
 var configuration = builder.Configuration;
-var host = configuration["ConnectionStrings:DB_HOST"] ?? "localhost";
-var user = configuration["ConnectionStrings:DB_USER"]
-           ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_USER");
-var pass = configuration["ConnectionStrings:DB_PASS"]
-           ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_PASS");
-var dbName = configuration["ConnectionStrings:DB_NAME"]
-             ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_NAME");
-var connectionString =
-    $"server={host};port=3306;database={dbName};user={user};password={pass};" +
-    "SslMode=None;AllowPublicKeyRetrieval=True;Pooling=True;MinimumPoolSize=0;MaximumPoolSize=50;";
-var serverVersion = ServerVersion.AutoDetect(connectionString);
-
-builder.Services.AddPooledDbContextFactory<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, serverVersion, mysql =>
-        mysql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null)));
+if (desktopMode)
+{
+    var sqlitePath = Path.Combine(localDataRoot!, "tracker.db");
+    builder.Services.AddPooledDbContextFactory<DesktopApplicationDbContext>(options =>
+        options.UseSqlite($"Data Source={sqlitePath};Cache=Shared"));
+    builder.Services.AddSingleton<IDbContextFactory<ApplicationDbContext>,
+        DesktopDbContextFactoryAdapter>();
+}
+else
+{
+    var host = configuration["ConnectionStrings:DB_HOST"] ?? "localhost";
+    var user = configuration["ConnectionStrings:DB_USER"]
+               ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_USER");
+    var pass = configuration["ConnectionStrings:DB_PASS"]
+               ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_PASS");
+    var dbName = configuration["ConnectionStrings:DB_NAME"]
+                 ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_NAME");
+    var connectionString =
+        $"server={host};port=3306;database={dbName};user={user};password={pass};" +
+        "SslMode=None;AllowPublicKeyRetrieval=True;Pooling=True;MinimumPoolSize=0;MaximumPoolSize=50;";
+    var serverVersion = ServerVersion.AutoDetect(connectionString);
+    builder.Services.AddPooledDbContextFactory<ApplicationDbContext>(options =>
+        options.UseMySql(connectionString, serverVersion, mysql =>
+            mysql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null)));
+}
 // Compatibilidad temporal con componentes existentes. Cada circuito obtiene un contexto;
 // las páginas nuevas deben preferir IDbContextFactory.
 builder.Services.AddScoped(sp =>
@@ -107,6 +133,7 @@ builder.Services.AddResponseCompression(options =>
 builder.Services.Configure<BrotliCompressionProviderOptions>(x => x.Level = CompressionLevel.Fastest);
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<CatalogCacheService>();
+builder.Services.AddSingleton<DesktopInventorySyncService>();
 builder.Services.AddMudServices();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor(options =>
@@ -164,14 +191,17 @@ builder.Services.AddHostedService<CatalogSyncBackgroundService>();
 
 var app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
+if (!app.Environment.IsDevelopment() && !desktopMode)
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
-app.UseForwardedHeaders();
-app.UseHttpsRedirection();
+if (!desktopMode)
+{
+    app.UseForwardedHeaders();
+    app.UseHttpsRedirection();
+}
 app.UseResponseCompression();
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -189,6 +219,38 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
+
+if (desktopMode)
+{
+    using var desktopScope = app.Services.CreateScope();
+    var desktopDatabase = desktopScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await desktopDatabase.Database.MigrateAsync();
+    if (args.Contains("--validate-desktop", StringComparer.OrdinalIgnoreCase))
+    {
+        Console.WriteLine($"Modo escritorio validado con {desktopDatabase.Database.ProviderName}.");
+        return;
+    }
+    var validateInventoryIndex = Array.FindIndex(
+        args,
+        value => value.Equals("--validate-desktop-inventory",
+            StringComparison.OrdinalIgnoreCase));
+    if (validateInventoryIndex >= 0)
+    {
+        if (validateInventoryIndex + 1 >= args.Length)
+            throw new InvalidOperationException(
+                "Debes indicar el archivo JSON que quieres validar.");
+        var inventoryPath = Path.GetFullPath(args[validateInventoryIndex + 1]);
+        var inventoryJson = await File.ReadAllTextAsync(inventoryPath);
+        var receipt = desktopScope.ServiceProvider
+            .GetRequiredService<DesktopInventorySyncService>()
+            .Stage(inventoryJson, "command-line-validation");
+        Console.WriteLine(
+            $"Inventario válido: {receipt.DistinctItems} objetos, " +
+            $"{receipt.TotalQuantity} unidades, cobertura " +
+            $"{(receipt.IsAuthoritative ? "completa" : "parcial")}.");
+        return;
+    }
+}
 
 var resetPasswordIndex = Array.FindIndex(
     args,

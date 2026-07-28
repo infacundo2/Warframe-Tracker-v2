@@ -936,6 +936,50 @@ img { color: transparent; }
     padding-bottom: 3rem;
 }
 
+.desktop-sync-page {
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+}
+
+.desktop-sync-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    padding: clamp(1.2rem, 3vw, 2rem);
+}
+
+.desktop-sync-signal {
+    min-width: 16rem;
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    padding: .8rem 1rem;
+    border: 1px solid rgba(216, 184, 106, .45);
+    background: rgba(216, 184, 106, .05);
+}
+
+.desktop-sync-signal.is-ready {
+    border-color: rgba(93, 224, 170, .6);
+    background: rgba(93, 224, 170, .07);
+    box-shadow: inset 0 0 1.5rem rgba(93, 224, 170, .04);
+}
+
+.desktop-sync-signal > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.desktop-sync-signal span {
+    color: #8ca8b3;
+    font-size: .67rem;
+    letter-spacing: .13em;
+}
+
+.desktop-sync-signal strong {
+    color: #eaf9ff;
+}
+
 .relic-sync-hero,
 .relic-sync-preview,
 .account-sync-summary {
@@ -1186,12 +1230,17 @@ img { color: transparent; }
 
 @media (max-width: 760px) {
     .relic-sync-hero,
+    .desktop-sync-hero,
     .relic-sync-preview__heading {
         align-items: flex-start;
         flex-direction: column;
     }
 
     .relic-sync-status {
+        width: 100%;
+    }
+
+    .desktop-sync-signal {
         width: 100%;
     }
 

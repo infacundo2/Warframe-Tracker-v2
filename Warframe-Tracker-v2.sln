@@ -1,10 +1,12 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WarframeInventory", "WarframeInventory", "{F0E07B04-D644-ACE0-4CA7-2A8C44E26945}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarframeInventory", "WarframeInventory\WarframeInventory\WarframeInventory.csproj", "{5F742DFF-55C0-52EB-9268-8A6F2FE9033E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarframeInventory.Tests", "WarframeInventory\WarframeInventory.Tests\WarframeInventory.Tests.csproj", "{B287B84D-F008-4D2F-B967-8CFD0714B854}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,12 +18,17 @@ Global
 		{5F742DFF-55C0-52EB-9268-8A6F2FE9033E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5F742DFF-55C0-52EB-9268-8A6F2FE9033E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5F742DFF-55C0-52EB-9268-8A6F2FE9033E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B287B84D-F008-4D2F-B967-8CFD0714B854}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B287B84D-F008-4D2F-B967-8CFD0714B854}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B287B84D-F008-4D2F-B967-8CFD0714B854}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B287B84D-F008-4D2F-B967-8CFD0714B854}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5F742DFF-55C0-52EB-9268-8A6F2FE9033E} = {F0E07B04-D644-ACE0-4CA7-2A8C44E26945}
+		{B287B84D-F008-4D2F-B967-8CFD0714B854} = {F0E07B04-D644-ACE0-4CA7-2A8C44E26945}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {ECB66C9B-27DC-489C-916B-97E63D55CD2F}

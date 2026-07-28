@@ -27,25 +27,33 @@ public class AuthMvcController : Controller
     public async Task<IActionResult> LoginMvc(
         string username,
         string password,
-        bool rememberMe = false)
+        bool rememberMe = false,
+        string? returnUrl = null)
     {
         username = username.Trim();
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-            return RedirectToLogin("Escribe tu usuario y contraseña.", username);
+            return RedirectToLogin("Escribe tu usuario y contraseña.", username, returnUrl);
 
         var user = await _userManager.FindByNameAsync(username);
         if (user is null)
-            return RedirectToLogin("El usuario o la contraseña no son correctos.", username);
+            return RedirectToLogin(
+                "El usuario o la contraseña no son correctos.",
+                username,
+                returnUrl);
 
         var result = await _signInManager.PasswordSignInAsync(user, password, rememberMe, true);
         if (result.IsLockedOut)
             return RedirectToLogin(
                 "La cuenta está bloqueada temporalmente por demasiados intentos. Inténtalo en 15 minutos.",
-                username);
+                username,
+                returnUrl);
         if (!result.Succeeded)
-            return RedirectToLogin("El usuario o la contraseña no son correctos.", username);
+            return RedirectToLogin(
+                "El usuario o la contraseña no son correctos.",
+                username,
+                returnUrl);
 
-        return Redirect("/");
+        return Redirect(Url.IsLocalUrl(returnUrl) ? returnUrl! : "/");
     }
 
     [HttpPost("/auth/register-mvc")]
@@ -54,7 +62,8 @@ public class AuthMvcController : Controller
         string username,
         string email,
         string password,
-        string confirmPassword)
+        string confirmPassword,
+        string? returnUrl = null)
     {
         username = username.Trim();
         email = email.Trim();
@@ -119,7 +128,7 @@ public class AuthMvcController : Controller
         }
 
         await _signInManager.SignInAsync(user, isPersistent: false);
-        return Redirect("/");
+        return Redirect(Url.IsLocalUrl(returnUrl) ? returnUrl! : "/");
     }
 
     [HttpPost("/auth/logout-mvc")]
@@ -138,11 +147,17 @@ public class AuthMvcController : Controller
         return Redirect(url);
     }
 
-    private IActionResult RedirectToLogin(string error, string username)
+    private IActionResult RedirectToLogin(
+        string error,
+        string username,
+        string? returnUrl)
         => Redirect(
             "/auth/login"
             + $"?error={Uri.EscapeDataString(error)}"
-            + $"&usuario={Uri.EscapeDataString(username)}");
+            + $"&usuario={Uri.EscapeDataString(username)}"
+            + (Url.IsLocalUrl(returnUrl)
+                ? $"&returnUrl={Uri.EscapeDataString(returnUrl!)}"
+                : ""));
 
     private static string TranslateIdentityError(IdentityError error) => error.Code switch
     {

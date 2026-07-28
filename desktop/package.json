@@ -1,0 +1,78 @@
+{
+  "name": "warframe-tracker-desktop",
+  "version": "0.1.0",
+  "description": "Asistente Tenno con captura de inventario mediante Overwolf GEP.",
+  "main": "dist/main.js",
+  "author": "infacundo2",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "overwolf": {
+    "packages": [
+      "gep"
+    ]
+  },
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "prepare:icon": "node scripts/render-icon.mjs",
+    "build": "npm run clean && npm run prepare:icon && tsc -p tsconfig.json",
+    "clean:backend": "node scripts/clean-backend.mjs",
+    "build:backend": "npm run clean:backend && dotnet publish ../WarframeInventory/WarframeInventory/WarframeInventory.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ../out/desktop-backend",
+    "start": "npm run build && ow-electron .",
+    "start:dev-gep": "npm run build && ow-electron . --owepm-packages-url=https://electronapi-qa.overwolf.com/v2/packages",
+    "package": "npm run build:backend && npm run build && ow-electron-builder --publish=never",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@overwolf/ow-electron": "39.8.12",
+    "@overwolf/ow-electron-builder": "26.9.0",
+    "@overwolf/ow-electron-packages-types": "1.1.5-2",
+    "@types/node": "22.10.2",
+    "@resvg/resvg-js": "2.6.2",
+    "png-to-ico": "2.1.8",
+    "typescript": "5.7.2"
+  },
+  "build": {
+    "appId": "cl.warframetracker.desktop",
+    "productName": "Warframe Tracker",
+    "asar": true,
+    "nodeGypRebuild": false,
+    "directories": {
+      "output": "../out/desktop-installer"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../out/desktop-backend",
+        "to": "backend"
+      }
+    ],
+    "overwolf": {
+      "disableAdOptimization": true
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Warframe-Tracker-Setup-${version}.${ext}",
+      "legalTrademarks": "Warframe is a trademark of Digital Extremes Ltd."
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

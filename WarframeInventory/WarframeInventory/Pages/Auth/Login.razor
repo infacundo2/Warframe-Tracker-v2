@@ -30,6 +30,7 @@
 
         <form class="stark-login__form" method="post" action="/auth/login-mvc"
               onsubmit="return syncLoginFields();">
+            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
             <MudTextField @bind-Value="Username"
                           Label="Identificador de operador"
                           Variant="Variant.Outlined"
@@ -76,7 +77,7 @@
 
         <div class="stark-login__footer">
             <span>¿OPERADOR NUEVO?</span>
-            <MudLink Href="/auth/register">Crear credenciales</MudLink>
+            <MudLink Href="@RegisterHref">Crear credenciales</MudLink>
         </div>
     </MudPaper>
 
@@ -102,9 +103,15 @@
     [SupplyParameterFromQuery(Name = "usuario")]
     public string? SavedUsername { get; set; }
 
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
     private string Username = string.Empty;
     private string Password = string.Empty;
     private bool RememberMe = false;
+    private string RegisterHref => string.IsNullOrWhiteSpace(ReturnUrl)
+        ? "/auth/register"
+        : $"/auth/register?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
 
     protected override void OnParametersSet()
     {

@@ -6,7 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>WarframeInventory</RootNamespace>
     <AssemblyName>WarframeInventory</AssemblyName>
+    <DefaultItemExcludes>$(DefaultItemExcludes);out\**;out/**</DefaultItemExcludes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Update="appsettings.json" CopyToPublishDirectory="Never" />
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Entity Framework Core para MySQL -->
@@ -17,6 +23,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.10" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
 
     <!-- MudBlazor -->
     <PackageReference Include="MudBlazor" Version="6.2.0" />

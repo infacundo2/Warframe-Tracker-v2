@@ -1,0 +1,33 @@
+{
+  "Credits": 1250000,
+  "PremiumCredits": 120,
+  "FusionPoints": 45000,
+  "Suits": [
+    {
+      "ItemCount": 1,
+      "ItemType": "/Lotus/Powersuits/Excalibur/Excalibur"
+    }
+  ],
+  "LongGuns": [
+    {
+      "ItemCount": 1,
+      "ItemType": "/Lotus/Weapons/Tenno/Rifle/Braton/Braton"
+    }
+  ],
+  "Upgrades": [
+    {
+      "ItemCount": 3,
+      "ItemType": "/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod"
+    }
+  ],
+  "MiscItems": [
+    {
+      "ItemCount": 6,
+      "ItemType": "/Lotus/Types/Items/MiscItems/OrokinCell"
+    },
+    {
+      "ItemCount": 2,
+      "ItemType": "/Lotus/Types/Game/Projections/T1VoidProjectionLithA1Bronze"
+    }
+  ]
+}

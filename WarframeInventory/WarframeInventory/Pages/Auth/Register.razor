@@ -16,6 +16,7 @@
         }
 
         <form method="post" action="/auth/register-mvc">
+            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
             <MudTextField @bind-Value="Username"
                           Name="username"
                           Label="Nombre de usuario"
@@ -90,6 +91,9 @@
 
     [SupplyParameterFromQuery(Name = "correo")]
     public string? SavedEmail { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
 
     private string Username = "";
     private string Email = "";

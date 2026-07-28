@@ -1,0 +1,252 @@
+@page "/desktop-sync"
+@attribute [Authorize]
+@using System.Security.Claims
+@inject DesktopInventorySyncService InventorySync
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Captura automática de inventario</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="desktop-sync-page">
+    <section class="orokin-panel desktop-sync-hero">
+        <div>
+            <div class="eyebrow">OVERWOLF GEP // CANAL LOCAL</div>
+            <MudText Typo="Typo.h3" Class="page-title">Inventario automático</MudText>
+            <MudText>
+                Abre Warframe y entra al inventario. La app analiza la captura en memoria y
+                te muestra los cambios antes de guardar nada.
+            </MudText>
+        </div>
+        <div class="desktop-sync-signal @(status.HasCapture ? "is-ready" : "")">
+            <MudIcon Icon="@(status.HasCapture
+                              ? Icons.Material.Filled.Sensors
+                              : Icons.Material.Filled.SensorsOff)" />
+            <div>
+                <span>SEÑAL GEP</span>
+                <strong>@(status.HasCapture ? "CAPTURA RECIBIDA" : "ESPERANDO INVENTARIO")</strong>
+            </div>
+        </div>
+    </section>
+
+    <MudGrid Class="mt-4">
+        <MudItem xs="12" md="5">
+            <MudPaper Class="relic-sync-card">
+                <MudText Typo="Typo.h5">Cómo capturar</MudText>
+                <ol class="relic-sync-steps">
+                    <li>Inicia esta aplicación antes de abrir Warframe.</li>
+                    <li>Entra al juego y abre el menú de inventario.</li>
+                    <li>Espera unos segundos y pulsa <b>Buscar captura</b>.</li>
+                    <li>Revisa el resumen y confirma los cambios.</li>
+                </ol>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-3">
+                    El JSON original se descarta apenas termina el análisis. Solo la vista previa
+                    normalizada permanece en memoria hasta 30 minutos.
+                </MudAlert>
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-3">
+                    La captura automática requiere que Overwolf apruebe y habilite GEP para
+                    la aplicación. El modo simulador sirve para desarrollar sin esa autorización.
+                </MudAlert>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="7">
+            <MudPaper Class="relic-sync-card">
+                <MudText Typo="Typo.h5">Estado de la captura</MudText>
+                @if (status.HasCapture)
+                {
+                    <div class="relic-sync-metrics mt-3">
+                        <div><span>Objetos distintos</span><b>@status.DistinctItems</b></div>
+                        <div><span>Fuente</span><b>@status.Source</b></div>
+                        <div>
+                            <span>Cobertura</span>
+                            <b>@(status.IsAuthoritative ? "Completa" : "Parcial")</b>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mt-3">
+                        Todavía no llegó una captura válida desde Warframe.
+                    </MudText>
+                }
+                <div class="relic-sync-actions mt-4">
+                    <MudButton OnClick="RefreshAsync"
+                               Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               Disabled="@busy">
+                        Buscar captura
+                    </MudButton>
+                    <MudButton OnClick="PreviewAsync"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.ManageSearch"
+                               Disabled="@(!status.HasCapture || busy)">
+                        Analizar inventario
+                    </MudButton>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <MudAlert Severity="@severity" Variant="Variant.Outlined" Class="mt-4">
+            @message
+        </MudAlert>
+    }
+
+    @if (preview is not null)
+    {
+        <section class="orokin-panel relic-sync-preview mt-4">
+            <div class="relic-sync-preview__heading">
+                <div>
+                    <div class="eyebrow">VISTA PREVIA // SIN CAMBIOS APLICADOS</div>
+                    <MudText Typo="Typo.h4">Captura relacionada con el catálogo</MudText>
+                </div>
+                <MudButton OnClick="ApplyAsync"
+                           Variant="Variant.Filled"
+                           Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.DoneAll"
+                           Disabled="@busy">
+                    Aplicar @preview.Changes.Count cambios
+                </MudButton>
+            </div>
+
+            <div class="relic-sync-metrics">
+                <div><span>Warframes</span><b>@preview.Warframes.Count</b></div>
+                <div><span>Armas</span><b>@preview.Weapons.Count</b></div>
+                <div><span>Mods</span><b>@preview.Mods.Count</b></div>
+                <div><span>Reliquias</span><b>@preview.Relics.Count</b></div>
+                <div><span>Componentes</span><b>@preview.Components.Count</b></div>
+                <div><span>Recursos</span><b>@preview.Resources.Count</b></div>
+            </div>
+
+            @if (!preview.IsAuthoritative)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+                    La captura parece parcial. Se agregarán o actualizarán objetos encontrados,
+                    pero no se marcarán como ausentes los Warframes o armas que no llegaron.
+                </MudAlert>
+            }
+
+            @if (preview.UnknownItems.Count > 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+                    @preview.UnknownItems.Count objetos todavía no coinciden con el catálogo.
+                    Se omitirán sin bloquear el resto.
+                </MudAlert>
+            }
+
+            <MudTextField T="string"
+                          @bind-Value="filter"
+                          Label="Filtrar cambios"
+                          Immediate="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Class="mb-3" />
+            <div class="relic-sync-table-wrap">
+                <table class="relic-sync-table">
+                    <thead>
+                        <tr>
+                            <th>Categoría</th>
+                            <th>Objeto</th>
+                            <th>Actual</th>
+                            <th>Capturado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var change in FilteredChanges)
+                        {
+                            <tr>
+                                <td><span class="refinement-chip">@change.Category</span></td>
+                                <td>@change.Name</td>
+                                <td>@change.PreviousQuantity</td>
+                                <td><b>@change.NewQuantity</b></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</MudContainer>
+
+@code {
+    private string userId = "";
+    private string filter = "";
+    private string message = "";
+    private bool busy;
+    private Severity severity = Severity.Info;
+    private DesktopCaptureStatus status = DesktopCaptureStatus.Empty;
+    private DesktopInventoryPreview? preview;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authentication = await AuthState.GetAuthenticationStateAsync();
+        userId = authentication.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        status = InventorySync.GetStatus();
+    }
+
+    private IEnumerable<DesktopInventoryChange> FilteredChanges =>
+        preview?.Changes.Where(x => string.IsNullOrWhiteSpace(filter)
+            || x.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+            || x.Category.Contains(filter, StringComparison.CurrentCultureIgnoreCase))
+        ?? [];
+
+    private Task RefreshAsync()
+    {
+        status = InventorySync.GetStatus();
+        message = status.HasCapture
+            ? $"Captura recibida: {status.DistinctItems:N0} objetos distintos."
+            : "Aún no llegó una captura. Abre el inventario de Warframe y vuelve a intentar.";
+        severity = status.HasCapture ? Severity.Success : Severity.Info;
+        return Task.CompletedTask;
+    }
+
+    private async Task PreviewAsync()
+    {
+        await RunAsync(async () =>
+        {
+            preview = await InventorySync.PreviewAsync(userId);
+            message = $"Análisis listo: {preview.Changes.Count:N0} cambios pendientes.";
+            severity = preview.IsAuthoritative ? Severity.Success : Severity.Warning;
+        });
+    }
+
+    private async Task ApplyAsync()
+    {
+        if (preview is null)
+            return;
+        await RunAsync(async () =>
+        {
+            var result = await InventorySync.ApplyAsync(userId, preview);
+            preview = null;
+            status = InventorySync.GetStatus();
+            message = $"Inventario aplicado correctamente: {result.ChangedRecords:N0} registros modificados.";
+            severity = Severity.Success;
+        });
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        busy = true;
+        message = "";
+        try
+        {
+            await action();
+        }
+        catch (DesktopInventoryException exception)
+        {
+            message = exception.Message;
+            severity = Severity.Error;
+        }
+        catch
+        {
+            message = "Ocurrió un error inesperado. El inventario no fue modificado.";
+            severity = Severity.Error;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

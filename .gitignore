@@ -3,6 +3,9 @@
 **/obj/
 **/out/
 out/
+desktop/node_modules/
+desktop/dist/
+desktop/build/
 
 # Local tooling and IDE
 .dotnet-home/
