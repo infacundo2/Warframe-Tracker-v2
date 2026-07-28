@@ -2,9 +2,9 @@
 
 ## One-line pitch
 
-Warframe Tracker is a visible desktop companion that turns the player's local
-Warframe inventory into a private farming planner, collection tracker, relic
-assistant, and build preparation dashboard.
+Warframe Tracker is a Spanish-first visible desktop companion that turns the
+player's local Warframe inventory into an intuitive farming planner, collection
+tracker, relic assistant, and build preparation dashboard.
 
 ## User problem
 
@@ -12,6 +12,19 @@ Warframe players own hundreds of equipment items, components, mods, resources,
 and refined relic variants. Maintaining those quantities manually is slow and
 causes planning tools to become outdated. Existing public profile links expose
 only a small subset of this inventory.
+
+Most established Warframe companion tools present their interfaces and
+documentation primarily in English. This creates unnecessary friction for
+Spanish-speaking players, especially when they need to understand relic
+refinements, component relationships, drop probabilities, farming locations,
+and inventory states. Warframe Tracker is designed in Spanish from the start,
+using familiar terminology, clear explanations, guided actions, and visual
+filters instead of requiring the player to translate every workflow.
+
+The primary audience is the Spanish-speaking Warframe community, particularly
+players in Latin America. The goal is to make inventory tracking and farming
+planning feel approachable even for users who have never used an external
+Warframe tool before.
 
 ## Core experience
 
@@ -29,6 +42,28 @@ After confirmation the visible desktop app provides:
 - comparison and lightweight build planning;
 - active Worldstate information crossed with local goals.
 
+The interface is currently in Spanish and emphasizes an intuitive progression:
+select an objective, see the missing components, find the related relics, check
+owned refinements, and choose a suitable farming route. Technical identifiers
+remain internal whenever possible, while the player sees understandable names,
+status labels, probabilities, and recommendations.
+
+## Initial testing and availability
+
+We are requesting development GEP access primarily so the developer can validate
+the complete inventory flow with a small initial QA group composed of the
+developer and a few friends who actively play Warframe. This first group will
+help compare captured quantities with the real in-game inventory, identify
+Spanish terminology issues, and verify that partial snapshots never remove
+valid local data.
+
+This is only the initial testing stage, not a permanently private bridge. The
+application always has a complete visible desktop interface and is intended to
+remain publicly available once the capture flow is stable. If other players
+find it useful, they will be welcome to download and use it as well. Wider
+adoption would be appreciated, but the immediate objective is a controlled,
+safe, and useful test with real players rather than aggressive growth.
+
 ## Overwolf integration requested
 
 - Platform: OW Electron.
@@ -41,8 +76,8 @@ After confirmation the visible desktop app provides:
 - Optional `game_info.username`, only to label the local profile after explicit
   consent.
 
-The app has a permanent, visible desktop window and is not a private,
-faceless, or bridge-only application.
+The app has a permanent, visible Spanish desktop interface and is not a
+faceless or bridge-only application.
 
 ## Privacy and security
 
