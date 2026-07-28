@@ -35,6 +35,7 @@ namespace WarframeInventory.Data
         public DbSet<InventoryMetadata> InventoryMetadata => Set<InventoryMetadata>();
         public DbSet<RelicOpening> RelicOpenings => Set<RelicOpening>();
         public DbSet<RelicSyncProfile> RelicSyncProfiles => Set<RelicSyncProfile>();
+        public DbSet<AlecaAccountSnapshot> AlecaAccountSnapshots => Set<AlecaAccountSnapshot>();
 
         public override int SaveChanges()
         {
@@ -221,6 +222,10 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<RelicSyncProfile>().Property(x => x.LastStatus).HasMaxLength(32);
             modelBuilder.Entity<RelicSyncProfile>().Property(x => x.LastError)
                 .HasMaxLength(500);
+            modelBuilder.Entity<AlecaAccountSnapshot>()
+                .HasIndex(x => x.UserId).IsUnique();
+            modelBuilder.Entity<AlecaAccountSnapshot>().Property(x => x.PublicUsername)
+                .HasMaxLength(64);
 
             modelBuilder.Entity<UserWarframe>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -243,6 +248,8 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<RelicOpening>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<RelicSyncProfile>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
+                .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<AlecaAccountSnapshot>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<RelicReward>().HasIndex(x => new { x.RelicUnique, x.ItemUnique }).IsUnique();

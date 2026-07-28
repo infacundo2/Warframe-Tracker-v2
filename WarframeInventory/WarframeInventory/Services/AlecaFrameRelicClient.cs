@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace WarframeInventory.Services;
 
@@ -75,6 +76,88 @@ public sealed class AlecaFrameRelicClient
             }
 
             return inventory;
+        }
+    }
+
+    public async Task<AlecaPublicStats> GetPublicStatsAsync(
+        string publicToken,
+        CancellationToken cancellationToken = default)
+    {
+        publicToken = NormalizeAndValidateToken(publicToken);
+        var endpoint = $"api/stats/public?token={Uri.EscapeDataString(publicToken)}";
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.GetAsync(
+                endpoint,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new RelicSyncException(
+                "AlecaFrame tardó demasiado en responder. Intenta nuevamente.");
+        }
+        catch (HttpRequestException)
+        {
+            throw new RelicSyncException(
+                "No se pudo conectar con AlecaFrame. Revisa tu conexión e intenta nuevamente.");
+        }
+
+        using (response)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                var detail = await ReadErrorAsync(
+                    response,
+                    cancellationToken,
+                    "No se pudieron consultar las estadísticas públicas de AlecaFrame.");
+                throw new RelicSyncException(detail);
+            }
+
+            AlecaStatsResponse? result;
+            try
+            {
+                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                result = await JsonSerializer.DeserializeAsync<AlecaStatsResponse>(
+                    stream,
+                    StatsJsonOptions,
+                    cancellationToken);
+            }
+            catch (JsonException exception)
+            {
+                throw new RelicSyncException(
+                    "AlecaFrame devolvió estadísticas con un formato no reconocido.",
+                    exception);
+            }
+
+            if (result is null)
+                throw new RelicSyncException("AlecaFrame devolvió estadísticas vacías.");
+
+            var permissions = (AlecaPublicParts)result.PublicParts;
+            var latest = result.GeneralDataPoints?
+                .OrderByDescending(x => x.Timestamp)
+                .FirstOrDefault();
+            if (latest is null || !HasAccountPermission(permissions))
+            {
+                throw new RelicSyncException(
+                    "El enlace solo permite leer reliquias. Crea uno nuevo y selecciona Créditos, Endo, Ducados, Aya, Platino y Datos de cuenta.");
+            }
+
+            return new AlecaPublicStats(
+                permissions.HasFlag(AlecaPublicParts.Platinum) ? latest.Platinum : null,
+                permissions.HasFlag(AlecaPublicParts.Credits) ? latest.Credits : null,
+                permissions.HasFlag(AlecaPublicParts.Endo) ? latest.Endo : null,
+                permissions.HasFlag(AlecaPublicParts.Ducats) ? latest.Ducats : null,
+                permissions.HasFlag(AlecaPublicParts.Aya) ? latest.Aya : null,
+                permissions.HasFlag(AlecaPublicParts.AccountData) ? latest.MasteryRank : null,
+                permissions.HasFlag(AlecaPublicParts.AccountData) ? latest.CompletionPercentage : null,
+                permissions.HasFlag(AlecaPublicParts.AccountData) ? latest.RelicsOpened : null,
+                permissions.HasFlag(AlecaPublicParts.AccountData) ? latest.TradeCount : null,
+                latest.Timestamp,
+                result.LastUpdate,
+                result.UsernameWhenPublic,
+                permissions);
         }
     }
 
@@ -202,6 +285,14 @@ public sealed class AlecaFrameRelicClient
         return string.IsNullOrWhiteSpace(lastSegment) ? value : Uri.UnescapeDataString(lastSegment);
     }
 
+    private static string NormalizeAndValidateToken(string publicToken)
+    {
+        publicToken = NormalizePublicToken(publicToken);
+        if (publicToken.Length is < 12 or > 512)
+            throw new RelicSyncException("El token público no tiene un formato válido.");
+        return publicToken;
+    }
+
     private static byte[] DecodeTransport(byte[] body, MediaTypeHeaderValue? contentType)
     {
         if (body.Length == 0)
@@ -229,7 +320,8 @@ public sealed class AlecaFrameRelicClient
 
     private static async Task<string> ReadErrorAsync(
         HttpResponseMessage response,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? fallback = null)
     {
         var generic = response.StatusCode switch
         {
@@ -237,7 +329,7 @@ public sealed class AlecaFrameRelicClient
                 "AlecaFrame limitó temporalmente las consultas. Espera un minuto.",
             System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden =>
                 "El token no es válido o no tiene permiso para leer reliquias.",
-            _ => "No se pudo consultar el inventario de AlecaFrame."
+            _ => fallback ?? "No se pudo consultar el inventario de AlecaFrame."
         };
 
         try
@@ -257,6 +349,19 @@ public sealed class AlecaFrameRelicClient
 
         return generic;
     }
+
+    private static bool HasAccountPermission(AlecaPublicParts permissions)
+        => (permissions & (AlecaPublicParts.Platinum
+                           | AlecaPublicParts.Ducats
+                           | AlecaPublicParts.Endo
+                           | AlecaPublicParts.Credits
+                           | AlecaPublicParts.AccountData
+                           | AlecaPublicParts.Aya)) != 0;
+
+    private static readonly JsonSerializerOptions StatsJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     private static string EraName(byte value) => value switch
     {
@@ -290,6 +395,69 @@ public sealed record AlecaRelicInventory(
     int SkippedRecords)
 {
     public bool IsAuthoritative => SkippedRecords == 0;
+}
+
+[Flags]
+public enum AlecaPublicParts
+{
+    None = 0,
+    Trades = 1,
+    Platinum = 2,
+    Ducats = 4,
+    Endo = 8,
+    Credits = 16,
+    AccountData = 32,
+    Aya = 64,
+    Relics = 128
+}
+
+public sealed record AlecaPublicStats(
+    int? Platinum,
+    long? Credits,
+    int? Endo,
+    int? Ducats,
+    int? Aya,
+    int? MasteryRank,
+    int? CompletionPercentage,
+    int? RelicsOpened,
+    int? TradeCount,
+    DateTime SourceTimestamp,
+    DateTime LastUpdate,
+    string? PublicUsername,
+    AlecaPublicParts Permissions);
+
+internal sealed class AlecaStatsResponse
+{
+    public List<AlecaStatsDataPoint>? GeneralDataPoints { get; set; }
+    public DateTime LastUpdate { get; set; }
+    public int PublicParts { get; set; }
+    public string? UsernameWhenPublic { get; set; }
+}
+
+internal sealed class AlecaStatsDataPoint
+{
+    [JsonPropertyName("ts")]
+    public DateTime Timestamp { get; set; }
+
+    [JsonPropertyName("plat")]
+    public int Platinum { get; set; }
+
+    public long Credits { get; set; }
+    public int Endo { get; set; }
+    public int Ducats { get; set; }
+    public int Aya { get; set; }
+
+    [JsonPropertyName("mr")]
+    public int MasteryRank { get; set; }
+
+    [JsonPropertyName("percentageCompletion")]
+    public int CompletionPercentage { get; set; }
+
+    [JsonPropertyName("relicOpened")]
+    public int RelicsOpened { get; set; }
+
+    [JsonPropertyName("trades")]
+    public int TradeCount { get; set; }
 }
 
 public sealed class RelicSyncException : Exception

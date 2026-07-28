@@ -1,19 +1,20 @@
 @page "/relic-sync"
+@page "/account-sync"
 @attribute [Authorize]
 @using System.Security.Claims
 @inject RelicSyncService SyncService
 @inject AuthenticationStateProvider AuthState
 
-<PageTitle>Sincronización de reliquias</PageTitle>
+<PageTitle>Sincronización de cuenta</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="relic-sync-page">
     <section class="orokin-panel relic-sync-hero">
         <div>
-            <div class="eyebrow">ENLACE DE INVENTARIO // ALECAFRAME</div>
-            <MudText Typo="Typo.h3" Class="page-title">Sincronización de reliquias</MudText>
+            <div class="eyebrow">ENLACE DE CUENTA // ALECAFRAME</div>
+            <MudText Typo="Typo.h3" Class="page-title">Sincronización de cuenta</MudText>
             <MudText>
-                Importa automáticamente tus cantidades Intacta, Excepcional, Perfecta y Radiante
-                sin entregar credenciales de Warframe.
+                Importa Créditos, Endo, Ducados, Aya, Platino, progreso de cuenta y todas tus
+                reliquias sin entregar credenciales de Warframe.
             </MudText>
         </div>
         <div class="relic-sync-status @(status.HasSavedToken ? "is-connected" : "")">
@@ -27,6 +28,35 @@
         </div>
     </section>
 
+    @if (accountSnapshot is not null)
+    {
+        <section class="orokin-panel account-sync-summary mt-4">
+            <div class="relic-sync-preview__heading">
+                <div>
+                    <div class="eyebrow">PERFIL TENNO // ÚLTIMO REGISTRO CONFIRMADO</div>
+                    <MudText Typo="Typo.h4">
+                        @(string.IsNullOrWhiteSpace(accountSnapshot.PublicUsername)
+                            ? "Estado de la cuenta"
+                            : accountSnapshot.PublicUsername)
+                    </MudText>
+                </div>
+                <span class="account-sync-time">
+                    Actualizado @FormatChileTime(accountSnapshot.SyncedUtc)
+                </span>
+            </div>
+            <div class="account-sync-grid">
+                @AccountCard("Créditos", accountSnapshot.Credits, "CR")
+                @AccountCard("Endo", accountSnapshot.Endo, "ENDO")
+                @AccountCard("Ducados", accountSnapshot.Ducats, "DUC")
+                @AccountCard("Aya", accountSnapshot.Aya, "AYA")
+                @AccountCard("Platino", accountSnapshot.Platinum, "PL")
+                @AccountCard("Maestría", accountSnapshot.MasteryRank, "MR")
+                @AccountCard("Colección", accountSnapshot.CompletionPercentage, "%")
+                @AccountCard("Reliquias abiertas", accountSnapshot.RelicsOpened, "OPEN")
+            </div>
+        </section>
+    }
+
     <MudGrid Class="mt-4">
         <MudItem xs="12" md="5">
             <MudPaper Class="relic-sync-card">
@@ -34,7 +64,11 @@
                 <ol class="relic-sync-steps">
                     <li>Abre AlecaFrame y entra en <b>Stats</b>.</li>
                     <li>Selecciona <b>Create Public Link</b>.</li>
-                    <li>Activa únicamente el permiso <b>Relics</b>.</li>
+                    <li>
+                        Activa <b>Platinum, Ducats, Endo, Credits, Account Data, Aya</b>
+                        y <b>Relics</b>.
+                    </li>
+                    <li>Deja <b>Trades</b> apagado si no quieres compartir el historial.</li>
                     <li>Genera el enlace y copia su token.</li>
                 </ol>
                 <a class="relic-sync-doc-link"
@@ -47,14 +81,19 @@
                     Si AlecaFrame está desactualizado, entra a un repetidor o dojo y vuelve al
                     orbitador antes de analizar.
                 </MudAlert>
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-3">
+                    El enlace público de AlecaFrame no expone Warframes, armas, mods ni recursos
+                    individuales. Esos catálogos no se marcarán automáticamente.
+                </MudAlert>
             </MudPaper>
         </MudItem>
 
         <MudItem xs="12" md="7">
             <MudPaper Class="relic-sync-card">
-                <MudText Typo="Typo.h5">2. Analizar inventario</MudText>
+                <MudText Typo="Typo.h5">2. Analizar cuenta</MudText>
                 <MudText Typo="Typo.body2" Class="mb-3">
-                    El análisis no cambia ninguna cantidad. Primero verás una comparación completa.
+                    El análisis no cambia nada. Primero verás el perfil y las reliquias que se
+                    actualizarían.
                 </MudText>
                 <MudTextField T="string"
                               @bind-Value="token"
@@ -99,7 +138,7 @@
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
             <div>
                 <b>@busyMessage</b>
-                <span>Consultando y relacionando las variantes de forma segura.</span>
+                <span>Consultando el perfil y relacionando las reliquias de forma segura.</span>
             </div>
         </MudPaper>
     }
@@ -123,11 +162,24 @@
                            Variant="Variant.Filled"
                            Color="Color.Success"
                            StartIcon="@Icons.Material.Filled.DoneAll"
-                           Disabled="@(busy || preview.Changes.Count == 0)">
-                    Aplicar @preview.Changes.Count cambios
+                           Disabled="@busy">
+                    Aplicar perfil y @preview.Changes.Count reliquias
                 </MudButton>
             </div>
 
+            <MudText Typo="Typo.h5" Class="mb-3">Perfil recibido</MudText>
+            <div class="account-sync-grid account-sync-grid--preview">
+                @PreviewAccountCard("Créditos", preview.AccountStats.Credits, preview.PreviousAccount?.Credits, "CR")
+                @PreviewAccountCard("Endo", preview.AccountStats.Endo, preview.PreviousAccount?.Endo, "ENDO")
+                @PreviewAccountCard("Ducados", preview.AccountStats.Ducats, preview.PreviousAccount?.Ducats, "DUC")
+                @PreviewAccountCard("Aya", preview.AccountStats.Aya, preview.PreviousAccount?.Aya, "AYA")
+                @PreviewAccountCard("Platino", preview.AccountStats.Platinum, preview.PreviousAccount?.Platinum, "PL")
+                @PreviewAccountCard("Maestría", preview.AccountStats.MasteryRank, preview.PreviousAccount?.MasteryRank, "MR")
+                @PreviewAccountCard("Colección", preview.AccountStats.CompletionPercentage, preview.PreviousAccount?.CompletionPercentage, "%")
+                @PreviewAccountCard("Reliquias abiertas", preview.AccountStats.RelicsOpened, preview.PreviousAccount?.RelicsOpened, "OPEN")
+            </div>
+
+            <MudText Typo="Typo.h5" Class="mb-3">Inventario de reliquias</MudText>
             <div class="relic-sync-metrics">
                 <div><span>Entradas recibidas</span><b>@preview.SourceCount</b></div>
                 <div><span>Variantes reconocidas</span><b>@preview.MatchedCount</b></div>
@@ -157,7 +209,8 @@
             @if (preview.Changes.Count == 0)
             {
                 <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
-                    Tu inventario local ya coincide con AlecaFrame.
+                    Tus reliquias locales ya coinciden con AlecaFrame. Aún puedes confirmar para
+                    actualizar el perfil de cuenta y su fecha.
                 </MudAlert>
             }
             else
@@ -207,8 +260,9 @@
         <div>
             <b>Qué guardamos</b>
             <span>
-                Solo el token público cifrado, la fecha de sincronización y las cantidades de
-                reliquias. Nunca solicitamos tu correo, contraseña ni código de Warframe.
+                Solo el token público cifrado, el último estado del perfil y las cantidades de
+                reliquias. No almacenamos el historial de intercambios ni solicitamos correo,
+                contraseña o código de Warframe.
             </span>
         </div>
     </MudPaper>
@@ -225,12 +279,14 @@
     private Severity messageSeverity = Severity.Info;
     private RelicSyncStatus status = RelicSyncStatus.Empty;
     private RelicSyncPreview? preview;
+    private AlecaAccountSnapshot? accountSnapshot;
 
     protected override async Task OnInitializedAsync()
     {
         var authentication = await AuthState.GetAuthenticationStateAsync();
         userId = authentication.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
         status = await SyncService.GetStatusAsync(userId);
+        accountSnapshot = await SyncService.GetAccountSnapshotAsync(userId);
     }
 
     private string StatusText => status.LastSyncUtc is null
@@ -253,13 +309,13 @@
 
     private async Task PreviewAsync()
     {
-        await RunBusyAsync("Leyendo inventario de AlecaFrame", async () =>
+        await RunBusyAsync("Leyendo cuenta de AlecaFrame", async () =>
         {
             preview = await SyncService.PreviewAsync(userId, token, rememberToken);
             status = await SyncService.GetStatusAsync(userId);
             message = preview.Changes.Count == 0
-                ? "El inventario ya está sincronizado."
-                : $"Análisis terminado: {preview.Changes.Count} cambios pendientes.";
+                ? "Perfil recibido; las reliquias ya coinciden."
+                : $"Perfil recibido y {preview.Changes.Count} cambios de reliquias pendientes.";
             messageSeverity = preview.UnknownRelics.Count > 0 || !preview.IsAuthoritative
                 ? Severity.Warning
                 : Severity.Info;
@@ -272,13 +328,14 @@
     {
         if (preview is null)
             return;
-        await RunBusyAsync("Aplicando inventario confirmado", async () =>
+        await RunBusyAsync("Aplicando perfil e inventario confirmado", async () =>
         {
-            var changed = await SyncService.ApplyAsync(userId, preview);
+            var result = await SyncService.ApplyAsync(userId, preview);
             preview = null;
             changeFilter = "";
             status = await SyncService.GetStatusAsync(userId);
-            message = $"Sincronización completada: {changed} cantidades actualizadas.";
+            accountSnapshot = await SyncService.GetAccountSnapshotAsync(userId);
+            message = $"Cuenta sincronizada: perfil actualizado y {result.RelicChanges} cantidades de reliquias modificadas.";
             messageSeverity = Severity.Success;
         });
     }
@@ -291,9 +348,40 @@
             status = await SyncService.GetStatusAsync(userId);
             preview = null;
             token = "";
-            message = "El token cifrado fue eliminado. Tu inventario no se modificó.";
+            message = "El token cifrado fue eliminado. El perfil y el inventario guardados no se modificaron.";
             messageSeverity = Severity.Info;
         });
+    }
+
+    private RenderFragment AccountCard(string label, long? value, string unit) => @<div>
+        <span>@label</span>
+        <b>@FormatAccountValue(value)</b>
+        <small>@unit</small>
+    </div>;
+
+    private RenderFragment PreviewAccountCard(
+        string label,
+        long? value,
+        long? previous,
+        string unit) => @<div class="@(value is null ? "is-unavailable" : "")">
+        <span>@label</span>
+        <b>@FormatAccountValue(value)</b>
+        <small>@AccountDifference(value, previous, unit)</small>
+    </div>;
+
+    private static string FormatAccountValue(long? value)
+        => value?.ToString("N0") ?? "Sin permiso";
+
+    private static string AccountDifference(long? value, long? previous, string unit)
+    {
+        if (value is null)
+            return "No compartido";
+        if (previous is null)
+            return $"Nuevo · {unit}";
+        var difference = value.Value - previous.Value;
+        if (difference == 0)
+            return $"Sin cambio · {unit}";
+        return $"{(difference > 0 ? "+" : "")}{difference:N0} · {unit}";
     }
 
     private async Task RunBusyAsync(string operation, Func<Task> action)

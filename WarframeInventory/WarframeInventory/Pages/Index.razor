@@ -59,6 +59,30 @@
                 <MudText Typo="Typo.h5">@_dashboard.Insight</MudText>
             </div>
 
+            @if (_dashboard.Account is not null)
+            {
+                <div class="panel-heading account-home-heading">
+                    <div>
+                        <span>TELEMETRÍA ALECAFRAME</span>
+                        <MudText Typo="Typo.h5">Estado de la cuenta</MudText>
+                    </div>
+                    <MudButton Href="/account-sync" Variant="Variant.Text" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Sync">
+                        Sincronizar
+                    </MudButton>
+                </div>
+                <div class="account-sync-grid account-home-grid">
+                    <div><span>Créditos</span><b>@FormatAccount(_dashboard.Account.Credits)</b><small>CR</small></div>
+                    <div><span>Endo</span><b>@FormatAccount(_dashboard.Account.Endo)</b><small>ENDO</small></div>
+                    <div><span>Ducados</span><b>@FormatAccount(_dashboard.Account.Ducats)</b><small>DUC</small></div>
+                    <div><span>Aya</span><b>@FormatAccount(_dashboard.Account.Aya)</b><small>AYA</small></div>
+                    <div><span>Platino</span><b>@FormatAccount(_dashboard.Account.Platinum)</b><small>PL</small></div>
+                    <div><span>Maestría</span><b>@FormatAccount(_dashboard.Account.MasteryRank)</b><small>MR</small></div>
+                    <div><span>Colección</span><b>@FormatAccount(_dashboard.Account.CompletionPercentage)</b><small>%</small></div>
+                    <div><span>Reliquias abiertas</span><b>@FormatAccount(_dashboard.Account.RelicsOpened)</b><small>OPEN</small></div>
+                </div>
+            }
+
             <MudGrid>
                 @foreach (var metric in _dashboard.Metrics)
                 {
@@ -191,6 +215,8 @@
         "MD-03" => _counts?.Mods ?? 0,
         _ => _counts?.Relics ?? 0
     };
+    private static string FormatAccount(long? value)
+        => value?.ToString("N0") ?? "—";
     private static string CategoryLabel(string category) => category switch
     {
         "warframe" => "Warframe",

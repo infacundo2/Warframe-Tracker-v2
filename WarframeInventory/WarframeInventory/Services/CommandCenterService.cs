@@ -58,6 +58,8 @@ public sealed class CommandCenterService
             .OrderByDescending(x => x.OccurredUtc)
             .Take(12)
             .ToListAsync(ct);
+        var account = await db.AlecaAccountSnapshots.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.UserId == userId, ct);
         await ResolveNamesAsync(db, recent, ct);
 
         var metrics = new[]
@@ -79,7 +81,8 @@ public sealed class CommandCenterService
             oneAwayCount,
             relicCopies,
             recent,
-            insight);
+            insight,
+            account);
     }
 
     private static async Task ResolveNamesAsync(
@@ -144,7 +147,8 @@ public sealed record CommandCenterSnapshot(
     int OneAwaySets,
     int RelicCopies,
     IReadOnlyList<InventoryEvent> RecentEvents,
-    string Insight);
+    string Insight,
+    AlecaAccountSnapshot? Account);
 
 public sealed record CollectionMetric(string Label, int Owned, int Total, string Route)
 {

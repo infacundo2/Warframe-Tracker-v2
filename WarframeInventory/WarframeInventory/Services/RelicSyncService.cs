@@ -42,6 +42,15 @@ public sealed class RelicSyncService
                 profile.LastStatus);
     }
 
+    public async Task<AlecaAccountSnapshot?> GetAccountSnapshotAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        return await db.AlecaAccountSnapshots.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+    }
+
     public async Task<RelicSyncPreview> PreviewAsync(
         string userId,
         string? suppliedToken,
@@ -53,8 +62,10 @@ public sealed class RelicSyncService
 
         var token = await ResolveTokenAsync(userId, suppliedToken, cancellationToken);
         AlecaRelicInventory sourceInventory;
+        AlecaPublicStats accountStats;
         try
         {
+            accountStats = await _client.GetPublicStatsAsync(token, cancellationToken);
             sourceInventory = await _client.GetRelicsAsync(token, cancellationToken);
         }
         catch (Exception exception)
@@ -122,6 +133,8 @@ public sealed class RelicSyncService
         var current = await db.UserRelics.AsNoTracking()
             .Where(x => x.UserId == userId && x.Quantity > 0)
             .ToDictionaryAsync(x => x.RelicUnique, x => x.Quantity, cancellationToken);
+        var currentAccount = await db.AlecaAccountSnapshots.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
 
         var changes = new List<RelicSyncChange>();
         foreach (var entry in matched.Values)
@@ -187,6 +200,8 @@ public sealed class RelicSyncService
             matched.Count,
             sourceInventory.SkippedRecords,
             sourceInventory.IsAuthoritative,
+            accountStats,
+            currentAccount is null ? null : ToAccountValues(currentAccount),
             unknown.OrderBy(x => x).ToList(),
             matched.Values.ToDictionary(x => x.UniqueName, StringComparer.Ordinal),
             preservedUniqueNames,
@@ -197,7 +212,7 @@ public sealed class RelicSyncService
                 .ToList());
     }
 
-    public async Task<int> ApplyAsync(
+    public async Task<RelicSyncApplyResult> ApplyAsync(
         string userId,
         RelicSyncPreview preview,
         CancellationToken cancellationToken = default)
@@ -238,6 +253,17 @@ public sealed class RelicSyncService
             }
         }
 
+        var account = await db.AlecaAccountSnapshots
+            .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+        if (account is null)
+        {
+            account = new AlecaAccountSnapshot { UserId = userId };
+            db.AlecaAccountSnapshots.Add(account);
+        }
+
+        ApplyAccountStats(account, preview.AccountStats);
+        account.SyncedUtc = DateTime.UtcNow;
+
         var profile = await db.RelicSyncProfiles
             .SingleAsync(x => x.UserId == userId, cancellationToken);
         profile.LastSyncUtc = DateTime.UtcNow;
@@ -245,7 +271,7 @@ public sealed class RelicSyncService
         profile.LastError = null;
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return changed;
+        return new RelicSyncApplyResult(changed, account.SyncedUtc);
     }
 
     public async Task DisconnectAsync(
@@ -278,7 +304,7 @@ public sealed class RelicSyncService
             .SingleOrDefaultAsync(cancellationToken);
         if (string.IsNullOrWhiteSpace(protectedToken))
             throw new RelicSyncException(
-                "Pega un token público de AlecaFrame con permiso para reliquias.");
+                "Pega un token público de AlecaFrame con permisos de cuenta y reliquias.");
 
         try
         {
@@ -383,6 +409,44 @@ public sealed class RelicSyncService
 
     private static string ToTitle(string value)
         => CultureInfo.GetCultureInfo("es-CL").TextInfo.ToTitleCase(value.ToLowerInvariant());
+
+    private static AlecaAccountValues ToAccountValues(AlecaAccountSnapshot snapshot)
+        => new(
+            snapshot.Platinum,
+            snapshot.Credits,
+            snapshot.Endo,
+            snapshot.Ducats,
+            snapshot.Aya,
+            snapshot.MasteryRank,
+            snapshot.CompletionPercentage,
+            snapshot.RelicsOpened,
+            snapshot.TradeCount,
+            snapshot.PublicUsername,
+            snapshot.SourceTimestampUtc,
+            snapshot.SyncedUtc);
+
+    private static void ApplyAccountStats(
+        AlecaAccountSnapshot target,
+        AlecaPublicStats source)
+    {
+        target.Platinum = source.Platinum;
+        target.Credits = source.Credits;
+        target.Endo = source.Endo;
+        target.Ducats = source.Ducats;
+        target.Aya = source.Aya;
+        target.MasteryRank = source.MasteryRank;
+        target.CompletionPercentage = source.CompletionPercentage;
+        target.RelicsOpened = source.RelicsOpened;
+        target.TradeCount = source.TradeCount;
+        target.PublicUsername = source.PublicUsername;
+        target.Permissions = (int)source.Permissions;
+        target.SourceTimestampUtc = source.SourceTimestamp.Kind switch
+        {
+            DateTimeKind.Utc => source.SourceTimestamp,
+            DateTimeKind.Local => source.SourceTimestamp.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(source.SourceTimestamp, DateTimeKind.Utc)
+        };
+    }
 }
 
 public sealed record RelicSyncStatus(
@@ -402,6 +466,8 @@ public sealed record RelicSyncPreview(
     int MatchedCount,
     int SkippedRecords,
     bool IsAuthoritative,
+    AlecaPublicStats AccountStats,
+    AlecaAccountValues? PreviousAccount,
     IReadOnlyList<string> UnknownRelics,
     IReadOnlyDictionary<string, MatchedRelic> Matched,
     IReadOnlySet<string> PreservedUniqueNames,
@@ -419,3 +485,21 @@ public sealed record RelicSyncChange(
     string Refinement,
     int PreviousQuantity,
     int NewQuantity);
+
+public sealed record RelicSyncApplyResult(
+    int RelicChanges,
+    DateTime SyncedUtc);
+
+public sealed record AlecaAccountValues(
+    int? Platinum,
+    long? Credits,
+    int? Endo,
+    int? Ducats,
+    int? Aya,
+    int? MasteryRank,
+    int? CompletionPercentage,
+    int? RelicsOpened,
+    int? TradeCount,
+    string? PublicUsername,
+    DateTime SourceTimestampUtc,
+    DateTime SyncedUtc);

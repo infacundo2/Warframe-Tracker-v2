@@ -65,3 +65,19 @@ inventario: todas respondieron HTTP 200.
 El navegador integrado no pudo inicializarse por falta de la política de sandbox
 del propio entorno. La validación visual interactiva debe repetirse en un
 navegador disponible antes de fusionar a `main`; no se sustituye por el smoke test.
+
+## Sincronización general de AlecaFrame — 2026-07-27
+
+- Swagger oficial auditado: el enlace público permite Platino, Ducados, Endo,
+  Créditos, datos de cuenta, Aya y reliquias; no expone Warframes, armas, mods
+  ni recursos individuales.
+- Migración `20260728001253_AddAlecaAccountSnapshot` aplicada correctamente.
+  Solo crea una tabla con clave foránea a Identity y un snapshot por usuario.
+- El parser de estadísticas se probó con todos los permisos compartidos y
+  valores de créditos, Endo, ducados, Aya, platino, maestría, colección y
+  reliquias abiertas.
+- No se almacena el historial de intercambios ni la respuesta JSON completa.
+  El token continúa cifrado mediante Data Protection.
+- Compilación Release: 0 errores y 0 advertencias.
+- Smoke test Release HTTP 200 en `/account-sync`, `/relic-sync` y `/`; el
+  proceso temporal se cerró y el puerto 8080 quedó libre.

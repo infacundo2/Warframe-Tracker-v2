@@ -930,14 +930,15 @@ img { color: transparent; }
     border-color: rgba(216, 184, 92, .45);
 }
 
-/* Sincronización segura de reliquias */
+/* Sincronización segura de cuenta y reliquias */
 .relic-sync-page {
     padding-top: 1.5rem;
     padding-bottom: 3rem;
 }
 
 .relic-sync-hero,
-.relic-sync-preview {
+.relic-sync-preview,
+.account-sync-summary {
     padding: clamp(1.2rem, 3vw, 2rem);
 }
 
@@ -1040,6 +1041,81 @@ img { color: transparent; }
     margin-bottom: 1.2rem;
 }
 
+.account-sync-time {
+    color: #8ca8b3;
+    font-size: .8rem;
+    letter-spacing: .06em;
+}
+
+.account-sync-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .7rem;
+}
+
+.account-sync-grid--preview {
+    margin-bottom: 1.5rem;
+}
+
+.account-home-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.2rem;
+}
+
+.account-home-grid {
+    margin-bottom: 1.4rem;
+}
+
+.account-sync-grid > div {
+    position: relative;
+    display: flex;
+    min-height: 6.2rem;
+    flex-direction: column;
+    justify-content: center;
+    padding: .85rem 1rem;
+    overflow: hidden;
+    border: 1px solid rgba(119, 231, 255, .22);
+    background:
+        radial-gradient(circle at 85% 20%, rgba(119, 231, 255, .12), transparent 40%),
+        rgba(5, 14, 21, .72);
+}
+
+.account-sync-grid > div::after {
+    content: "";
+    position: absolute;
+    right: -.8rem;
+    bottom: -.8rem;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid rgba(216, 184, 106, .28);
+    transform: rotate(45deg);
+}
+
+.account-sync-grid span {
+    color: #8ca8b3;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.account-sync-grid b {
+    color: #eaf9ff;
+    font-size: clamp(1.25rem, 2.3vw, 1.85rem);
+    line-height: 1.1;
+}
+
+.account-sync-grid small {
+    color: #d8b86a;
+    font-size: .7rem;
+    letter-spacing: .08em;
+}
+
+.account-sync-grid .is-unavailable {
+    opacity: .58;
+}
+
 .relic-sync-metrics {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1123,8 +1199,18 @@ img { color: transparent; }
         grid-template-columns: 1fr 1fr;
     }
 
+    .account-sync-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
     .relic-sync-table {
         min-width: 42rem;
+    }
+}
+
+@media (max-width: 430px) {
+    .account-sync-grid {
+        grid-template-columns: 1fr;
     }
 }
 

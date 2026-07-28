@@ -16,7 +16,7 @@ usuarios autenticados pueden registrar propiedad y cantidades de inventario.
   `/auth/register` verificadas con HTTP 200.
 - .NET SDK utilizado: 8.0.423.
 - Las migraciones están aplicadas hasta
-  `20260727092214_AddRelicSyncProfile`.
+  `20260728001253_AddAlecaAccountSnapshot`.
 - Ocho filas de inventario que referenciaban usuarios inexistentes fueron
   preservadas en `OrphanedWarframeInventory`; no se perdió el contenido.
 
@@ -31,6 +31,7 @@ Catálogo:
 - `RelicRewards`
 - `DataSyncStates`
 - `RelicSyncProfiles`
+- `AlecaAccountSnapshots`
 
 Inventario:
 
@@ -78,6 +79,13 @@ La aplicación también usa las tablas `AspNet*` de Identity y
   encabezado puede contar variantes que luego Aleca omite parcialmente. Esos
   registros de 8 bytes se saltan, el resto se recupera y la vista previa entra
   en modo seguro, sin poner reliquias ausentes en cero.
+- El mismo enlace público puede sincronizar el último perfil compartido por
+  AlecaFrame: créditos, Endo, ducados, Aya, platino, rango de maestría,
+  porcentaje de colección y reliquias abiertas. Se guarda un único snapshot
+  confirmado por usuario; no se persiste el historial de intercambios.
+- La API pública de AlecaFrame no expone la colección completa de Warframes,
+  armas, mods ni recursos individuales. La interfaz lo informa explícitamente
+  y no simula esos datos.
 
 ## Configuración local
 
