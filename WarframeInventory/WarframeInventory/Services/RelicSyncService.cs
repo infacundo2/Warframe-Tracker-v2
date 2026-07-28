@@ -52,10 +52,10 @@ public sealed class RelicSyncService
             throw new RelicSyncException("Debes iniciar sesión para sincronizar.");
 
         var token = await ResolveTokenAsync(userId, suppliedToken, cancellationToken);
-        IReadOnlyList<AlecaRelicEntry> sourceEntries;
+        AlecaRelicInventory sourceInventory;
         try
         {
-            sourceEntries = await _client.GetRelicsAsync(token, cancellationToken);
+            sourceInventory = await _client.GetRelicsAsync(token, cancellationToken);
         }
         catch (Exception exception)
         {
@@ -63,6 +63,7 @@ public sealed class RelicSyncService
             throw;
         }
 
+        var sourceEntries = sourceInventory.Entries;
         if (sourceEntries.Count == 0)
             throw new RelicSyncException(
                 "AlecaFrame devolvió cero reliquias. Por seguridad no se modificará el inventario.");
@@ -137,22 +138,25 @@ public sealed class RelicSyncService
             }
         }
 
-        foreach (var (uniqueName, previous) in current)
+        if (sourceInventory.IsAuthoritative)
         {
-            if (matched.ContainsKey(uniqueName)
-                || preservedUniqueNames.Contains(uniqueName))
-                continue;
+            foreach (var (uniqueName, previous) in current)
+            {
+                if (matched.ContainsKey(uniqueName)
+                    || preservedUniqueNames.Contains(uniqueName))
+                    continue;
 
-            var relic = catalog.FirstOrDefault(x => x.UniqueName == uniqueName);
-            if (relic is null)
-                continue;
+                var relic = catalog.FirstOrDefault(x => x.UniqueName == uniqueName);
+                if (relic is null)
+                    continue;
 
-            changes.Add(new RelicSyncChange(
-                uniqueName,
-                relic.Name,
-                RefinementFromUnique(uniqueName),
-                previous,
-                0));
+                changes.Add(new RelicSyncChange(
+                    uniqueName,
+                    relic.Name,
+                    RefinementFromUnique(uniqueName),
+                    previous,
+                    0));
+            }
         }
 
         var now = DateTime.UtcNow;
@@ -170,7 +174,7 @@ public sealed class RelicSyncService
             profile.ProtectedToken = null;
 
         profile.LastPreviewUtc = now;
-        profile.LastSourceCount = sourceEntries.Count;
+        profile.LastSourceCount = sourceInventory.DeclaredCount;
         profile.LastMatchedCount = matched.Count;
         profile.LastStatus = "Previewed";
         profile.LastError = null;
@@ -179,8 +183,10 @@ public sealed class RelicSyncService
         return new RelicSyncPreview(
             userId,
             now,
-            sourceEntries.Count,
+            sourceInventory.DeclaredCount,
             matched.Count,
+            sourceInventory.SkippedRecords,
+            sourceInventory.IsAuthoritative,
             unknown.OrderBy(x => x).ToList(),
             matched.Values.ToDictionary(x => x.UniqueName, StringComparer.Ordinal),
             preservedUniqueNames,
@@ -394,6 +400,8 @@ public sealed record RelicSyncPreview(
     DateTime CreatedUtc,
     int SourceCount,
     int MatchedCount,
+    int SkippedRecords,
+    bool IsAuthoritative,
     IReadOnlyList<string> UnknownRelics,
     IReadOnlyDictionary<string, MatchedRelic> Matched,
     IReadOnlySet<string> PreservedUniqueNames,

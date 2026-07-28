@@ -135,6 +135,16 @@
                 <div><span>Quedan en cero</span><b>@RemovalCount</b></div>
             </div>
 
+            @if (!preview.IsAuthoritative)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+                    AlecaFrame envió @preview.SkippedRecords
+                    @(preview.SkippedRecords == 1 ? "registro incompleto" : "registros incompletos").
+                    Recuperamos el resto del inventario y activamos el modo seguro: se actualizarán
+                    las reliquias reconocidas, pero ninguna reliquia local ausente quedará en cero.
+                </MudAlert>
+            }
+
             @if (preview.UnknownRelics.Count > 0)
             {
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
@@ -250,7 +260,9 @@
             message = preview.Changes.Count == 0
                 ? "El inventario ya está sincronizado."
                 : $"Análisis terminado: {preview.Changes.Count} cambios pendientes.";
-            messageSeverity = preview.UnknownRelics.Count > 0 ? Severity.Warning : Severity.Info;
+            messageSeverity = preview.UnknownRelics.Count > 0 || !preview.IsAuthoritative
+                ? Severity.Warning
+                : Severity.Info;
             if (rememberToken)
                 token = "";
         });

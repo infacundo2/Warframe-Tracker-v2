@@ -74,6 +74,10 @@ La aplicación también usa las tablas `AspNet*` de Identity y
 - La importación externa siempre crea una vista previa y solo aplica las filas
   confirmadas. Respuestas vacías, formatos inválidos o catálogos con demasiadas
   entradas desconocidas se bloquean sin modificar el inventario.
+- El cliente AlecaFrame corrige una inconsistencia de su formato actual: el
+  encabezado puede contar variantes que luego Aleca omite parcialmente. Esos
+  registros de 8 bytes se saltan, el resto se recupera y la vista previa entra
+  en modo seguro, sin poner reliquias ausentes en cero.
 
 ## Configuración local
 
@@ -123,6 +127,12 @@ el sandbox Windows original por un error local de credenciales TLS/Schannel.
 El código compila y el fallo se registra de manera segura en `DataSyncStates`.
 En el nuevo PC o en Render se debe verificar que una ejecución complete y
 pueble `RelicRewards`. No borrar los catálogos actuales si la API falla.
+
+Un conector propio de inventario completo no puede ejecutarse dentro del
+navegador. La vía técnicamente viable es una extensión Overwolf propia que lea
+`match_info.inventory` y lo envíe solo a `localhost`; para cargar una extensión
+sin publicar, Overwolf exige una cuenta de desarrollador autorizada. No usar
+lectura de memoria, interceptación de red ni APIs privadas de Warframe.
 
 ## Archivos clave
 
