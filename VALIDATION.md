@@ -84,3 +84,9 @@ navegador disponible antes de fusionar a `main`; no se sustituye por el smoke te
 - Compilación Release: 0 errores y 0 advertencias.
 - Smoke test Release HTTP 200 en `/account-sync`, `/relic-sync` y `/`; el
   proceso temporal se cerró y el puerto 8080 quedó libre.
+- El flujo real guardado se reprodujo de extremo a extremo sin imprimir el
+  token: 131 entradas declaradas, 130 reconocidas, una conservada y 130
+  cantidades aplicadas dentro de una transacción exitosa.
+- Los errores inesperados durante `Aplicar` ahora revierten la transacción,
+  registran una causa técnica acotada en `RelicSyncProfiles.LastError` y
+  devuelven una instrucción segura para reintentar.

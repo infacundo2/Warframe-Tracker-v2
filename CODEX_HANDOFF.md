@@ -81,6 +81,9 @@ La aplicación también usa las tablas `AspNet*` de Identity y
   en modo seguro, sin poner reliquias ausentes en cero.
 - Algunas versiones también cuentan registros que luego omiten por completo.
   La diferencia se contabiliza como omitida, conservando el mismo modo seguro.
+- `ApplyAsync` captura fallos inesperados, deja que la transacción se revierta,
+  registra el tipo y mensaje raíz en `LastError` y no expone detalles SQL en la
+  interfaz.
 - El mismo enlace público puede sincronizar el último perfil compartido por
   AlecaFrame: créditos, Endo, ducados, Aya, platino, rango de maestría,
   porcentaje de colección y reliquias abiertas. Se guarda un único snapshot
@@ -143,6 +146,12 @@ navegador. La vía técnicamente viable es una extensión Overwolf propia que le
 `match_info.inventory` y lo envíe solo a `localhost`; para cargar una extensión
 sin publicar, Overwolf exige una cuenta de desarrollador autorizada. No usar
 lectura de memoria, interceptación de red ni APIs privadas de Warframe.
+
+Overwolf también documenta GEP para aplicaciones Electron y lista Warframe con
+`match_info.inventory`. Una futura versión de escritorio puede conservar el
+backend ASP.NET local dentro de una carcasa Electron y sustituir AlecaFrame por
+un paquete GEP propio. El proveedor de `match_info` seguiría siendo Overwolf;
+no intentar replicarlo leyendo memoria o tráfico del juego.
 
 ## Archivos clave
 

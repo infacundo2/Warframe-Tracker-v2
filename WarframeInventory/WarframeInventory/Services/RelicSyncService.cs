@@ -223,55 +223,76 @@ public sealed class RelicSyncService
             throw new RelicSyncException(
                 "La vista previa venció. Analiza nuevamente el inventario antes de aplicarlo.");
 
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        var stored = await db.UserRelics
-            .Where(x => x.UserId == userId)
-            .ToDictionaryAsync(x => x.RelicUnique, cancellationToken);
-        var changed = 0;
-
-        foreach (var change in preview.Changes)
+        try
         {
-            if (!stored.TryGetValue(change.UniqueName, out var userRelic))
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            var stored = await db.UserRelics
+                .Where(x => x.UserId == userId)
+                .ToDictionaryAsync(x => x.RelicUnique, cancellationToken);
+            var changed = 0;
+
+            foreach (var change in preview.Changes)
             {
-                if (change.NewQuantity == 0)
-                    continue;
-                userRelic = new UserRelic
+                if (!stored.TryGetValue(change.UniqueName, out var userRelic))
                 {
-                    UserId = userId,
-                    RelicUnique = change.UniqueName,
-                    Quantity = change.NewQuantity
-                };
-                db.UserRelics.Add(userRelic);
-                stored[change.UniqueName] = userRelic;
-                changed++;
+                    if (change.NewQuantity == 0)
+                        continue;
+                    userRelic = new UserRelic
+                    {
+                        UserId = userId,
+                        RelicUnique = change.UniqueName,
+                        Quantity = change.NewQuantity
+                    };
+                    db.UserRelics.Add(userRelic);
+                    stored[change.UniqueName] = userRelic;
+                    changed++;
+                }
+                else if (userRelic.Quantity != change.NewQuantity)
+                {
+                    userRelic.Quantity = change.NewQuantity;
+                    changed++;
+                }
             }
-            else if (userRelic.Quantity != change.NewQuantity)
+
+            var account = await db.AlecaAccountSnapshots
+                .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+            if (account is null)
             {
-                userRelic.Quantity = change.NewQuantity;
-                changed++;
+                account = new AlecaAccountSnapshot { UserId = userId };
+                db.AlecaAccountSnapshots.Add(account);
             }
-        }
 
-        var account = await db.AlecaAccountSnapshots
-            .SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
-        if (account is null)
+            ApplyAccountStats(account, preview.AccountStats);
+            account.SyncedUtc = DateTime.UtcNow;
+
+            var profile = await db.RelicSyncProfiles
+                .SingleAsync(x => x.UserId == userId, cancellationToken);
+            profile.LastSyncUtc = DateTime.UtcNow;
+            profile.LastStatus = "Succeeded";
+            profile.LastError = null;
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return new RelicSyncApplyResult(changed, account.SyncedUtc);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            account = new AlecaAccountSnapshot { UserId = userId };
-            db.AlecaAccountSnapshots.Add(account);
+            throw;
         }
-
-        ApplyAccountStats(account, preview.AccountStats);
-        account.SyncedUtc = DateTime.UtcNow;
-
-        var profile = await db.RelicSyncProfiles
-            .SingleAsync(x => x.UserId == userId, cancellationToken);
-        profile.LastSyncUtc = DateTime.UtcNow;
-        profile.LastStatus = "Succeeded";
-        profile.LastError = null;
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return new RelicSyncApplyResult(changed, account.SyncedUtc);
+        catch (RelicSyncException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            var root = exception.GetBaseException();
+            await RecordFailureAsync(
+                userId,
+                $"Apply/{root.GetType().Name}: {root.Message}",
+                CancellationToken.None);
+            throw new RelicSyncException(
+                "No se pudo guardar la sincronización. La transacción fue revertida y el inventario quedó intacto. Reinicia la página y vuelve a analizar.");
+        }
     }
 
     public async Task DisconnectAsync(
