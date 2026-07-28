@@ -1,8 +1,9 @@
-Warframe Tracker is a Spanish-first desktop companion that makes inventory and
-farming management more intuitive for Spanish-speaking players. Most existing
-Warframe tools are mainly in English, while our interface uses clear Spanish
-terms, guided filters, relic refinements, drop probabilities, goals, resources,
-and farming routes.
+Warframe Tracker is a Spanish-first desktop companion that helps
+Spanish-speaking players organize their inventory and plan their in-game goals.
+Most existing Warframe tools are mainly in English, while our interface uses
+clear Spanish terms, guided filters, relic probabilities, goals, resource
+information, and suggested missions. It never automates gameplay or obtains
+items for the player.
 
 We request OW Electron GEP access for Warframe (game ID 8954), specifically
 game_info and match_info.inventory. The player opens the in-game inventory, the
