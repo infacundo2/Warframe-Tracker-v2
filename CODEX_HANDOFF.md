@@ -79,6 +79,8 @@ La aplicación también usa las tablas `AspNet*` de Identity y
   encabezado puede contar variantes que luego Aleca omite parcialmente. Esos
   registros de 8 bytes se saltan, el resto se recupera y la vista previa entra
   en modo seguro, sin poner reliquias ausentes en cero.
+- Algunas versiones también cuentan registros que luego omiten por completo.
+  La diferencia se contabiliza como omitida, conservando el mismo modo seguro.
 - El mismo enlace público puede sincronizar el último perfil compartido por
   AlecaFrame: créditos, Endo, ducados, Aya, platino, rango de maestría,
   porcentaje de colección y reliquias abiertas. Se guarda un único snapshot

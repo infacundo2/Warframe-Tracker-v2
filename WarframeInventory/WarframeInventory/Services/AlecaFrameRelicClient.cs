@@ -201,13 +201,22 @@ public sealed class AlecaFrameRelicClient
         if (entries.Count == 0 && count > 0)
             throw new RelicSyncException("AlecaFrame no devolvió ninguna reliquia reconocible.");
 
-        if (entries.Count + skippedRecords != count)
+        var representedRecords = entries.Count + skippedRecords;
+        if (representedRecords > count)
             throw new RelicSyncException(
                 $"El inventario recibido no coincide con su encabezado ({payload.Length} bytes).");
 
-        if (payload.Length != expectedLength && skippedRecords == 0)
+        // AlecaFrame también puede contar una reliquia y omitirla por completo cuando
+        // su nombre interno no tiene las tres partes esperadas. No deja bytes que
+        // permitan identificarla, por lo que solo podemos contabilizarla como ausente.
+        var missingRecords = (int)count - representedRecords;
+        skippedRecords += missingRecords;
+
+        var expectedDeficit = checked(missingRecords * RecordSize
+                                      + (skippedRecords - missingRecords));
+        if (expectedLength - payload.Length != expectedDeficit)
             throw new RelicSyncException(
-                $"El inventario recibido tiene un tamaño inesperado ({payload.Length} bytes).");
+                $"El inventario recibido no coincide con su encabezado ({payload.Length} bytes).");
 
         return new AlecaRelicInventory(entries, (int)count, skippedRecords);
     }

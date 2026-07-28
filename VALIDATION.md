@@ -76,6 +76,9 @@ navegador disponible antes de fusionar a `main`; no se sustituye por el smoke te
 - El parser de estadísticas se probó con todos los permisos compartidos y
   valores de créditos, Endo, ducados, Aya, platino, maestría, colección y
   reliquias abiertas.
+- Regresión binaria verificada con un caso de 1774 bytes: 198 declaradas, 194
+  recuperables, tres registros de 8 bytes y uno contado pero completamente
+  omitido. El resultado conserva cuatro variantes sin ponerlas en cero.
 - No se almacena el historial de intercambios ni la respuesta JSON completa.
   El token continúa cifrado mediante Data Protection.
 - Compilación Release: 0 errores y 0 advertencias.
