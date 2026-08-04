@@ -32,6 +32,7 @@ try {
         $target = Join-Path $targetRoot $capture.File
         & ".\node_modules\.bin\ow-electron.cmd" "." `
             "--qa-route=$($capture.Route)" `
+            "--qa-language=en" `
             "--qa-size=1200x675" `
             "--qa-wait=$($capture.Wait)" `
             "--qa-screenshot=$target"

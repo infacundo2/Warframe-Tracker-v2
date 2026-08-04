@@ -2,7 +2,7 @@
   "name": "warframe-tracker-desktop",
   "productName": "Warframe Tracker",
   "version": "0.1.0",
-  "description": "Asistente Tenno con captura de inventario mediante Overwolf GEP.",
+  "description": "Bilingual Tenno inventory and farming companion powered by Overwolf GEP.",
   "main": "dist/main.js",
   "author": {
     "name": "infacundo2",

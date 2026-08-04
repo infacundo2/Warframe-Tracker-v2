@@ -1,12 +1,10 @@
 {
-  "route": "/welcome?revisar=true",
+  "route": "/worldstate",
   "language": "en",
   "viewportWidth": 1358,
   "viewportHeight": 768,
   "contentWidth": 1358,
-  "contentHeight": 897,
+  "contentHeight": 1978,
   "horizontalOverflow": false,
-  "spanishTextSamples": [
-    "Español"
-  ]
+  "spanishTextSamples": []
 }

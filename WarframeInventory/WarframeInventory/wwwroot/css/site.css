@@ -930,6 +930,42 @@ img { color: transparent; }
     border-color: rgba(216, 184, 92, .45);
 }
 
+.language-control,
+.settings-language-control,
+.ftue-language-control {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    color: #8ca8b3;
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.language-control select,
+.settings-language-control select,
+.ftue-language-control select {
+    min-width: 4.2rem;
+    padding: .42rem .65rem;
+    border: 1px solid rgba(119, 231, 255, .55);
+    border-radius: 2px;
+    color: #eaf9ff;
+    background: #071018;
+    font: inherit;
+    letter-spacing: .08em;
+    cursor: pointer;
+}
+
+.settings-language-control,
+.ftue-language-control {
+    margin-top: .75rem;
+}
+
+@media (max-width: 1050px) {
+    .language-control span { display: none; }
+    .language-control select { min-width: 3.5rem; }
+}
+
 /* First-time experience and public policy/support pages */
 .ftue-shell {
     min-height: calc(100vh - 82px);

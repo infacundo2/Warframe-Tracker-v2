@@ -12,6 +12,18 @@
     </section>
 
     <MudPaper Class="legal-card">
+        <MudText Typo="Typo.h5">Idioma de la interfaz</MudText>
+        <p>El inglés es el idioma predeterminado del MVP. Tu selección se guarda únicamente en este PC.</p>
+        <label class="settings-language-control" data-i18n-ignore="true">
+            <span>Language / Idioma</span>
+            <select data-language-selector onchange="warframeI18n.setLanguage(this.value)" aria-label="Language">
+                <option value="en">English</option>
+                <option value="es">Español</option>
+            </select>
+        </label>
+    </MudPaper>
+
+    <MudPaper Class="legal-card">
         <MudText Typo="Typo.h5">Mostrar u ocultar la aplicación</MudText>
         <p>El atajo funciona mientras Warframe Tracker está abierto, incluso si la ventana está oculta. El cambio nunca bloquea la combinación dentro del juego cuando la aplicación está cerrada.</p>
         <MudSelect T="string" @bind-Value="selectedHotkey" Label="Atajo global" Variant="Variant.Outlined" Class="mt-3">

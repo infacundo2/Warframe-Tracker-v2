@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 $base = $BaseUrl.TrimEnd('/')
 $checks = @(
     @{ Path = "/privacy.html"; Text = "Warframe Tracker Privacy Policy" },
-    @{ Path = "/support.html"; Text = "Soporte" }
+    @{ Path = "/support.html"; Text = "Warframe Tracker Support" }
 )
 
 foreach ($check in $checks) {

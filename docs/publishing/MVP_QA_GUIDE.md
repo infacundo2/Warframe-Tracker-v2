@@ -3,7 +3,7 @@
 Versión evaluada: **0.1.0**  
 Plataforma: **OW‑Electron para Windows 11 x64**  
 Juego: **Warframe, game ID 8954**  
-Idioma principal: **español**
+Idioma predeterminado: **inglés**. Idioma adicional: **español**, seleccionable y persistente.
 
 ## 1. Propósito
 
@@ -27,6 +27,14 @@ No es un proceso oculto ni un puente destinado a alimentar servicios externos.
    utilizar la misma contraseña.
 5. Warframe Tracker almacena los perfiles y el inventario confirmado en SQLite
    dentro de la carpeta local de la aplicación.
+
+El primer inicio siempre utiliza inglés en una instalación limpia. El selector
+`EN / ES` está disponible en la barra superior, en el tutorial y en Ajustes. La
+preferencia se guarda únicamente en el PC y puede cambiarse sin reinstalar.
+
+![Ajustes e idioma predeterminado inglés](screenshots/10-settings-english.jpg)
+
+![El mismo tutorial usando el paquete español](screenshots/12-welcome-spanish.jpg)
 
 ## 3. Captura automática y consentimiento
 

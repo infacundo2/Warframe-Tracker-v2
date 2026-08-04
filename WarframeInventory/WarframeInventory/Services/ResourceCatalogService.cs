@@ -6,9 +6,9 @@ namespace WarframeInventory.Services;
 
 public sealed class ResourceCatalogService
 {
-    private const string CacheKey = "catalog:resources:es:v1";
+    private const string CacheKey = "catalog:resources:en:v2";
     private static readonly Regex LocationPattern = new(
-        @"Ubicaci[oó]n:\s*(?<location>[^\r\n]+)",
+        @"(?:Location|Ubicaci[oó]n):\s*(?<location>[^\r\n]+)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly HttpClient _http;
@@ -19,39 +19,39 @@ public sealed class ResourceCatalogService
         {
             ["/Lotus/Types/Items/MiscItems/OrokinCell"] =
             [
-                new("General Sargas Ruk", "Jefe", "Tethys, Saturno",
-                    "Fuente destacada de Células Orokin.", 2.58),
-                new("Teniente Lech Kril", "Jefe", "War, Ceres",
-                    "Fuente destacada de Células Orokin.", 2.58),
-                new("Otros jefes y el Stalker", "Jefe", "Sistema Origen",
-                    "Pueden soltar Células Orokin; la tasa puede depender del encuentro.", null)
+                new("General Sargas Ruk", "Boss", "Tethys, Saturn",
+                    "Highlighted Orokin Cell source.", 2.58),
+                new("Lieutenant Lech Kril", "Boss", "War, Ceres",
+                    "Highlighted Orokin Cell source.", 2.58),
+                new("Other bosses and the Stalker", "Boss", "Origin System",
+                    "They can drop Orokin Cells; the rate may depend on the encounter.", null)
             ],
             ["/Lotus/Types/Items/MiscItems/NeuralSensor"] =
             [
-                new("Alad V", "Jefe", "Themisto, Júpiter",
-                    "Ruta corta y popular; la tasa exacta del recurso no está publicada.", null)
+                new("Alad V", "Boss", "Themisto, Jupiter",
+                    "Short, popular route; the exact resource rate is not published.", null)
             ],
             ["/Lotus/Types/Items/MiscItems/Neurode"] =
             [
-                new("Lephantis", "Jefe", "Magnacidium, Deimos",
-                    "Puede entregar Neurodos; la tasa exacta no está publicada.", null)
+                new("Lephantis", "Boss", "Magnacidium, Deimos",
+                    "Can drop Neurodes; the exact rate is not published.", null)
             ],
             ["/Lotus/Types/Items/MiscItems/ControlModule"] =
             [
-                new("La Manada de Hienas", "Jefe", "Psamathe, Neptuno",
-                    "Fuente de Módulos de Control; la tasa exacta no está publicada.", null)
+                new("The Hyena Pack", "Boss", "Psamathe, Neptune",
+                    "Control Module source; the exact rate is not published.", null)
             ],
             ["/Lotus/Types/Items/MiscItems/Gallium"] =
             [
-                new("Tyl Regor", "Jefe", "Titania, Urano",
-                    "Fuente regional de Galio; la tasa exacta no está publicada.", null),
-                new("Teniente Lech Kril", "Jefe", "War, Marte",
-                    "Fuente regional de Galio; la tasa exacta no está publicada.", null)
+                new("Tyl Regor", "Boss", "Titania, Uranus",
+                    "Regional Gallium source; the exact rate is not published.", null),
+                new("Lieutenant Lech Kril", "Boss", "War, Mars",
+                    "Regional Gallium source; the exact rate is not published.", null)
             ],
             ["/Lotus/Types/Items/MiscItems/Morphic"] =
             [
-                new("Capitán Vor", "Jefe", "Tolstoj, Mercurio",
-                    "Fuente regional de Mórficos; la tasa exacta no está publicada.", null)
+                new("Captain Vor", "Boss", "Tolstoj, Mercury",
+                    "Regional Morphics source; the exact rate is not published.", null)
             ]
         };
 
@@ -69,7 +69,7 @@ public sealed class ResourceCatalogService
             return cached;
 
         var items = await _http.GetFromJsonAsync<JsonArray>(
-            "items/?language=es", cancellationToken) ?? [];
+            "items/?language=en", cancellationToken) ?? [];
         var resources = items
             .OfType<JsonObject>()
             .Select(ParseResource)
@@ -102,15 +102,14 @@ public sealed class ResourceCatalogService
                 && !LocationPattern.IsMatch(description)))
             return null;
 
-        var location = WarframeSpanishText.Location(
-            LocationPattern.Match(description).Groups["location"].Value.Trim());
+        var location = LocationPattern.Match(description).Groups["location"].Value.Trim();
         var cleanDescription = LocationPattern.Replace(description, "").Trim();
         var drops = item["drops"] is JsonArray dropNodes
             ? dropNodes.OfType<JsonObject>()
                 .Select(drop => new ResourceDrop(
-                    WarframeSpanishText.Location(Text(drop, "location")),
-                    WarframeSpanishText.Type(Text(drop, "type")),
-                    WarframeSpanishText.Rarity(Text(drop, "rarity")),
+                    Text(drop, "location"),
+                    Text(drop, "type"),
+                    Text(drop, "rarity"),
                     Number(drop, "chance"),
                     SourceKind(Text(drop, "location"))))
                 .Where(drop => !string.IsNullOrWhiteSpace(drop.Location))
@@ -126,9 +125,9 @@ public sealed class ResourceCatalogService
             .Select(recommendation => new ResourceDrop(
                 $"{recommendation.Name} · {recommendation.Location}",
                 name,
-                "Recurso raro",
+                "Rare resource",
                 recommendation.Chance!.Value,
-                "Enemigo"))
+                "Enemy"))
             .Where(recommended => drops.All(drop =>
                 !drop.Location.Equals(recommended.Location, StringComparison.OrdinalIgnoreCase))));
         drops = drops.OrderByDescending(drop => drop.Chance)
@@ -158,8 +157,8 @@ public sealed class ResourceCatalogService
            || location.Contains("Alijos", StringComparison.OrdinalIgnoreCase)
            || location.Contains("Mission", StringComparison.OrdinalIgnoreCase)
            || location.Contains("Misión", StringComparison.OrdinalIgnoreCase)
-            ? "Misión"
-            : "Enemigo";
+            ? "Mission"
+            : "Enemy";
 
     private static string Text(JsonObject node, string property)
         => node[property] is JsonValue value

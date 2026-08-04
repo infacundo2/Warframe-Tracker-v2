@@ -48,8 +48,12 @@
 
 ## Entrega y tienda
 
-- [x] Tutorial inicial completo, saltable y revisitable.
-- [x] Guía ilustrada con instrucciones y ocho capturas reales.
+- [x] Inglés predeterminado comprobado con un perfil de idioma limpio.
+- [x] Paquetes locales inglés/español con selector persistente.
+- [x] Doce rutas públicas revisadas sin español residual, salvo la opción deliberada `Español`.
+- [x] Cambio EN → ES → EN comprobado sin reinstalar.
+- [x] Tutorial inicial bilingüe, saltable y revisitable.
+- [x] Guía ilustrada con instrucciones y doce capturas reales, incluyendo EN/ES.
 - [x] Capturas JPG 1200x675 de menos de 100 KB.
 - [x] Icono 55x55 y tile 258x198.
 - [x] Nombre, autor, versión y aviso de marca configurados.

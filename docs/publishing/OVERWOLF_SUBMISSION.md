@@ -6,8 +6,9 @@ consola de distribución después de revisar y aprobar este MVP.
 
 ## Estado del MVP
 
-La aplicación ya dispone de una ventana de escritorio visible, tutorial inicial
-en español, perfil local, catálogo, inventario, reliquias, objetivos, recursos,
+La aplicación ya dispone de una ventana de escritorio visible, interfaz inglesa
+predeterminada con paquete español seleccionable, tutorial bilingüe, perfil local,
+catálogo, inventario, reliquias, objetivos, recursos,
 privacidad, soporte y ajustes. El backend y la base SQLite se ejecutan de forma
 local y el instalador incluye el runtime necesario.
 

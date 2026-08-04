@@ -15,6 +15,13 @@
             <button type="button" class="ftue-skip" @onclick="SkipAsync">
                 Omitir tutorial
             </button>
+            <label class="ftue-language-control" data-i18n-ignore="true">
+                <span>Language / Idioma</span>
+                <select data-language-selector onchange="warframeI18n.setLanguage(this.value)" aria-label="Language">
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                </select>
+            </label>
         </header>
 
         <div class="ftue-progress" aria-label="Progreso del tutorial">
@@ -36,7 +43,7 @@
                     <MudText Typo="Typo.h4">Decide qué farmear sin revisar cientos de objetos</MudText>
                     <MudText>
                         Reúne Warframes, armas, mods, reliquias, componentes y recursos en una
-                        interfaz diseñada primero para jugadores de habla hispana.
+                        interfaz bilingüe disponible en inglés y español.
                     </MudText>
                     <div class="ftue-feature-grid">
                         <div><MudIcon Icon="@Icons.Material.Filled.TrackChanges" /><b>Objetivos</b><span>Prioriza piezas pendientes.</span></div>

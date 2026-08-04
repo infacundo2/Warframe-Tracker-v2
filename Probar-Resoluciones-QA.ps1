@@ -26,6 +26,7 @@ try {
         Remove-Item -LiteralPath $report -Force -ErrorAction SilentlyContinue
         & ".\node_modules\.bin\ow-electron.cmd" "." `
             "--qa-route=/welcome?revisar=true" `
+            "--qa-language=en" `
             "--qa-size=$size" `
             "--qa-layout-report=$report"
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $report)) {
@@ -47,4 +48,3 @@ Write-Host ""
 Write-Host "La prueba automatizada valida el layout. Para completar la matriz oficial,"
 Write-Host "cambia también resolución y escala en Configuración > Sistema > Pantalla:"
 Write-Host "1366x720 100%, 1366x768 100%, 1920x1080 125%, 2560x1440 100% y 3840x2160 150%."
-

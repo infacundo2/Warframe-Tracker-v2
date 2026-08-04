@@ -1,5 +1,5 @@
 ﻿Warframe Tracker - comprobaciÃ³n Windows 11
-Fecha: 2026-08-04 03:26:38Z
+Fecha: 2026-08-04 13:03:45Z
 Sistema: Windows 25H2, build 26200, 64 bits
 Windows 11: APROBADO
 Pantalla: 1536x864; Ã¡rea Ãºtil 1536x816; principal=True
@@ -7,7 +7,7 @@ Pruebas .NET: APROBADO
 TypeScript y OW-Electron: APROBADO
 Instalador: Warframe-Tracker-Setup-0.1.0.exe
 Firma Authenticode: NotSigned
-SHA-256: 01BEA98CBCE30B9630BDD9307F617AF65DFC5ECF17F2992FE12CD86CFC16A325
+SHA-256: 3FAD6251071D7A6B7E77D90F7C53362C43C25AE0957F7DE6F8040D269A27E6BF
 Microsoft Defender activo: True
 Firmas Defender: 1.455.494.0
 AnÃ¡lisis Defender: SIN DETECCIONES

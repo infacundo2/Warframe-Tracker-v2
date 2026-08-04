@@ -1,0 +1,24 @@
+{
+  "route": "/welcome?revisar=true",
+  "language": "es",
+  "viewportWidth": 1358,
+  "viewportHeight": 768,
+  "contentWidth": 1358,
+  "contentHeight": 897,
+  "horizontalOverflow": false,
+  "spanishTextSamples": [
+    "Buscar",
+    "NAVEGACIÓN",
+    "Armas",
+    "Recursos",
+    "Reliquias",
+    "Ajustes",
+    "Privacidad",
+    "Soporte",
+    "Explora el catálogo libremente. Inicia sesión para registrar tu inventario.",
+    "Español",
+    "Decide qué farmear sin revisar cientos de objetos",
+    "Reúne Warframes, armas, mods, reliquias, componentes y recursos en una interfaz bilingüe disponible en inglés y español.",
+    "Objetivos"
+  ]
+}

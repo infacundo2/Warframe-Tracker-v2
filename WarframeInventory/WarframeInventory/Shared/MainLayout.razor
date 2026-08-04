@@ -15,6 +15,13 @@
             <span>WARFRAME <small>REGISTRO</small></span>
         </a>
         <MudSpacer />
+        <label class="language-control" data-i18n-ignore="true">
+            <span>LANG</span>
+            <select data-language-selector onchange="warframeI18n.setLanguage(this.value)" aria-label="Language">
+                <option value="en">EN</option>
+                <option value="es">ES</option>
+            </select>
+        </label>
         <a href="/search" class="command-trigger" aria-label="Abrir búsqueda universal">
             <MudIcon Icon="@Icons.Material.Filled.Search" /><span>Buscar</span><kbd>Ctrl K</kbd>
         </a>

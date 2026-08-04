@@ -5,7 +5,9 @@ Fecha prevista: pendiente de aprobación de QA.
 ## Funciones principales
 
 - Aplicación OW‑Electron con ventana de escritorio y backend ASP.NET local.
-- Tutorial inicial en español, omisible y disponible nuevamente desde el menú.
+- Interfaz completa en inglés como idioma predeterminado y paquete adicional en español.
+- Selector `EN / ES` persistente en la barra superior, el tutorial y Ajustes.
+- Tutorial inicial bilingüe, omisible y disponible nuevamente desde el menú.
 - Captura de inventario de Warframe mediante Overwolf GEP con vista previa y
   confirmación antes de modificar datos.
 - Seguimiento de Warframes, armas, mods, reliquias por refinamiento,

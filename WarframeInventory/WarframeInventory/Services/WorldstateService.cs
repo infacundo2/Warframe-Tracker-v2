@@ -104,7 +104,7 @@ public sealed class WorldstateService
         try
         {
             var response = await _http.GetFromJsonAsync<WorldstateResponse>(
-                "pc?language=es", ct) ?? new();
+                "pc?language=en", ct) ?? new();
             var fissures = response.Fissures
                 .Where(x => x.Active && !x.Expired)
                 .Select(x => new ActiveFissure(

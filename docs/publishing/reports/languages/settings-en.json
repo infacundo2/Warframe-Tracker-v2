@@ -1,10 +1,10 @@
 {
-  "route": "/welcome?revisar=true",
+  "route": "/settings",
   "language": "en",
   "viewportWidth": 1358,
   "viewportHeight": 768,
   "contentWidth": 1358,
-  "contentHeight": 897,
+  "contentHeight": 1066,
   "horizontalOverflow": false,
   "spanishTextSamples": [
     "Español"

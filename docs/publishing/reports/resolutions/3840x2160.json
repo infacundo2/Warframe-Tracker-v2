@@ -1,8 +1,12 @@
 {
   "route": "/welcome?revisar=true",
+  "language": "en",
   "viewportWidth": 3830,
   "viewportHeight": 2160,
   "contentWidth": 3830,
   "contentHeight": 2231,
-  "horizontalOverflow": false
+  "horizontalOverflow": false,
+  "spanishTextSamples": [
+    "Español"
+  ]
 }

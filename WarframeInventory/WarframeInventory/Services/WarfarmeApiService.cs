@@ -86,7 +86,7 @@ namespace WarframeInventory.Services
         // -------------------------------
         public async Task<List<Warframe>> GetWarframesAsync(CancellationToken cancellationToken = default)
         {
-            var url = "https://api.warframestat.us/warframes/?language=es";
+            var url = "https://api.warframestat.us/warframes/?language=en";
             using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             resp.EnsureSuccessStatusCode();
 
@@ -145,7 +145,7 @@ namespace WarframeInventory.Services
         // -------------------------------
         public async Task<List<Mod>> GetModsAsync(CancellationToken cancellationToken = default)
         {
-            var url = "https://api.warframestat.us/mods/?language=es";
+            var url = "https://api.warframestat.us/mods/?language=en";
             using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             resp.EnsureSuccessStatusCode();
 
@@ -188,7 +188,7 @@ namespace WarframeInventory.Services
         // -------------------------------
         public async Task<List<Weapon>> GetWeaponsAsync(CancellationToken cancellationToken = default)
         {
-            var url = "https://api.warframestat.us/weapons/?language=es";
+            var url = "https://api.warframestat.us/weapons/?language=en";
             using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             resp.EnsureSuccessStatusCode();
 
@@ -248,7 +248,7 @@ namespace WarframeInventory.Services
         // -------------------------------
         public async Task<List<RelicImport>> GetRelicsAsync(CancellationToken cancellationToken = default)
         {
-            var url = "https://api.warframestat.us/items/?language=es";
+            var url = "https://api.warframestat.us/items/?language=en";
             using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             resp.EnsureSuccessStatusCode();
 

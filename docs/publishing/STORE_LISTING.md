@@ -33,6 +33,7 @@ local database on your PC.
 - goals, buildable sets, comparison, and inventory history;
 - Worldstate and farming locations;
 - local-first storage and confirmation before changes.
+- English-first interface with an optional persistent Spanish language pack.
 
 ## Español
 

@@ -56,6 +56,11 @@ function requestedQaWait(): number {
     : 4_000;
 }
 
+function requestedQaLanguage(): "en" | "es" | undefined {
+  const value = argumentValue("--qa-language=");
+  return value === "en" || value === "es" ? value : undefined;
+}
+
 function log(message: string, error?: unknown): void {
   const suffix = error instanceof Error ? `: ${error.message}` : error ? `: ${String(error)}` : "";
   console.log(`[Warframe Tracker] ${message}${suffix}`);
@@ -240,6 +245,12 @@ async function createWindow(): Promise<void> {
   if (qaSize)
     mainWindow.setContentSize(qaSize.width, qaSize.height);
 
+  const qaLanguage = requestedQaLanguage();
+  if (qaLanguage) {
+    await mainWindow.webContents.executeJavaScript(
+      `window.warframeI18n?.setLanguage(${JSON.stringify(qaLanguage)})`);
+  }
+
   const screenshotPath = argumentValue("--qa-screenshot=");
   const layoutReportPath = argumentValue("--qa-layout-report=");
   if (screenshotPath || layoutReportPath) {
@@ -247,11 +258,16 @@ async function createWindow(): Promise<void> {
     if (layoutReportPath) {
       const metrics = await mainWindow.webContents.executeJavaScript(`(() => ({
         route: location.pathname + location.search,
+        language: document.documentElement.lang,
         viewportWidth: document.documentElement.clientWidth,
         viewportHeight: document.documentElement.clientHeight,
         contentWidth: document.documentElement.scrollWidth,
         contentHeight: document.documentElement.scrollHeight,
-        horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+        horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        spanishTextSamples: [...new Set((document.body.innerText || "").split(/\\r?\\n/)
+          .map(value => value.trim()).filter(value => value.length > 2 && value.toUpperCase() !== "LANGUAGE / IDIOMA")
+          .filter(value => /[¿¡áéíóúñ]|\\b(ajustes|armas|buscar|cantidad|captura|componentes|disponible|idioma|inventario|objetivos|privacidad|recursos|reliquias|soporte)\\b/i.test(value)))]
+          .slice(0, 30)
       }))()`);
       const reportTarget = path.resolve(layoutReportPath);
       await mkdir(path.dirname(reportTarget), { recursive: true });
