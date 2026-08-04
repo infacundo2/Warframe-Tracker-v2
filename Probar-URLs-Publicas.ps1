@@ -14,7 +14,7 @@ $checks = @(
 
 foreach ($check in $checks) {
     $uri = "$base$($check.Path)"
-    $response = Invoke-WebRequest -Uri $uri -MaximumRedirection 3
+    $response = Invoke-WebRequest -Uri $uri -MaximumRedirection 3 -UseBasicParsing
     if ($response.StatusCode -ne 200) {
         throw "$uri respondió HTTP $($response.StatusCode)."
     }
