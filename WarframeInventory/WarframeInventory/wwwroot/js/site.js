@@ -124,6 +124,27 @@ const tennoAudio = (() => {
 })();
 
 window.warframeTracker = {
+    desktop: {
+        getHotkey: async () => window.warframeDesktop?.getToggleHotkey?.() ?? "No disponible en la web",
+        setHotkey: async value => {
+            const saved = await (window.warframeDesktop?.setToggleHotkey?.(value) ?? false);
+            if (saved) await window.warframeTracker.desktop.refreshHotkey();
+            return saved;
+        },
+        refreshHotkey: async () => {
+            const element = document.getElementById("desktop-hotkey-value");
+            if (!element) return;
+            const value = await (window.warframeDesktop?.getToggleHotkey?.() ?? Promise.resolve("Ctrl+Shift+T"));
+            element.textContent = value
+                .replace("CommandOrControl", "Ctrl")
+                .replaceAll("+", " ");
+        }
+    },
+    onboarding: {
+        shouldShow: () => localStorage.getItem("warframe-onboarding-complete") !== "1",
+        complete: () => localStorage.setItem("warframe-onboarding-complete", "1"),
+        reset: () => localStorage.removeItem("warframe-onboarding-complete")
+    },
     downloadText: (filename, content, contentType = "application/json;charset=utf-8") => {
         const blob = new Blob([content], { type: contentType });
         const url = URL.createObjectURL(blob);
@@ -181,6 +202,7 @@ document.addEventListener("pointerdown", (event) => {
 }, { passive: true });
 
 window.setTimeout(() => tennoAudio.restore(), 100);
+window.setTimeout(() => window.warframeTracker.desktop.refreshHotkey(), 120);
 
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") tennoAudio.restore();

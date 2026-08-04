@@ -1,96 +1,66 @@
-# Publicación de Warframe Tracker
+# Entrega del MVP a Overwolf
 
-## Canal correcto
+Warframe Tracker es una aplicación compañera de escritorio para Warframe. La
+idea ya fue aceptada por Developer Relations. Overwolf indicó que creará la
+consola de distribución después de revisar y aprobar este MVP.
 
-Warframe Tracker es una aplicación compañera de escritorio, no un mod o addon
-instalable dentro de Warframe. A julio de 2026, Warframe no aparece como juego
-admitido para proyectos de CurseForge. El canal correcto para la captura GEP es
-el **Overwolf Appstore**.
+## Estado del MVP
 
-- [Overwolf Appstore](https://www.overwolf.com/appstore)
-- [Crear y publicar una app OW Electron](https://dev.overwolf.com/ow-electron/getting-started/project-roadmap/)
-- [Requisitos de lanzamiento](https://dev.overwolf.com/ow-electron/getting-started/release-your-app)
-- [CurseForge: crear un proyecto](https://support.curseforge.com/support/solutions/articles/9000197241-creating-and-submitting-a-project)
+La aplicación ya dispone de una ventana de escritorio visible, tutorial inicial
+en español, perfil local, catálogo, inventario, reliquias, objetivos, recursos,
+privacidad, soporte y ajustes. El backend y la base SQLite se ejecutan de forma
+local y el instalador incluye el runtime necesario.
 
-## 1. Propuesta y autorización GEP
+La captura real de `match_info.inventory` y la comprobación exhaustiva contra un
+inventario de Warframe quedan expresamente pendientes del `OW_DEV_KEY`. Esto debe
+indicarse en el formulario: no se afirmará que la función fue probada con datos
+reales antes de recibir la clave.
 
-1. Crear una cuenta en Overwolf Developers.
-2. En la consola, crear una nueva propuesta de aplicación pública.
-3. Pegar el texto de `APP_PROPOSAL.md`.
-4. Indicar expresamente:
-   - juego: Warframe;
-   - game ID: `8954`;
-   - paquete: `gep`;
-   - features: `game_info` y `match_info`;
-   - dato requerido: `match_info.inventory`;
-   - la app siempre dispone de una ventana visible;
-   - no es una aplicación puente privada o sin interfaz.
-5. Esperar aprobación y la habilitación de desarrollo de GEP.
-6. Crear un API key o dev token en la consola.
+## Cómo probar esta construcción
 
-Sin esa aprobación la interfaz abre y el simulador funciona, pero el paquete GEP
-no entregará inventarios reales.
-
-## 2. Probar en modo desarrollo
-
-El empaquetador actual requiere Node.js 22.12 o posterior.
+1. Instalar `Warframe-Tracker-Setup-0.1.0.exe` en Windows 11 x64.
+2. Abrir Warframe Tracker y completar o saltar el tutorial.
+3. Crear un perfil local.
+4. Recorrer el catálogo y la pantalla de sincronización.
+5. Abrir **Ajustes** y probar el atajo global.
+6. Consultar **Privacidad** y **Soporte** desde la propia aplicación.
+7. Para probar sin GEP real, usar el simulador descrito en `MVP_QA_GUIDE.md`.
+8. Tras recibir la clave temporal, ejecutar:
 
 ```powershell
-cd desktop
-npm install
-$env:OW_DEV_KEY = "token-entregado-por-overwolf"
+$env:OW_DEV_KEY = "clave-temporal"
+Set-Location .\desktop
 npm run start:dev-gep
 ```
 
-Prueba funcional:
+Después se inicia Warframe, se entra y sale del Repetidor y se abre el inventario
+para provocar una actualización. La vista previa nunca se aplica sin confirmación.
 
-1. iniciar la app antes que Warframe;
-2. iniciar sesión o crear el perfil local;
-3. abrir el inventario dentro de Warframe;
-4. confirmar que aparece una captura en `Inventario automático`;
-5. revisar que Warframes, armas, mods, reliquias, componentes y recursos
-   coincidan;
-6. comprobar que una captura parcial no borra objetos;
-7. confirmar los cambios y reiniciar la app para verificar persistencia.
+## Material incluido
 
-## 3. Requisitos antes del instalador público
+- Guía ilustrada: `MVP_QA_GUIDE.md`.
+- Cinco capturas reales en `screenshots/`.
+- Icono y tile de tienda en `store-assets/`.
+- Texto de tienda en `STORE_LISTING.md`.
+- Notas de versión en `RELEASE_NOTES_0.1.0.md`.
+- Política y soporte estáticos en `privacy.html` y `support.html`.
+- Informes de Windows y resoluciones en `reports/`.
 
-- Nombre, autor y versión coherentes en consola y `desktop/package.json`.
-- UID de la app asignado por Overwolf.
-- Firma del paquete GEP por Overwolf.
-- Certificado de firma de código de Windows para el editor.
-- Política de privacidad publicada por HTTPS.
-- Icono, logo, capturas y descripción de tienda en inglés.
-- Flujo de consentimiento si en el futuro se agregan anuncios o analítica.
-- Pruebas en una cuenta Windows limpia y sin MySQL instalado.
+## Publicación pública
 
-Variables para el build firmado:
+La intención es que la aplicación sea pública, gratuita y accesible para toda la
+comunidad. Si Overwolf exige monetización para una aplicación pública, se usará
+únicamente su solución oficial de anuncios o suscripciones, con CMP cuando
+corresponda. No se integrarán anuncios de terceros ni publicidad que interfiera
+con Warframe.
 
-```powershell
-$env:OW_CLI_EMAIL = "correo-de-la-cuenta"
-$env:OW_CLI_API_KEY = "api-key-de-la-consola"
-$env:OW_BUILD_KEY = "build-key-de-la-app"
-cd desktop
-npm run package
-```
+## Después de la aprobación
 
-El artefacto se genera en `out/desktop-installer`.
+1. Recibir el UID, `OW_CLI_API_KEY` y `OW_BUILD_KEY` desde la consola.
+2. Obtener un certificado de firma de código emitido por una CA confiable.
+3. Solicitar la firma del paquete GEP y firmar el ejecutable/instalador.
+4. Ejecutar `Preparar-Build-Firmada.ps1`.
+5. Repetir las pruebas con datos reales y en la matriz física de DPI.
+6. Subir la build firmada y completar la ficha pública.
 
-## 4. Entrega
-
-1. Subir la versión desde Release Management en Overwolf Developers.
-2. Adjuntar notas de versión y artefacto firmado.
-3. Completar la ficha con `STORE_LISTING.md`.
-4. Usar la URL pública de `privacy.html`.
-5. Entregar las credenciales o instrucciones de prueba solicitadas al equipo QA.
-6. No declarar que el producto está afiliado a Digital Extremes.
-
-## Bloqueos que requieren al propietario
-
-Codex puede preparar y compilar el proyecto, pero no puede completar por sí solo:
-
-- aceptar contratos legales;
-- crear la cuenta del desarrollador;
-- comprar/validar el certificado de firma;
-- enviar la propuesta bajo la identidad del propietario;
-- publicar una versión sin las credenciales y aprobación de Overwolf.
+No se declara afiliación ni respaldo de Digital Extremes.

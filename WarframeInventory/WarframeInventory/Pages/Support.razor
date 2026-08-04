@@ -1,0 +1,55 @@
+@page "/support"
+@attribute [AllowAnonymous]
+
+<PageTitle>Soporte — Warframe Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="legal-page">
+    <section class="orokin-panel legal-hero">
+        <div class="eyebrow">CANAL DE ASISTENCIA // WARFRAME TRACKER</div>
+        <MudText Typo="Typo.h3">Soporte</MudText>
+        <MudText>Ayuda para instalación, captura de inventario y protección de datos.</MudText>
+    </section>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="legal-card support-card">
+                <MudIcon Icon="@Icons.Material.Filled.BugReport" />
+                <MudText Typo="Typo.h5">Informar un problema</MudText>
+                <p>Abre una incidencia pública indicando versión de Windows, versión de la aplicación, pasos para reproducir y el mensaje visible.</p>
+                <MudButton Href="https://github.com/infacundo2/Warframe-Tracker-v2/issues/new"
+                           Target="_blank" Variant="Variant.Outlined" Color="Color.Primary">
+                    Abrir GitHub Issues
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="legal-card support-card">
+                <MudIcon Icon="@Icons.Material.Filled.Security" />
+                <MudText Typo="Typo.h5">Antes de enviar información</MudText>
+                <p>No publiques contraseñas, tokens, claves de Overwolf, correos privados ni el JSON bruto del inventario. Una captura debe ocultar cualquier identificador personal.</p>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Class="legal-card">
+                <MudText Typo="Typo.h5">Soluciones rápidas</MudText>
+                <ol class="ftue-steps">
+                    <li>Inicia Warframe Tracker antes de abrir Warframe.</li>
+                    <li>Ejecuta ambas aplicaciones con el mismo nivel de permisos.</li>
+                    <li>Abre el inventario dentro del juego y espera unos segundos.</li>
+                    <li>En Warframe Tracker pulsa <b>Buscar captura</b> y luego <b>Analizar inventario</b>.</li>
+                    <li>Si el problema continúa, reinicia ambas aplicaciones antes de informar.</li>
+                </ol>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    La disponibilidad de captura automática depende de que Overwolf GEP esté activo para la versión instalada.
+                </MudAlert>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Class="legal-card">
+                <MudText Typo="Typo.h5">Eliminar todos los datos locales</MudText>
+                <p>Cierra Warframe Tracker, desinstálalo y elimina la carpeta <code>%APPDATA%\warframe-tracker-desktop</code>. Esta acción es irreversible y elimina perfiles, inventario, objetivos y preferencias guardadas únicamente en ese PC.</p>
+                <MudLink Href="/privacy">Consultar la política de privacidad</MudLink>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>

@@ -69,53 +69,60 @@ public class AuthMvcController : Controller
         email = email.Trim();
 
         if (string.IsNullOrWhiteSpace(username))
-            return RedirectToRegister("Debes escribir un nombre de usuario.", "", email);
+            return RedirectToRegister("Debes escribir un nombre de usuario.", "", email, returnUrl);
         if (username.Length is < 3 or > 24)
             return RedirectToRegister(
                 "El usuario debe tener entre 3 y 24 caracteres.",
                 "",
-                email);
+                email,
+                returnUrl);
         if (!ValidUserName.IsMatch(username))
             return RedirectToRegister(
                 "El usuario solo puede contener letras sin tilde, números, punto, guion y guion bajo.",
                 "",
-                email);
+                email,
+                returnUrl);
 
         if (string.IsNullOrWhiteSpace(email))
-            return RedirectToRegister("Debes escribir un correo electrónico.", username, "");
+            return RedirectToRegister("Debes escribir un correo electrónico.", username, "", returnUrl);
         if (!new EmailAddressAttribute().IsValid(email))
-            return RedirectToRegister("El correo electrónico no tiene un formato válido.", username, "");
+            return RedirectToRegister("El correo electrónico no tiene un formato válido.", username, "", returnUrl);
 
         if (string.IsNullOrEmpty(password))
-            return RedirectToRegister("Debes escribir una contraseña.", username, email);
+            return RedirectToRegister("Debes escribir una contraseña.", username, email, returnUrl);
         if (password.Length < 10)
             return RedirectToRegister(
                 "La contraseña debe tener al menos 10 caracteres.",
                 username,
-                email);
+                email,
+                returnUrl);
         if (!password.Any(char.IsLower))
             return RedirectToRegister(
                 "La contraseña debe incluir al menos una letra minúscula.",
                 username,
-                email);
+                email,
+                returnUrl);
         if (!password.Any(char.IsDigit))
             return RedirectToRegister(
                 "La contraseña debe incluir al menos un número.",
                 username,
-                email);
+                email,
+                returnUrl);
         if (password != confirmPassword)
-            return RedirectToRegister("Las contraseñas no coinciden.", username, email);
+            return RedirectToRegister("Las contraseñas no coinciden.", username, email, returnUrl);
 
         if (await _userManager.FindByNameAsync(username) is not null)
             return RedirectToRegister(
                 "Ese nombre de usuario ya está en uso. Elige otro.",
                 "",
-                email);
+                email,
+                returnUrl);
         if (await _userManager.FindByEmailAsync(email) is not null)
             return RedirectToRegister(
                 "Ese correo electrónico ya está asociado a una cuenta.",
                 username,
-                "");
+                "",
+                returnUrl);
 
         var user = new IdentityUser { UserName = username, Email = email };
         var result = await _userManager.CreateAsync(user, password);
@@ -124,7 +131,7 @@ public class AuthMvcController : Controller
             var message = string.Join(
                 " ",
                 result.Errors.Select(TranslateIdentityError).Distinct());
-            return RedirectToRegister(message, username, email);
+            return RedirectToRegister(message, username, email, returnUrl);
         }
 
         await _signInManager.SignInAsync(user, isPersistent: false);
@@ -138,12 +145,19 @@ public class AuthMvcController : Controller
         return Redirect("/");
     }
 
-    private IActionResult RedirectToRegister(string error, string username, string email)
+    private IActionResult RedirectToRegister(
+        string error,
+        string username,
+        string email,
+        string? returnUrl)
     {
         var url = "/auth/register"
                   + $"?error={Uri.EscapeDataString(error)}"
                   + $"&usuario={Uri.EscapeDataString(username)}"
-                  + $"&correo={Uri.EscapeDataString(email)}";
+                  + $"&correo={Uri.EscapeDataString(email)}"
+                  + (Url.IsLocalUrl(returnUrl)
+                      ? $"&returnUrl={Uri.EscapeDataString(returnUrl!)}"
+                      : "");
         return Redirect(url);
     }
 

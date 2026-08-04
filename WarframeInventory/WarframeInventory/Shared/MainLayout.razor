@@ -18,6 +18,9 @@
         <a href="/search" class="command-trigger" aria-label="Abrir búsqueda universal">
             <MudIcon Icon="@Icons.Material.Filled.Search" /><span>Buscar</span><kbd>Ctrl K</kbd>
         </a>
+        <a href="/settings" class="desktop-hotkey-reminder" title="Configurar atajo para mostrar u ocultar">
+            <span>VENTANA</span><kbd id="desktop-hotkey-value">Ctrl Shift T</kbd>
+        </a>
         <button type="button" class="energy-toggle" onclick="warframeTracker.toggleEnergyMode()"
                 aria-label="Alternar movimiento reducido" title="Movimiento reducido">
             <MudIcon Icon="@Icons.Material.Filled.MotionPhotosOff" />
@@ -67,6 +70,8 @@
                 <MudNavLink Href="/relics" Icon="@Icons.Material.Filled.Diamond">Reliquias</MudNavLink>
                 <MudNavLink Href="/worldstate" Icon="@Icons.Material.Filled.Public">Worldstate</MudNavLink>
                 <MudNavLink Href="/compare" Icon="@Icons.Material.Filled.CompareArrows">Comparador</MudNavLink>
+                <MudNavLink Href="/welcome?revisar=true" Icon="@Icons.Material.Filled.School">Tutorial</MudNavLink>
+                <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">Ajustes</MudNavLink>
                 <AuthorizeView>
                     <Authorized>
                         <MudNavLink Href="/goals" Icon="@Icons.Material.Filled.TrackChanges">Objetivos</MudNavLink>
@@ -79,6 +84,10 @@
                     </Authorized>
                 </AuthorizeView>
             </MudNavMenu>
+            <div class="drawer-legal-links">
+                <a href="/privacy">Privacidad</a>
+                <a href="/support">Soporte</a>
+            </div>
         </div>
         <AuthorizeView>
             <NotAuthorized>

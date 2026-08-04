@@ -1,9 +1,13 @@
 {
   "name": "warframe-tracker-desktop",
+  "productName": "Warframe Tracker",
   "version": "0.1.0",
   "description": "Asistente Tenno con captura de inventario mediante Overwolf GEP.",
   "main": "dist/main.js",
-  "author": "infacundo2",
+  "author": {
+    "name": "infacundo2",
+    "url": "https://github.com/infacundo2/Warframe-Tracker-v2"
+  },
   "license": "MIT",
   "private": true,
   "engines": {
@@ -29,8 +33,9 @@
     "@overwolf/ow-electron": "39.8.12",
     "@overwolf/ow-electron-builder": "26.9.0",
     "@overwolf/ow-electron-packages-types": "1.1.5-2",
-    "@types/node": "22.10.2",
     "@resvg/resvg-js": "2.6.2",
+    "@types/node": "22.10.2",
+    "electron": "^39.8.10",
     "png-to-ico": "2.1.8",
     "typescript": "5.7.2"
   },

@@ -1,23 +1,116 @@
-import { app, BrowserWindow, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, screen, shell } from "electron";
 import { ChildProcess, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import path from "node:path";
+
+// Keep the original data directory even though the public product name is friendlier.
+// Changing this path would make existing local inventories appear to disappear.
+app.setPath("userData", path.join(app.getPath("appData"), "warframe-tracker-desktop"));
 
 const WARFRAME_GAME_ID = 8954;
 const REQUIRED_FEATURES = ["game_info", "match_info"];
 const HEALTH_TIMEOUT_MS = 60_000;
 const bridgeKey = randomBytes(32).toString("base64url");
+const DEFAULT_TOGGLE_HOTKEY = "CommandOrControl+Shift+T";
+const ALLOWED_TOGGLE_HOTKEYS = new Set([
+  "CommandOrControl+Shift+T",
+  "CommandOrControl+Shift+Y",
+  "CommandOrControl+Shift+U",
+  "Alt+Shift+T",
+  "Alt+Shift+Y"
+]);
 
 let backend: ChildProcess | undefined;
 let mainWindow: BrowserWindow | undefined;
 let backendUrl = "";
 let quitting = false;
+let currentToggleHotkey = DEFAULT_TOGGLE_HOTKEY;
+
+function argumentValue(prefix: string): string | undefined {
+  return process.argv.find((value) => value.startsWith(prefix))?.slice(prefix.length);
+}
+
+function requestedRoute(): string {
+  const route = argumentValue("--qa-route=");
+  return route?.startsWith("/") && !route.startsWith("//") ? route : "/welcome";
+}
+
+function requestedContentSize(): { width: number; height: number } | undefined {
+  const raw = argumentValue("--qa-size=");
+  const match = raw?.match(/^(\d{3,4})x(\d{3,4})$/i);
+  if (!match)
+    return undefined;
+  return {
+    width: Math.min(3840, Math.max(960, Number(match[1]))),
+    height: Math.min(2160, Math.max(620, Number(match[2])))
+  };
+}
+
+function requestedQaWait(): number {
+  const raw = argumentValue("--qa-wait=");
+  const milliseconds = Number(raw);
+  return Number.isFinite(milliseconds)
+    ? Math.min(30_000, Math.max(1_000, milliseconds))
+    : 4_000;
+}
 
 function log(message: string, error?: unknown): void {
   const suffix = error instanceof Error ? `: ${error.message}` : error ? `: ${String(error)}` : "";
   console.log(`[Warframe Tracker] ${message}${suffix}`);
+}
+
+function toggleMainWindow(): void {
+  if (!mainWindow)
+    return;
+  if (mainWindow.isVisible() && mainWindow.isFocused()) {
+    mainWindow.hide();
+    return;
+  }
+  if (mainWindow.isMinimized())
+    mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function hotkeySettingsPath(): string {
+  return path.join(app.getPath("userData"), "desktop-settings.json");
+}
+
+async function registerToggleHotkey(accelerator: string): Promise<boolean> {
+  if (!ALLOWED_TOGGLE_HOTKEYS.has(accelerator))
+    return false;
+  globalShortcut.unregister(currentToggleHotkey);
+  if (!globalShortcut.register(accelerator, toggleMainWindow)) {
+    globalShortcut.register(currentToggleHotkey, toggleMainWindow);
+    return false;
+  }
+  currentToggleHotkey = accelerator;
+  await writeFile(
+    hotkeySettingsPath(),
+    JSON.stringify({ toggleHotkey: currentToggleHotkey }, null, 2),
+    "utf8");
+  return true;
+}
+
+async function initializeHotkey(): Promise<void> {
+  try {
+    const raw = await readFile(hotkeySettingsPath(), "utf8");
+    const saved = JSON.parse(raw) as { toggleHotkey?: string };
+    if (saved.toggleHotkey && ALLOWED_TOGGLE_HOTKEYS.has(saved.toggleHotkey))
+      currentToggleHotkey = saved.toggleHotkey;
+  } catch {
+    // First launch: use the safe default.
+  }
+  if (!globalShortcut.register(currentToggleHotkey, toggleMainWindow))
+    log(`El atajo ${currentToggleHotkey} está ocupado por otra aplicación.`);
+}
+
+function initializeDesktopIpc(): void {
+  ipcMain.handle("warframe:get-toggle-hotkey", () => currentToggleHotkey);
+  ipcMain.handle("warframe:set-toggle-hotkey", (_event, accelerator: string) =>
+    registerToggleHotkey(accelerator));
 }
 
 async function findLoopbackPort(): Promise<number> {
@@ -109,15 +202,20 @@ async function startBackend(): Promise<void> {
 }
 
 async function createWindow(): Promise<void> {
+  const workArea = screen.getPrimaryDisplay().workAreaSize;
+  const qaSize = requestedContentSize();
+  const width = qaSize?.width ?? Math.max(960, Math.min(1500, workArea.width - 48));
+  const height = qaSize?.height ?? Math.max(620, Math.min(930, workArea.height - 48));
   mainWindow = new BrowserWindow({
-    width: 1500,
-    height: 930,
-    minWidth: 1040,
-    minHeight: 700,
+    width,
+    height,
+    minWidth: 960,
+    minHeight: 620,
     show: false,
     backgroundColor: "#050b12",
     autoHideMenuBar: true,
     webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
@@ -138,7 +236,62 @@ async function createWindow(): Promise<void> {
       void shell.openExternal(url);
     }
   });
-  await mainWindow.loadURL(`${backendUrl}/desktop-sync`);
+  await mainWindow.loadURL(`${backendUrl}${requestedRoute()}`);
+  if (qaSize)
+    mainWindow.setContentSize(qaSize.width, qaSize.height);
+
+  const screenshotPath = argumentValue("--qa-screenshot=");
+  const layoutReportPath = argumentValue("--qa-layout-report=");
+  if (screenshotPath || layoutReportPath) {
+    await new Promise((resolve) => setTimeout(resolve, requestedQaWait()));
+    if (layoutReportPath) {
+      const metrics = await mainWindow.webContents.executeJavaScript(`(() => ({
+        route: location.pathname + location.search,
+        viewportWidth: document.documentElement.clientWidth,
+        viewportHeight: document.documentElement.clientHeight,
+        contentWidth: document.documentElement.scrollWidth,
+        contentHeight: document.documentElement.scrollHeight,
+        horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+      }))()`);
+      const reportTarget = path.resolve(layoutReportPath);
+      await mkdir(path.dirname(reportTarget), { recursive: true });
+      await writeFile(reportTarget, JSON.stringify(metrics, null, 2), "utf8");
+      log(`Informe de diseño QA guardado en ${reportTarget}.`);
+    }
+    if (screenshotPath) {
+      const target = path.resolve(screenshotPath);
+      await mkdir(path.dirname(target), { recursive: true });
+      const captured = await mainWindow.webContents.capturePage();
+      const image = qaSize
+        ? captured.resize({ width: qaSize.width, height: qaSize.height, quality: "best" })
+        : captured;
+      const bytes = /\.jpe?g$/i.test(target) ? image.toJPEG(78) : image.toPNG();
+      await writeFile(target, bytes);
+      log(`Captura QA guardada en ${target}.`);
+    }
+    app.quit();
+  }
+}
+
+async function offerCmpIfRequired(): Promise<void> {
+  try {
+    if (!await app.overwolf.isCMPRequired() || !mainWindow)
+      return;
+    const result = await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Privacidad de Overwolf",
+      message: "Overwolf necesita que revises sus preferencias de privacidad.",
+      detail: "Warframe Tracker abrirá la plataforma de consentimiento oficial de Overwolf.",
+      buttons: ["Configurar ahora", "Continuar"],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true
+    });
+    if (result.response === 0)
+      await app.overwolf.openCMPWindow();
+  } catch (error) {
+    log("No se pudo consultar la configuración CMP de Overwolf", error);
+  }
 }
 
 function inventoryFromUpdate(data: unknown): unknown | undefined {
@@ -237,8 +390,11 @@ async function importSimulationIfRequested(): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
+  initializeDesktopIpc();
+  await initializeHotkey();
   await startBackend();
   await createWindow();
+  await offerCmpIfRequired();
   await importSimulationIfRequested();
 }
 
@@ -268,6 +424,7 @@ if (!app.requestSingleInstanceLock()) {
 
 app.on("before-quit", () => {
   quitting = true;
+  globalShortcut.unregisterAll();
   if (backend && backend.exitCode === null)
     backend.kill();
 });

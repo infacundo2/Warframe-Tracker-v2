@@ -1,0 +1,42 @@
+@page "/privacy"
+@attribute [AllowAnonymous]
+
+<PageTitle>Política de privacidad — Warframe Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="legal-page">
+    <section class="orokin-panel legal-hero">
+        <div class="eyebrow">DOCUMENTO PÚBLICO // PRIVACIDAD</div>
+        <MudText Typo="Typo.h3">Política de privacidad</MudText>
+        <MudText>Vigente desde el 3 de agosto de 2026 · Versión 1.0</MudText>
+    </section>
+
+    <MudPaper Class="legal-card">
+        <MudText Typo="Typo.h5">Resumen</MudText>
+        <p>Warframe Tracker es una aplicación complementaria de escritorio con almacenamiento local. No vende información personal ni solicita el correo, contraseña, código de autenticación o token de sesión de tu cuenta de Warframe.</p>
+
+        <MudText Typo="Typo.h5">Datos del inventario</MudText>
+        <p>Cuando activas la captura automática, la aplicación recibe una instantánea mediante Overwolf Game Events Provider. El JSON original se descarta después de analizarse. La vista previa normalizada permanece en memoria durante un máximo de 30 minutos. Solo los identificadores y cantidades que confirmas se guardan en una base SQLite ubicada en tu PC.</p>
+
+        <MudText Typo="Typo.h5">Datos técnicos de Overwolf</MudText>
+        <p>OW‑Electron puede procesar telemetría técnica esencial para estabilidad y funcionamiento conforme a la política de Overwolf. Si en una versión futura se habilitan anuncios de Overwolf, se utilizará exclusivamente su sistema autorizado y su plataforma de consentimiento (CMP). Esta política será actualizada antes de habilitarlos.</p>
+
+        <MudText Typo="Typo.h5">Solicitudes de red</MudText>
+        <p>La aplicación consulta catálogos, precios y el estado público del juego en servicios comunitarios. El inventario capturado no se envía a los servidores de Warframe Tracker. Los enlaces externos se abren en el navegador predeterminado.</p>
+
+        <MudText Typo="Typo.h5">Conservación y eliminación</MudText>
+        <p>Puedes modificar o eliminar entradas desde la aplicación. Para borrar todos los datos locales, desinstala Warframe Tracker y elimina su carpeta de datos de aplicación. La guía de soporte explica su ubicación y el procedimiento.</p>
+
+        <MudText Typo="Typo.h5">Terceros y afiliación</MudText>
+        <p>Overwolf procesa los eventos del juego conforme a su propia política. Warframe Tracker es un proyecto comunitario independiente, no afiliado ni respaldado por Digital Extremes.</p>
+
+        <MudText Typo="Typo.h5">Contacto</MudText>
+        <p>Para consultas de privacidad o eliminación de datos utiliza nuestro <MudLink Href="/support">centro de soporte</MudLink> o abre una incidencia en <MudLink Href="https://github.com/infacundo2/Warframe-Tracker-v2/issues" Target="_blank">GitHub Issues</MudLink>.</p>
+    </MudPaper>
+
+    <MudPaper Class="legal-card" lang="en">
+        <MudText Typo="Typo.h4">Privacy Policy — English summary</MudText>
+        <p>Warframe Tracker is a local-first desktop companion. It does not request Warframe credentials or upload captured inventory to Warframe Tracker servers. Raw GEP payloads are discarded after parsing; previews expire after 30 minutes; only user-confirmed normalized quantities are stored locally in SQLite.</p>
+        <p>OW‑Electron may process essential technical telemetry under Overwolf's privacy terms. If Overwolf advertising is enabled in a future release, only Overwolf-approved advertising and its consent platform will be used, and this policy will be updated before activation.</p>
+        <p>For privacy or deletion questions, visit <MudLink Href="/support">Support</MudLink>.</p>
+    </MudPaper>
+</MudContainer>

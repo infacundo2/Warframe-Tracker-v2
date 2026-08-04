@@ -1,25 +1,28 @@
-# Security build notes
+# Notas de seguridad de la construcción
 
-Audit performed on July 27, 2026:
+Auditoría repetida el 3 de agosto de 2026:
 
-- `npm audit --omit=dev`: **0 vulnerabilities** in production dependencies.
-- Full development audit: 20 high-severity findings in the official OW Electron
-  builder toolchain and its Electron Builder transitive packages.
-- `npm audit` reports no currently available complete fix for the direct
-  `@overwolf/ow-electron-builder` dependency.
+- `npm audit --omit=dev`: **0 vulnerabilidades** de producción.
+- `dotnet list package --vulnerable --include-transitive`: **0 paquetes vulnerables**.
+- Microsoft Defender: protección en tiempo real y firmas activas; instalador de
+  prueba analizado sin amenazas.
+- El artefacto de desarrollo todavía aparece como `NotSigned`. Esto es esperado:
+  la firma pública requiere el certificado de CA y las claves entregadas tras la
+  aprobación del MVP.
 
-These packages are used to produce the Windows artifact and are not shipped as
-application runtime dependencies. The project pins the current official
-Overwolf packages and should repeat the full audit whenever Overwolf publishes a
-new builder version.
+Controles incluidos:
 
-Additional checks:
+- Renderer sin Node.js, con context isolation y Chromium sandbox.
+- Preload con una API mínima y lista cerrada de atajos.
+- ASP.NET escucha solamente en loopback y usa un puerto efímero.
+- Clave de puente aleatoria de 256 bits en cada ejecución.
+- Comparación de clave en tiempo constante y límite de solicitud de 20 MB.
+- Base SQLite local; no se incluyen credenciales MySQL.
+- JSON bruto GEP descartado después de normalizarlo.
+- Vista previa temporal y confirmación explícita antes de escribir inventario.
+- Consentimiento oficial CMP de Overwolf si fuera necesario para publicidad.
 
-- Renderer Node integration disabled.
-- Context isolation and Chromium sandbox enabled.
-- ASP.NET binds to an ephemeral loopback port.
-- Per-launch 256-bit bridge key.
-- Fixed-time bridge-key comparison.
-- 20 MB request limit.
-- No local `appsettings.json` or MySQL credentials in the packaged backend.
-- Raw GEP JSON discarded immediately after parsing.
+La auditoría completa de dependencias de desarrollo puede informar problemas en
+la cadena oficial de empaquetado de Electron/Overwolf. Esas herramientas no se
+incluyen como dependencias de ejecución; deben revisarse de nuevo cuando Overwolf
+publique una versión actualizada del builder.

@@ -1,0 +1,62 @@
+@page "/settings"
+@attribute [AllowAnonymous]
+@inject IJSRuntime JS
+
+<PageTitle>Ajustes — Warframe Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="legal-page">
+    <section class="orokin-panel legal-hero">
+        <div class="eyebrow">CONFIGURACIÓN // ESCRITORIO</div>
+        <MudText Typo="Typo.h3">Ajustes</MudText>
+        <MudText>Controla el acceso rápido y vuelve a consultar las ayudas.</MudText>
+    </section>
+
+    <MudPaper Class="legal-card">
+        <MudText Typo="Typo.h5">Mostrar u ocultar la aplicación</MudText>
+        <p>El atajo funciona mientras Warframe Tracker está abierto, incluso si la ventana está oculta. El cambio nunca bloquea la combinación dentro del juego cuando la aplicación está cerrada.</p>
+        <MudSelect T="string" @bind-Value="selectedHotkey" Label="Atajo global" Variant="Variant.Outlined" Class="mt-3">
+            <MudSelectItem Value='@("CommandOrControl+Shift+T")'>Ctrl + Shift + T</MudSelectItem>
+            <MudSelectItem Value='@("CommandOrControl+Shift+Y")'>Ctrl + Shift + Y</MudSelectItem>
+            <MudSelectItem Value='@("CommandOrControl+Shift+U")'>Ctrl + Shift + U</MudSelectItem>
+            <MudSelectItem Value='@("Alt+Shift+T")'>Alt + Shift + T</MudSelectItem>
+            <MudSelectItem Value='@("Alt+Shift+Y")'>Alt + Shift + Y</MudSelectItem>
+        </MudSelect>
+        <MudButton OnClick="SaveHotkeyAsync" Variant="Variant.Filled" Color="Color.Primary" Class="mt-4">
+            Guardar atajo
+        </MudButton>
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <MudAlert Severity="@severity" Variant="Variant.Outlined" Class="mt-4">@message</MudAlert>
+        }
+    </MudPaper>
+
+    <MudPaper Class="legal-card">
+        <MudText Typo="Typo.h5">Ayuda y privacidad</MudText>
+        <MudButton Href="/welcome?revisar=true" Variant="Variant.Outlined" Color="Color.Primary" Class="mr-2">Abrir tutorial</MudButton>
+        <MudButton Href="/privacy" Variant="Variant.Text">Privacidad</MudButton>
+        <MudButton Href="/support" Variant="Variant.Text">Soporte</MudButton>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string selectedHotkey = "CommandOrControl+Shift+T";
+    private string message = "";
+    private Severity severity = Severity.Info;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        selectedHotkey = await JS.InvokeAsync<string>("warframeTracker.desktop.getHotkey");
+        StateHasChanged();
+    }
+
+    private async Task SaveHotkeyAsync()
+    {
+        var saved = await JS.InvokeAsync<bool>("warframeTracker.desktop.setHotkey", selectedHotkey);
+        message = saved
+            ? "Atajo guardado. Úsalo para mostrar u ocultar Warframe Tracker."
+            : "No se pudo registrar el atajo. Puede estar ocupado por otra aplicación.";
+        severity = saved ? Severity.Success : Severity.Warning;
+    }
+}

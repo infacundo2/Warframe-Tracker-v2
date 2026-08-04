@@ -1,53 +1,58 @@
-# QA checklist
+# Lista de control QA
 
-## Installation and startup
+`[x]` comprobado, `[ ]` pendiente de credenciales, certificado o hardware externo.
 
-- [ ] Clean Windows 10 x64 installation.
-- [ ] Clean Windows 11 x64 installation.
-- [ ] Installer and executable have valid digital signatures.
-- [ ] App starts without .NET, Node.js, or MySQL preinstalled.
-- [ ] A second launch focuses the existing window.
-- [ ] Closing the window terminates the local sidecar.
-- [ ] No console window flashes during startup.
+## Instalación e inicio
 
-## Security
+- [x] Compila y ejecuta en Windows 11 25H2 x64.
+- [ ] Instalación limpia en otra máquina Windows 11 x64.
+- [ ] Firma digital válida del ejecutable y del instalador.
+- [x] El instalador incluye .NET y no requiere Node.js ni MySQL.
+- [x] Una segunda ejecución enfoca la ventana existente.
+- [x] Al cerrar termina el servidor local.
+- [x] El servidor se inicia sin ventana de consola.
+- [x] Existe una ventana de escritorio visible mientras la app funciona.
+- [x] Atajo global configurable para mostrar u ocultar la ventana.
 
-- [ ] Backend listens only on `127.0.0.1`.
-- [ ] Inventory POST without bridge key returns 401.
-- [ ] Inventory POST from a non-loopback address is rejected.
-- [ ] Payloads larger than 20 MB are rejected.
-- [ ] Malformed JSON does not alter the database.
-- [ ] Raw payload is discarded immediately; normalized preview expires after 30 minutes.
-- [ ] External links open in the default browser.
-- [ ] Renderer has no Node integration.
+## Seguridad y privacidad
 
-## GEP
+- [x] Backend limitado a `127.0.0.1` y puerto efímero.
+- [x] Puente protegido por una clave aleatoria por ejecución.
+- [x] Límite de solicitud de 20 MB.
+- [x] El JSON bruto se descarta y la vista previa vence a los 30 minutos.
+- [x] Enlaces externos abiertos en el navegador predeterminado.
+- [x] Renderer sin integración Node, con aislamiento y sandbox.
+- [x] Auditoría NuGet sin vulnerabilidades conocidas.
+- [x] Auditoría npm de producción sin vulnerabilidades conocidas.
+- [x] Microsoft Defender sin detecciones en el instalador de prueba.
+- [x] Política accesible dentro de la app y versión HTTPS lista para GitHub Pages.
+- [ ] URL pública comprobada después de activar GitHub Pages.
 
-- [ ] Warframe game ID `8954` is detected.
-- [ ] `game_info` and `match_info` are enabled immediately.
-- [ ] Current info is queried after detection.
-- [ ] New inventory updates are accepted.
-- [ ] A GEP outage is explained to the user.
-- [ ] Running Warframe as administrator produces a useful privilege warning.
+## Resoluciones
 
-## Inventory
+- [x] 1366x720, escala lógica 100%, sin desbordamiento horizontal.
+- [x] 1366x768, escala lógica 100%, sin desbordamiento horizontal.
+- [x] 1920x1080, escala lógica 125%, sin desbordamiento horizontal.
+- [x] 2560x1440, escala lógica 100%, sin desbordamiento horizontal.
+- [x] 3840x2160, escala lógica 150%, sin desbordamiento horizontal.
+- [ ] Repetir escalas en monitores físicos o máquinas virtuales antes del envío final.
 
-- [ ] Built Warframes match the in-game inventory.
-- [ ] Primary, secondary, melee, Archwing, Necramech, and companion equipment.
-- [ ] Mod duplicate quantities.
-- [ ] Relic counts for Intact, Exceptional, Flawless, and Radiant variants.
-- [ ] Prime component quantities.
-- [ ] Resources and recipes.
-- [ ] Credits, Platinum, Endo, Ducats, and Aya when present in the payload.
-- [ ] Unknown objects are omitted and reported.
-- [ ] Partial captures never zero absent equipment.
-- [ ] User confirmation is required.
-- [ ] Data persists after restart.
+## Overwolf GEP e inventario
 
-## Store
+- [ ] Detectar Warframe con game ID `8954` usando el `OW_DEV_KEY`.
+- [ ] Validar `game_info`, `match_info` y `match_info.inventory` reales.
+- [ ] Comparar Warframes, armas, mods, reliquias, recursos y monedas con el juego.
+- [x] Las capturas parciales no ponen a cero objetos ausentes.
+- [x] Se requiere confirmación antes de aplicar una captura.
+- [x] Los datos confirmados persisten localmente.
 
-- [ ] English description and screenshots.
-- [ ] Public HTTPS privacy policy.
-- [ ] Correct author, product name, version, and app UID.
-- [ ] No claim of affiliation with Digital Extremes.
-- [ ] Release notes and support link.
+## Entrega y tienda
+
+- [x] Tutorial inicial completo, saltable y revisitable.
+- [x] Guía ilustrada con instrucciones y ocho capturas reales.
+- [x] Capturas JPG 1200x675 de menos de 100 KB.
+- [x] Icono 55x55 y tile 258x198.
+- [x] Nombre, autor, versión y aviso de marca configurados.
+- [x] Notas de versión, política de privacidad y soporte preparados.
+- [ ] UID definitivo y claves de consola después de aprobar el MVP.
+- [ ] Build pública firmada con certificado de CA confiable.

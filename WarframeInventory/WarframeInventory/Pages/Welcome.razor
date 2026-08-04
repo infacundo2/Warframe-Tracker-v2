@@ -1,0 +1,186 @@
+@page "/welcome"
+@attribute [AllowAnonymous]
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<PageTitle>Bienvenido a Warframe Tracker</PageTitle>
+
+<main class="ftue-shell">
+    <section class="ftue-panel orokin-panel">
+        <header class="ftue-header">
+            <div>
+                <div class="eyebrow">INICIO DE SISTEMA // TENNO OS</div>
+                <MudText Typo="Typo.h3">Bienvenido a Warframe Tracker</MudText>
+            </div>
+            <button type="button" class="ftue-skip" @onclick="SkipAsync">
+                Omitir tutorial
+            </button>
+        </header>
+
+        <div class="ftue-progress" aria-label="Progreso del tutorial">
+            @for (var index = 0; index < 4; index++)
+            {
+                <span class="@(index <= step ? "is-active" : "")"></span>
+            }
+        </div>
+
+        @if (step == 0)
+        {
+            <section class="ftue-stage">
+                <div class="ftue-orbit" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                    <MudIcon Icon="@Icons.Material.Filled.Radar" />
+                </div>
+                <div>
+                    <div class="eyebrow">01 // TU CENTRO DE MANDO</div>
+                    <MudText Typo="Typo.h4">Decide qué farmear sin revisar cientos de objetos</MudText>
+                    <MudText>
+                        Reúne Warframes, armas, mods, reliquias, componentes y recursos en una
+                        interfaz diseñada primero para jugadores de habla hispana.
+                    </MudText>
+                    <div class="ftue-feature-grid">
+                        <div><MudIcon Icon="@Icons.Material.Filled.TrackChanges" /><b>Objetivos</b><span>Prioriza piezas pendientes.</span></div>
+                        <div><MudIcon Icon="@Icons.Material.Filled.Diamond" /><b>Reliquias</b><span>Compara I / E / P / R.</span></div>
+                        <div><MudIcon Icon="@Icons.Material.Filled.Route" /><b>Rutas</b><span>Encuentra lugares de farmeo.</span></div>
+                    </div>
+                </div>
+            </section>
+        }
+        else if (step == 1)
+        {
+            <section class="ftue-stage">
+                <div class="ftue-orbit ftue-orbit--capture" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory2" />
+                </div>
+                <div>
+                    <div class="eyebrow">02 // CAPTURA AUTOMÁTICA</div>
+                    <MudText Typo="Typo.h4">Tú controlas cada cambio</MudText>
+                    <ol class="ftue-steps">
+                        <li>Abre Warframe Tracker antes de iniciar Warframe.</li>
+                        <li>Entra al juego y abre el inventario.</li>
+                        <li>Espera la señal GEP y selecciona <b>Analizar inventario</b>.</li>
+                        <li>Revisa la vista previa y confirma únicamente si coincide.</li>
+                    </ol>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        La aplicación nunca aplica una captura automáticamente.
+                    </MudAlert>
+                </div>
+            </section>
+        }
+        else if (step == 2)
+        {
+            <section class="ftue-stage">
+                <div class="ftue-orbit ftue-orbit--privacy" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                    <MudIcon Icon="@Icons.Material.Filled.Security" />
+                </div>
+                <div>
+                    <div class="eyebrow">03 // PRIVACIDAD LOCAL</div>
+                    <MudText Typo="Typo.h4">Tu inventario permanece en tu PC</MudText>
+                    <MudText>
+                        El JSON bruto recibido mediante Overwolf se descarta después del análisis.
+                        La vista previa vence a los 30 minutos y solo se guardan localmente los
+                        objetos y cantidades que confirmes.
+                    </MudText>
+                    <div class="ftue-privacy-list">
+                        <span><MudIcon Icon="@Icons.Material.Filled.KeyOff" />No pedimos credenciales de Warframe.</span>
+                        <span><MudIcon Icon="@Icons.Material.Filled.CloudOff" />No subimos tu inventario a nuestros servidores.</span>
+                        <span><MudIcon Icon="@Icons.Material.Filled.Visibility" />Siempre puedes revisar antes de guardar.</span>
+                    </div>
+                    <MudLink Href="/privacy">Leer la política de privacidad completa</MudLink>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="ftue-stage">
+                <div class="ftue-orbit ftue-orbit--ready" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                    <MudIcon Icon="@Icons.Material.Filled.DoneAll" />
+                </div>
+                <div>
+                    <div class="eyebrow">04 // OPERADOR LISTO</div>
+                    <MudText Typo="Typo.h4">Crea tu perfil local y empieza</MudText>
+                    <MudText>
+                        El perfil separa tu colección y objetivos de otros usuarios del mismo PC.
+                        No es tu cuenta de Warframe y no debes reutilizar su contraseña.
+                    </MudText>
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-4">
+                        La captura real estará disponible cuando Overwolf habilite GEP para esta aplicación.
+                    </MudAlert>
+                    <AuthorizeView>
+                        <Authorized>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                       StartIcon="@Icons.Material.Filled.Sensors"
+                                       OnClick="OpenDesktopSyncAsync" Class="mt-5">
+                                Ir al inventario automático
+                            </MudButton>
+                        </Authorized>
+                        <NotAuthorized>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                                       OnClick="CreateProfileAsync" Class="mt-5">
+                                Crear perfil local
+                            </MudButton>
+                            <MudButton Variant="Variant.Text" Color="Color.Secondary" Size="Size.Large"
+                                       OnClick="OpenLoginAsync" Class="mt-5 ml-2">
+                                Ya tengo un perfil
+                            </MudButton>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
+            </section>
+        }
+
+        <footer class="ftue-actions">
+            <MudButton Variant="Variant.Text" Disabled="@(step == 0)" OnClick="Previous">
+                Anterior
+            </MudButton>
+            <span>Paso @(step + 1) de 4</span>
+            @if (step < 3)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward"
+                           OnClick="Next">
+                    Siguiente
+                </MudButton>
+            }
+        </footer>
+    </section>
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "revisar")]
+    public bool Review { get; set; }
+
+    [SupplyParameterFromQuery(Name = "paso")]
+    public int InitialStep { get; set; }
+
+    private int step;
+
+    protected override void OnParametersSet() => step = Math.Clamp(InitialStep, 0, 3);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        if (!Review && InitialStep == 0
+            && !await JS.InvokeAsync<bool>("warframeTracker.onboarding.shouldShow"))
+            Nav.NavigateTo("/desktop-sync");
+    }
+
+    private void Previous() => step = Math.Max(0, step - 1);
+    private void Next() => step = Math.Min(3, step + 1);
+    private Task SkipAsync() => FinishAsync("/");
+    private Task OpenDesktopSyncAsync() => FinishAsync("/desktop-sync");
+    private Task CreateProfileAsync() =>
+        FinishAsync("/auth/register?returnUrl=%2Fdesktop-sync");
+    private Task OpenLoginAsync() =>
+        FinishAsync("/auth/login?returnUrl=%2Fdesktop-sync");
+
+    private async Task FinishAsync(string destination)
+    {
+        await JS.InvokeVoidAsync("warframeTracker.onboarding.complete");
+        Nav.NavigateTo(destination);
+    }
+}

@@ -53,3 +53,15 @@ Prime y recursos con tus objetivos y las oportunidades activas.
 Warframe Tracker is an independent community project. Warframe and all related
 names and assets are trademarks of Digital Extremes Ltd. This project is not
 affiliated with or endorsed by Digital Extremes.
+
+## Publicación y monetización
+
+Warframe Tracker se propone como una aplicación **pública y gratuita**, abierta
+a cualquier jugador desde la tienda web de Overwolf. Si Overwolf exige
+monetización para la publicación, se integrarán únicamente anuncios o
+suscripciones proporcionados por Overwolf, con CMP y ubicaciones que no oculten
+contenido ni interrumpan el juego. No se utilizará publicidad de terceros.
+
+**Support URL:** `https://infacundo2.github.io/Warframe-Tracker-v2/support.html`
+
+**Privacy Policy URL:** `https://infacundo2.github.io/Warframe-Tracker-v2/privacy.html`
