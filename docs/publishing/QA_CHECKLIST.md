@@ -26,7 +26,7 @@
 - [x] Auditoría npm de producción sin vulnerabilidades conocidas.
 - [x] Microsoft Defender sin detecciones en el instalador de prueba.
 - [x] Política accesible dentro de la app y versión HTTPS lista para GitHub Pages.
-- [ ] URL pública comprobada después de activar GitHub Pages.
+- [x] URLs públicas HTTPS de privacidad y soporte comprobadas.
 
 ## Resoluciones
 
@@ -39,9 +39,11 @@
 
 ## Overwolf GEP e inventario
 
-- [ ] Detectar Warframe con game ID `8954` usando el `OW_DEV_KEY`.
-- [ ] Validar `game_info`, `match_info` y `match_info.inventory` reales.
-- [ ] Comparar Warframes, armas, mods, reliquias, recursos y monedas con el juego.
+- [x] Warframe detectado con game ID `8954` usando el `OW_DEV_KEY` temporal.
+- [x] `game_info`, `match_info.highlighted` y `match_info.inventory` reales validados.
+- [x] Captura autoritativa de 2.406 tipos aplicada y revisada por el usuario.
+- [x] Variante real `Neo S13 Radiant` conservada separadamente con cantidad 1.
+- [x] Sondeo `getInfo()` cada 2,5 s, eventos y detención al cerrar el juego.
 - [x] Las capturas parciales no ponen a cero objetos ausentes.
 - [x] Se requiere confirmación antes de aplicar una captura.
 - [x] Los datos confirmados persisten localmente.

@@ -1,6 +1,6 @@
 # Notas de seguridad de la construcción
 
-Auditoría repetida el 3 de agosto de 2026:
+Auditoría repetida el 4 de agosto de 2026:
 
 - `npm audit --omit=dev`: **0 vulnerabilidades** de producción.
 - `dotnet list package --vulnerable --include-transitive`: **0 paquetes vulnerables**.
@@ -20,6 +20,8 @@ Controles incluidos:
 - Base SQLite local; no se incluyen credenciales MySQL.
 - JSON bruto GEP descartado después de normalizarlo.
 - Vista previa temporal y confirmación explícita antes de escribir inventario.
+- Credencial `OW_DEV_KEY` utilizada solo en el entorno del proceso de prueba; no
+  se almacena en Git, documentación, instalador ni capturas.
 - Consentimiento oficial CMP de Overwolf si fuera necesario para publicidad.
 
 La auditoría completa de dependencias de desarrollo puede informar problemas en

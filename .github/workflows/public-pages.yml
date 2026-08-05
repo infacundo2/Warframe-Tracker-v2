@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/publishing/privacy.html"
+      - "docs/publishing/terms.html"
       - "docs/publishing/support.html"
       - "docs/publishing/index.html"
       - ".github/workflows/public-pages.yml"
@@ -35,6 +36,7 @@ jobs:
           mkdir public-pages
           cp docs/publishing/index.html public-pages/index.html
           cp docs/publishing/privacy.html public-pages/privacy.html
+          cp docs/publishing/terms.html public-pages/terms.html
           cp docs/publishing/support.html public-pages/support.html
           touch public-pages/.nojekyll
       - name: Subir contenido estático
@@ -44,4 +46,3 @@ jobs:
       - name: Publicar
         id: deployment
         uses: actions/deploy-pages@v4
-

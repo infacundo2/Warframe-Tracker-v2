@@ -1,13 +1,21 @@
-﻿Warframe Tracker - comprobaciÃ³n Windows 11
-Fecha: 2026-08-04 13:03:45Z
-Sistema: Windows 25H2, build 26200, 64 bits
-Windows 11: APROBADO
-Pantalla: 1536x864; Ã¡rea Ãºtil 1536x816; principal=True
-Pruebas .NET: APROBADO
-TypeScript y OW-Electron: APROBADO
-Instalador: Warframe-Tracker-Setup-0.1.0.exe
-Firma Authenticode: NotSigned
-SHA-256: 3FAD6251071D7A6B7E77D90F7C53362C43C25AE0957F7DE6F8040D269A27E6BF
-Microsoft Defender activo: True
-Firmas Defender: 1.455.494.0
-AnÃ¡lisis Defender: SIN DETECCIONES
+Warframe Tracker 0.1.0 - Windows QA
+Date: 2026-08-04 (America/Santiago)
+
+Operating system: Windows 11 Home Single Language, version 25H2, x64
+Build: 26200.8875
+Note: the legacy ProductName registry field reports "Windows 10"; build 26200
+and DisplayVersion 25H2 identify the installed Windows 11 release.
+
+Validated:
+- .NET backend test suite: PASS (1/1)
+- TypeScript typecheck: PASS
+- English and Spanish translation JSON parsing: PASS
+- NuGet vulnerability audit: 0 vulnerable packages
+- npm production dependency audit: 0 vulnerabilities
+- Packaged desktop launch: PASS
+- Visible desktop window: PASS
+- Packaged English route and layout report: PASS
+- Horizontal overflow at 1366x720, 1366x768, 1920x1080,
+  2560x1440, and 3840x2160: NONE
+
+Physical machine used for this report: Windows 11 x64.

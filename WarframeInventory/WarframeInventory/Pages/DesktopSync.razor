@@ -12,8 +12,8 @@
             <div class="eyebrow">OVERWOLF GEP // CANAL LOCAL</div>
             <MudText Typo="Typo.h3" Class="page-title">Inventario automático</MudText>
             <MudText>
-                Abre Warframe y entra al inventario. La app analiza la captura en memoria y
-                te muestra los cambios antes de guardar nada.
+                Inicia Tracker antes de Warframe. La app recibe el inventario durante el inicio
+                de sesión o una pantalla de carga y muestra los cambios antes de guardar nada.
             </MudText>
         </div>
         <div class="desktop-sync-signal @(status.HasCapture ? "is-ready" : "")">
@@ -33,8 +33,9 @@
                 <MudText Typo="Typo.h5">Cómo capturar</MudText>
                 <ol class="relic-sync-steps">
                     <li>Inicia esta aplicación antes de abrir Warframe.</li>
-                    <li>Entra al juego y abre el menú de inventario.</li>
-                    <li>Espera unos segundos y pulsa <b>Buscar captura</b>.</li>
+                    <li>Inicia sesión y espera en el Orbitador hasta que GEP se conecte.</li>
+                    <li>Si no llega la señal, viaja a un Repetidor, Dojo o misión y regresa.</li>
+                    <li>Pulsa <b>Buscar captura</b> cuando termine la pantalla de carga.</li>
                     <li>Revisa el resumen y confirma los cambios.</li>
                 </ol>
                 <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-3">
@@ -197,7 +198,7 @@
         status = InventorySync.GetStatus();
         message = status.HasCapture
             ? $"Captura recibida: {status.DistinctItems:N0} objetos distintos."
-            : "Aún no llegó una captura. Abre el inventario de Warframe y vuelve a intentar.";
+            : "Aún no llegó una captura. Provoca una pantalla de carga en Warframe y vuelve a intentar.";
         severity = status.HasCapture ? Severity.Success : Severity.Info;
         return Task.CompletedTask;
     }

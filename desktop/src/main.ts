@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, screen, shell } from "electron";
 import { ChildProcess, spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import path from "node:path";
@@ -12,6 +12,7 @@ app.setPath("userData", path.join(app.getPath("appData"), "warframe-tracker-desk
 const WARFRAME_GAME_ID = 8954;
 const REQUIRED_FEATURES = ["game_info", "match_info"];
 const HEALTH_TIMEOUT_MS = 60_000;
+const INVENTORY_POLL_INTERVAL_MS = 2_500;
 const bridgeKey = randomBytes(32).toString("base64url");
 const DEFAULT_TOGGLE_HOTKEY = "CommandOrControl+Shift+T";
 const ALLOWED_TOGGLE_HOTKEYS = new Set([
@@ -27,6 +28,22 @@ let mainWindow: BrowserWindow | undefined;
 let backendUrl = "";
 let quitting = false;
 let currentToggleHotkey = DEFAULT_TOGGLE_HOTKEY;
+let consoleOutputAvailable = true;
+let inventoryPollTimer: NodeJS.Timeout | undefined;
+let inventoryPollInFlight = false;
+let lastInventoryDigest = "";
+const pendingInventoryDigests = new Set<string>();
+
+// In packaged apps stdout is normally absent. During local development the
+// parent terminal can also disappear while Electron keeps running. Node emits
+// EPIPE asynchronously in that situation, so a try/catch around console.log is
+// not enough and the unhandled stream error would terminate the main process.
+for (const stream of [process.stdout, process.stderr]) {
+  stream?.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EPIPE")
+      consoleOutputAvailable = false;
+  });
+}
 
 function argumentValue(prefix: string): string | undefined {
   return process.argv.find((value) => value.startsWith(prefix))?.slice(prefix.length);
@@ -63,7 +80,13 @@ function requestedQaLanguage(): "en" | "es" | undefined {
 
 function log(message: string, error?: unknown): void {
   const suffix = error instanceof Error ? `: ${error.message}` : error ? `: ${String(error)}` : "";
-  console.log(`[Warframe Tracker] ${message}${suffix}`);
+  if (!consoleOutputAvailable || !process.stdout?.writable || process.stdout.destroyed)
+    return;
+  try {
+    process.stdout.write(`[Warframe Tracker] ${message}${suffix}\n`);
+  } catch {
+    consoleOutputAvailable = false;
+  }
 }
 
 function toggleMainWindow(): void {
@@ -325,20 +348,29 @@ async function submitInventory(payload: unknown, source: string): Promise<void> 
   if (payload === undefined || payload === null)
     return;
   const inventoryJson = typeof payload === "string" ? payload : JSON.stringify(payload);
-  const response = await fetch(`${backendUrl}/api/desktop-bridge/inventory`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Warframe-Bridge-Key": bridgeKey
-    },
-    body: JSON.stringify({ inventoryJson, source })
-  });
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`El puente rechazó la captura (${response.status}): ${detail}`);
+  const digest = createHash("sha256").update(inventoryJson).digest("hex");
+  if (digest === lastInventoryDigest || pendingInventoryDigests.has(digest))
+    return;
+  pendingInventoryDigests.add(digest);
+  try {
+    const response = await fetch(`${backendUrl}/api/desktop-bridge/inventory`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Warframe-Bridge-Key": bridgeKey
+      },
+      body: JSON.stringify({ inventoryJson, source })
+    });
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`El puente rechazó la captura (${response.status}): ${detail}`);
+    }
+    const receipt = await response.json() as { distinctItems?: number };
+    lastInventoryDigest = digest;
+    log(`Inventario recibido: ${receipt.distinctItems ?? 0} objetos distintos.`);
+  } finally {
+    pendingInventoryDigests.delete(digest);
   }
-  const receipt = await response.json() as { distinctItems?: number };
-  log(`Inventario recibido: ${receipt.distinctItems ?? 0} objetos distintos.`);
 }
 
 async function inspectCurrentInfo(gep: any): Promise<void> {
@@ -350,6 +382,25 @@ async function inspectCurrentInfo(gep: any): Promise<void> {
   } catch (error) {
     log("No se pudo consultar el estado GEP actual", error);
   }
+}
+
+function stopInventoryPolling(): void {
+  if (inventoryPollTimer)
+    clearInterval(inventoryPollTimer);
+  inventoryPollTimer = undefined;
+  inventoryPollInFlight = false;
+}
+
+function startInventoryPolling(gep: any): void {
+  stopInventoryPolling();
+  inventoryPollTimer = setInterval(() => {
+    if (inventoryPollInFlight)
+      return;
+    inventoryPollInFlight = true;
+    void inspectCurrentInfo(gep).finally(() => {
+      inventoryPollInFlight = false;
+    });
+  }, INVENTORY_POLL_INTERVAL_MS);
 }
 
 function initializeGep(): void {
@@ -371,9 +422,16 @@ function initializeGep(): void {
       try {
         await gep.setRequiredFeatures(gameId, REQUIRED_FEATURES);
         await inspectCurrentInfo(gep);
+        startInventoryPolling(gep);
       } catch (error) {
         log("No se pudieron activar las funciones GEP", error);
       }
+    });
+    gep.on("game-exit", (_event: unknown, gameId: number) => {
+      if (gameId !== WARFRAME_GAME_ID)
+        return;
+      stopInventoryPolling();
+      log("Warframe se cerró; sondeo de inventario detenido.");
     });
     gep.on("new-info-update", (_event: unknown, gameId: number, data: unknown) => {
       if (gameId !== WARFRAME_GAME_ID)
@@ -440,6 +498,7 @@ if (!app.requestSingleInstanceLock()) {
 
 app.on("before-quit", () => {
   quitting = true;
+  stopInventoryPolling();
   globalShortcut.unregisterAll();
   if (backend && backend.exitCode === null)
     backend.kill();

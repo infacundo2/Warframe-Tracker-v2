@@ -1,0 +1,10 @@
+{
+  "route": "/auth/login?returnUrl=%2Fdesktop-sync",
+  "language": "en",
+  "viewportWidth": 1590,
+  "viewportHeight": 900,
+  "contentWidth": 1590,
+  "contentHeight": 989,
+  "horizontalOverflow": false,
+  "spanishTextSamples": []
+}

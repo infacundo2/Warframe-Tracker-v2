@@ -39,22 +39,25 @@ preferencia se guarda únicamente en el PC y puede cambiarse sin reinstalar.
 ## 3. Captura automática y consentimiento
 
 1. Abrir Warframe Tracker antes de iniciar Warframe.
-2. Iniciar Warframe en PC y abrir el menú de inventario del juego.
-3. Volver a Warframe Tracker y entrar en **Inventario automático**.
-4. Pulsar **Buscar captura**.
-5. Cuando aparezca **CAPTURA RECIBIDA**, seleccionar **Analizar inventario**.
-6. Revisar Warframes, armas, mods, reliquias, componentes y recursos detectados.
-7. Verificar la columna **Actual** frente a **Capturado**.
-8. Seleccionar **Aplicar cambios** solamente si la vista previa coincide.
+2. Iniciar Warframe en PC y esperar a que GEP detecte el juego.
+3. El inventario se recibe durante el inicio de sesión o una pantalla de carga.
+   Si no aparece, viajar a un Repetidor, Dojo o misión y regresar.
+4. Volver a Warframe Tracker y entrar en **Inventario automático**.
+5. Pulsar **Buscar captura**.
+6. Cuando aparezca **CAPTURA RECIBIDA**, seleccionar **Analizar inventario**.
+7. Revisar Warframes, armas, mods, reliquias, componentes y recursos detectados.
+8. Verificar la columna **Actual** frente a **Capturado**.
+9. Seleccionar **Aplicar cambios** solamente si la vista previa coincide.
 
 La aplicación nunca aplica datos automáticamente. Una captura parcial añade o
 actualiza los objetos encontrados, pero no pone en cero los elementos ausentes.
 
 ![Tutorial de captura](screenshots/02-captura-segura.jpg)
 
-> **Pendiente de la build candidata:** repetir estos pasos con el `OW_DEV_KEY`
-> temporal y añadir aquí capturas reales de “Captura recibida”, “Vista previa”
-> e “Inventario aplicado”.
+> **Validación real completada:** GEP 400.22.0 recibió 2.406 tipos distintos en
+> una captura autoritativa. Se verificó además la conservación independiente de
+> Intacta, Excepcional, Perfecta y Radiante. Los informes no contienen el JSON
+> bruto, el nombre del jugador ni cantidades detalladas.
 
 ## 4. Privacidad y seguridad
 
@@ -125,8 +128,8 @@ inventario. El canal público de soporte es:
 
 ## 7. Limitaciones conocidas de esta candidata
 
-- La captura GEP real y su coincidencia completa quedan pendientes hasta que
-  Overwolf entregue el `OW_DEV_KEY`.
+- La build distribuible aún necesita la firma de Overwolf y la firma de código
+  del ejecutable para que GEP cargue fuera del modo de desarrollo.
 - La firma de producción requiere el App UID, `OW_CLI_API_KEY` y `OW_BUILD_KEY`
   disponibles después de registrar la app, además de un certificado de firma
   de código emitido por una autoridad confiable.

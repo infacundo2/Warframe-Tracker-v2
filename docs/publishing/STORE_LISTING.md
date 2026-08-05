@@ -66,3 +66,5 @@ contenido ni interrumpan el juego. No se utilizará publicidad de terceros.
 **Support URL:** `https://infacundo2.github.io/Warframe-Tracker-v2/support.html`
 
 **Privacy Policy URL:** `https://infacundo2.github.io/Warframe-Tracker-v2/privacy.html`
+
+**Terms of Use URL:** `https://infacundo2.github.io/Warframe-Tracker-v2/terms.html`

@@ -272,7 +272,7 @@ public sealed class DesktopInventorySyncService
             {
                 _capture = null;
                 throw new DesktopInventoryException(
-                    "No hay una captura reciente. Abre el inventario dentro de Warframe.");
+                    "No hay una captura reciente. Provoca una pantalla de carga dentro de Warframe.");
             }
             return _capture;
         }

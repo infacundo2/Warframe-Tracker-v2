@@ -1,0 +1,12 @@
+{
+  "route": "/settings",
+  "language": "en",
+  "viewportWidth": 1590,
+  "viewportHeight": 900,
+  "contentWidth": 1590,
+  "contentHeight": 1066,
+  "horizontalOverflow": false,
+  "spanishTextSamples": [
+    "Español"
+  ]
+}

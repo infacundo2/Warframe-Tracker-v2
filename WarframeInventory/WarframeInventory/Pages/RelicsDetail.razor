@@ -23,12 +23,12 @@
         <MudPaper Class="p-6">
             <MudGrid>
                 <MudItem xs="12" md="4">
-                    <img src="@GetImageUrl(relic.ImageName)" alt="@relic.Name"
+                    <img src="@GetImageUrl(relic.ImageName)" alt="@BaseRelicName(relic.Name)"
                          style="width:100%;border-radius:8px;" />
                 </MudItem>
 
                 <MudItem xs="12" md="8">
-                    <MudText Typo="Typo.h4" Color="Color.Primary">@relic.Name</MudText>
+                    <MudText Typo="Typo.h4" Color="Color.Primary">@BaseRelicName(relic.Name)</MudText>
                     <MudText Typo="Typo.subtitle2">@WarframeSpanishText.Type(relic.Category)</MudText>
                     <MudText Typo="Typo.body2" Class="mt-2 mb-3">
                         @(relic.Vaulted ? "En bóveda" : "Disponible") — @(relic.Tradable ? "Intercambiable" : "No intercambiable")
@@ -219,9 +219,14 @@
             if (!string.IsNullOrWhiteSpace(userId))
                 goalSelected = await GoalService.IsGoalAsync(userId, "relic", relic.UniqueName);
 
-            // 🔹 Obtener variantes (Intacta, Excepcional, Flawless, Radiante)
+            // Las variantes tienen nombres visibles distintos ("Intact", "Radiant", etc.).
+            // Se agrupan por el identificador interno común, no por Name.
+            var familyPrefix = RelicFamilyPrefix(relic.UniqueName);
+            var familyKeys = RefinementSuffixes
+                .Select(suffix => familyPrefix + suffix)
+                .ToList();
             var variants = await Db.Relics.AsNoTracking()
-                .Where(r => r.Name == relic.Name)
+                .Where(r => familyKeys.Contains(r.UniqueName))
                 .OrderBy(r => r.UniqueName)
                 .ToListAsync();
 
@@ -355,6 +360,26 @@
            uniqueName.EndsWith("Gold", StringComparison.OrdinalIgnoreCase) ? "Perfecta" :
            uniqueName.EndsWith("Platinum", StringComparison.OrdinalIgnoreCase) ? "Radiante" :
            "Intacta";
+
+    private static readonly string[] RefinementSuffixes =
+        ["Bronze", "Silver", "Gold", "Platinum"];
+
+    private static string RelicFamilyPrefix(string uniqueName)
+    {
+        var suffix = RefinementSuffixes.FirstOrDefault(value =>
+            uniqueName.EndsWith(value, StringComparison.OrdinalIgnoreCase));
+        return suffix is null ? uniqueName : uniqueName[..^suffix.Length];
+    }
+
+    private static string BaseRelicName(string name)
+    {
+        string[] suffixes =
+            [" Intact", " Exceptional", " Flawless", " Radiant",
+             " Intacta", " Excepcional", " Perfecta", " Radiante"];
+        var suffix = suffixes.FirstOrDefault(value =>
+            name.EndsWith(value, StringComparison.OrdinalIgnoreCase));
+        return suffix is null ? name : name[..^suffix.Length];
+    }
 
     private static string RewardLogicalKey(RelicReward reward)
     {

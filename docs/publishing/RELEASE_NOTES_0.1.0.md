@@ -1,6 +1,6 @@
 # Warframe Tracker 0.1.0 — MVP inicial
 
-Fecha prevista: pendiente de aprobación de QA.
+Build de revisión: 4 de agosto de 2026.
 
 ## Funciones principales
 
@@ -10,6 +10,8 @@ Fecha prevista: pendiente de aprobación de QA.
 - Tutorial inicial bilingüe, omisible y disponible nuevamente desde el menú.
 - Captura de inventario de Warframe mediante Overwolf GEP con vista previa y
   confirmación antes de modificar datos.
+- Sondeo seguro de `getInfo()` mientras Warframe está activo, además de eventos,
+  para recoger inventarios que aparecen únicamente durante pantallas de carga.
 - Seguimiento de Warframes, armas, mods, reliquias por refinamiento,
   componentes Prime y recursos.
 - Centro de mando, objetivos, elementos construibles, planificador de farmeo,
@@ -32,6 +34,9 @@ Fecha prevista: pendiente de aprobación de QA.
 - Windows 11 x64: probado.
 - Compilación .NET y TypeScript: aprobada.
 - Pruebas automatizadas del importador: aprobadas.
-- Captura GEP real: pendiente del `OW_DEV_KEY` de Overwolf.
+- Captura GEP real: aprobada con 2.406 tipos distintos y cobertura autoritativa.
+- Refinamientos de reliquia: Intacta, Excepcional, Perfecta y Radiante validados
+  como registros independientes; corregida su agrupación en detalle y premios.
+- Proceso principal protegido frente a consolas cerradas (`EPIPE`).
 - Firma de producción: pendiente de credenciales de consola y certificado de
   firma de código.
