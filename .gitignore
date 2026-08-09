@@ -6,6 +6,8 @@ out/
 desktop/node_modules/
 desktop/dist/
 desktop/build/
+overwolf-native/node_modules/
+overwolf-native/dist/
 
 # Local tooling and IDE
 .dotnet-home/

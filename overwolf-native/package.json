@@ -1,0 +1,20 @@
+{
+  "name": "warframe-tracker-overwolf-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Overwolf Native shell for Warframe Tracker",
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && tsc -p tsconfig.json && node scripts/build-assets.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "validate": "npm run build && node scripts/validate.mjs",
+    "validate:official": "npm run build && node scripts/validate-official.mjs",
+    "test": "node --test tests/core.test.mjs",
+    "package:opk": "npm run validate && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "ajv": "8.20.0",
+    "typescript": "5.7.2"
+  }
+}

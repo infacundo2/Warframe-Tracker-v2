@@ -18,7 +18,14 @@ body {
     background-size: auto, 42px 42px, 42px 42px;
 }
 a { text-underline-offset: .2em; }
-.orokin-appbar { z-index: 1200; border-bottom: 1px solid var(--line); backdrop-filter: blur(18px); }
+.orokin-appbar {
+    position: sticky !important;
+    top: 0;
+    z-index: 1200;
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(18px);
+}
+.global-back-button { color: var(--cyan) !important; }
 .orokin-appbar .mud-icon-button:focus-visible {
     outline: none !important;
     box-shadow: 0 0 0 2px rgba(216, 184, 106, .8), 0 0 18px rgba(216, 184, 106, .18);

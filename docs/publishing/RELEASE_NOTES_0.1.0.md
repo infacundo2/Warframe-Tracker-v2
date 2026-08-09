@@ -1,6 +1,6 @@
 # Warframe Tracker 0.1.0 — MVP inicial
 
-Build de revisión: 4 de agosto de 2026.
+Build de revisión actualizada: 5 de agosto de 2026.
 
 ## Funciones principales
 
@@ -14,11 +14,21 @@ Build de revisión: 4 de agosto de 2026.
   para recoger inventarios que aparecen únicamente durante pantallas de carga.
 - Seguimiento de Warframes, armas, mods, reliquias por refinamiento,
   componentes Prime y recursos.
+- Captura de Créditos (`RegularCredits`), Endo, Platino, Ducados, Aya y rango
+  de maestría desde el inventario GEP cuando esos campos están disponibles.
+- Historial de maestría para Warframes y armas mediante `XPInfo`, separado del
+  estado de posesión actual, con filtros para dominados y pendientes.
+- Cantidades de recursos capturados visibles en el catálogo, con filtros de
+  poseídos y faltantes.
 - Centro de mando, objetivos, elementos construibles, planificador de farmeo,
   comparador, builds y Worldstate.
 - Buscador universal mediante `Ctrl+K`.
 - Atajo global configurable para mostrar u ocultar la ventana de escritorio.
 - Música ambiental, volumen, efectos opcionales y movimiento reducido.
+- Barra superior persistente durante el desplazamiento y regreso global a la
+  página anterior.
+- Sincronización automática como ruta principal; AlecaFrame ya no aparece en
+  la navegación ni en el acceso rápido de Reliquias.
 - Política de privacidad y soporte accesibles sin iniciar sesión.
 
 ## Privacidad y seguridad
@@ -38,5 +48,7 @@ Build de revisión: 4 de agosto de 2026.
 - Refinamientos de reliquia: Intacta, Excepcional, Perfecta y Radiante validados
   como registros independientes; corregida su agrupación en detalle y premios.
 - Proceso principal protegido frente a consolas cerradas (`EPIPE`).
+- Apagado limpio del paquete GEP y del backend, incluida la carrera interna
+  `package manager service destroyed` durante el cierre.
 - Firma de producción: pendiente de credenciales de consola y certificado de
   firma de código.

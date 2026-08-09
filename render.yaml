@@ -1,20 +1,27 @@
 services:
   - type: web
     name: warframe-inventory
-    env: dotnet
+    runtime: docker
     plan: free
-    buildCommand: dotnet publish WarframeInventory/WarframeInventory/WarframeInventory.csproj -c Release -o out
-    startCommand: dotnet out/WarframeInventory.dll
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    renderSubdomainPolicy: enabled
+    autoDeployTrigger: commit
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-      - key: ConnectionStrings__DB_HOST
+      - key: WARFRAME_TRACKER_DATABASE_PROVIDER
+        value: MySql
+      - key: WARFRAME_TRACKER_DB_HOST
         sync: false
-      - key: ConnectionStrings__DB_USER
+      - key: WARFRAME_TRACKER_DB_PORT
+        value: "3306"
+      - key: WARFRAME_TRACKER_DB_USER
         sync: false
-      - key: ConnectionStrings__DB_PASS
+      - key: WARFRAME_TRACKER_DB_PASS
         sync: false
-      - key: ConnectionStrings__DB_NAME
+      - key: WARFRAME_TRACKER_DB_NAME
         sync: false
       - key: ASPNETCORE_FORWARDEDHEADERS_ENABLED
         value: true

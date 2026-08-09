@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <MudThemeProvider Theme="_theme" />
 <MudDialogProvider />
@@ -10,6 +12,12 @@
     <MudAppBar Class="orokin-appbar" Elevation="0" Fixed="false">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="ToggleDrawer"
                        Color="Color.Inherit" AriaLabel="Abrir navegación" />
+        @if (_showBackButton)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="GoBackAsync"
+                           Color="Color.Inherit" AriaLabel="Volver a la página anterior"
+                           Class="global-back-button" />
+        }
         <a class="brand" href="/" aria-label="Registro Warframe, inicio">
             <span class="brand-mark" aria-hidden="true">◈</span>
             <span>WARFRAME <small>REGISTRO</small></span>
@@ -84,7 +92,6 @@
                         <MudNavLink Href="/goals" Icon="@Icons.Material.Filled.TrackChanges">Objetivos</MudNavLink>
                         <MudNavLink Href="/buildable" Icon="@Icons.Material.Filled.Inventory2">Construibles</MudNavLink>
                         <MudNavLink Href="/inventory-tools" Icon="@Icons.Material.Filled.SyncAlt">Transferir inventario</MudNavLink>
-                        <MudNavLink Href="/account-sync" Icon="@Icons.Material.Filled.CloudSync">Sincronizar cuenta</MudNavLink>
                         <MudNavLink Href="/desktop-sync" Icon="@Icons.Material.Filled.Sensors">Inventario automático</MudNavLink>
                         <MudNavLink Href="/inventory-manager" Icon="@Icons.Material.Filled.EditNote">Editor e historial</MudNavLink>
                         <MudNavLink Href="/builds" Icon="@Icons.Material.Filled.Build">Builds</MudNavLink>
@@ -110,9 +117,32 @@
 
 @code {
     private bool _drawerOpen;
+    private bool _showBackButton;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += HandleLocationChanged;
+        UpdateBackButton();
+    }
+
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
     private void CloseDrawer() => _drawerOpen = false;
     private void Logout() => Nav.NavigateTo("/auth/logout", forceLoad: true);
+    private async Task GoBackAsync() => await JS.InvokeVoidAsync("warframeTracker.goBack");
+
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        UpdateBackButton();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateBackButton()
+    {
+        var relative = Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
+        _showBackButton = !string.IsNullOrWhiteSpace(relative);
+    }
+
+    public void Dispose() => Nav.LocationChanged -= HandleLocationChanged;
 
     private readonly MudTheme _theme = new()
     {

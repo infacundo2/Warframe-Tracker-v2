@@ -1,0 +1,53 @@
+# Overwolf Native QA checklist
+
+## Build
+
+- [x] TypeScript compilation succeeds.
+- [x] Custom manifest/package validation succeeds.
+- [x] Official Overwolf manifest schema validation succeeds.
+- [x] Automated Native core tests succeed.
+- [x] ASP.NET tests, including per-user isolation, succeed.
+- [x] `npm audit` reports zero known vulnerabilities.
+- [x] OPK contains `manifest.json` at its root.
+- [x] Required PNG icons are below 30 KB.
+- [x] Launcher ICO is below 150 KB.
+- [x] No development key, DB password or private key is packaged.
+
+## Window and FTUE
+
+- [ ] App always displays its desktop window while running.
+- [ ] Closing the root window terminates the app.
+- [ ] Layout works at 960×620, 1280×720, 1920×1080 and 2560×1440.
+- [ ] English is the initial language and Spanish remains selectable.
+- [ ] `Ctrl+Shift+T` hides/restores the window without conflicting with Warframe.
+- [ ] Reduced-motion preference disables continuous animations.
+
+## GEP
+
+- [ ] Manual launch before Warframe registers `match_info` successfully.
+- [ ] Launch while Warframe is already running registers successfully.
+- [ ] `onInfoUpdates2` captures inventory.
+- [ ] `getInfo()` recovers a capture missed during a transition.
+- [ ] Closing Warframe stops polling and leaves the app stable.
+- [ ] GEP failure produces a safe visible message.
+- [ ] Raw inventory is absent from CEF and Overwolf logs.
+
+## Inventory safety
+
+- [ ] Anonymous iframe receives 401 and cannot stage a capture.
+- [ ] Signed-in user receives a capture only after pressing Send.
+- [ ] Two accounts cannot see each other's captures.
+- [ ] Duplicate capture is ignored.
+- [ ] Offline delivery failure retains the local capture.
+- [ ] Local capture expires after 30 minutes.
+- [ ] Preview is required before Apply.
+- [ ] Forced database failure rolls back the whole apply operation.
+
+## Production submission
+
+- [ ] Overwolf confirms Native App UID/GEP access.
+- [ ] Final HTTPS URL configured with `Configurar-Tracker.ps1`.
+- [ ] MySQL migrations applied administratively after a backup.
+- [ ] Final OPK rebuilt and SHA-256 recorded.
+- [ ] Windows 11 Defender scan completed.
+- [ ] Screenshots and written instructions updated for Native.

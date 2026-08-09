@@ -1,0 +1,37 @@
+WARFRAME TRACKER — PAQUETE QA PORTÁTIL
+=======================================
+
+Requisitos:
+- Windows 11 x64.
+- Warframe instalado.
+- Internet para que Overwolf descargue el paquete GEP de pruebas.
+- Una OW_DEV_KEY temporal autorizada por Overwolf.
+
+Uso:
+1. Extrae el ZIP completo. No ejecutes archivos dentro del ZIP.
+2. Cierra cualquier otra instancia de Warframe Tracker.
+3. Ejecuta "Warframe Tracker GEP Test.exe".
+4. Pega la OW_DEV_KEY y pulsa "INICIAR TRACKER CON GEP".
+5. Abre Warframe y entra con tu cuenta.
+6. Viaja a un Repetidor, Dojo o misión y vuelve para provocar una carga.
+7. En Tracker abre Inventario automático, pulsa Buscar captura y luego Analizar.
+8. Revisa los cambios antes de pulsar Aplicar.
+
+Seguridad y privacidad:
+- La clave no viene incluida en el paquete y no se guarda en archivos.
+- No compartas contraseñas ni credenciales de Warframe.
+- El inventario normalizado se almacena localmente en el PC del tester.
+- El JSON original se descarta después del análisis.
+- Este paquete es solo para QA privado; no es la build pública firmada.
+
+Si Windows muestra SmartScreen:
+- No desactives Windows Defender.
+- El archivo no tiene todavía un certificado comercial de firma.
+- Usa el paquete únicamente si lo recibiste directamente del responsable del proyecto.
+
+Al informar un problema incluye:
+- Qué estabas haciendo.
+- Página donde ocurrió.
+- Hora aproximada.
+- Captura de pantalla del error.
+- No incluyas la OW_DEV_KEY ni datos privados de tu cuenta.

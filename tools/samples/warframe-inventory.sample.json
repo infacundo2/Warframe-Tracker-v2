@@ -1,7 +1,18 @@
 {
-  "Credits": 1250000,
+  "RegularCredits": 1250000,
   "PremiumCredits": 120,
   "FusionPoints": 45000,
+  "PlayerLevel": 18,
+  "XPInfo": [
+    {
+      "ItemType": "/Lotus/Powersuits/Excalibur/Excalibur",
+      "XP": 900000
+    },
+    {
+      "ItemType": "/Lotus/Weapons/Tenno/Rifle/Braton/Braton",
+      "XP": 450000
+    }
+  ],
   "Suits": [
     {
       "ItemCount": 1,
@@ -24,6 +35,14 @@
     {
       "ItemCount": 6,
       "ItemType": "/Lotus/Types/Items/MiscItems/OrokinCell"
+    },
+    {
+      "ItemCount": 9,
+      "ItemType": "/Lotus/Types/Items/MiscItems/SchismKey"
+    },
+    {
+      "ItemCount": 350,
+      "ItemType": "/Lotus/Types/Items/MiscItems/PrimeBucks"
     },
     {
       "ItemCount": 2,

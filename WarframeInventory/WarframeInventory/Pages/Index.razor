@@ -63,10 +63,10 @@
             {
                 <div class="panel-heading account-home-heading">
                     <div>
-                        <span>TELEMETRÍA ALECAFRAME</span>
+                        <span>RESUMEN LOCAL DE CUENTA</span>
                         <MudText Typo="Typo.h5">Estado de la cuenta</MudText>
                     </div>
-                    <MudButton Href="/account-sync" Variant="Variant.Text" Color="Color.Primary"
+                    <MudButton Href="/desktop-sync" Variant="Variant.Text" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Sync">
                         Sincronizar
                     </MudButton>
@@ -78,8 +78,18 @@
                     <div><span>Aya</span><b>@FormatAccount(_dashboard.Account.Aya)</b><small>AYA</small></div>
                     <div><span>Platino</span><b>@FormatAccount(_dashboard.Account.Platinum)</b><small>PL</small></div>
                     <div><span>Maestría</span><b>@FormatAccount(_dashboard.Account.MasteryRank)</b><small>MR</small></div>
-                    <div><span>Colección</span><b>@FormatAccount(_dashboard.Account.CompletionPercentage)</b><small>%</small></div>
-                    <div><span>Reliquias abiertas</span><b>@FormatAccount(_dashboard.Account.RelicsOpened)</b><small>OPEN</small></div>
+                    @if (_dashboard.Account.CompletionPercentage is not null)
+                    {
+                        <div title="Porcentaje informado por un perfil público vinculado; no forma parte del inventario GEP.">
+                            <span>Colección del perfil</span><b>@FormatAccount(_dashboard.Account.CompletionPercentage)</b><small>%</small>
+                        </div>
+                    }
+                    @if (_dashboard.Account.RelicsOpened is not null)
+                    {
+                        <div title="Aperturas informadas por un perfil público vinculado; GEP no entrega un historial de aperturas.">
+                            <span>Aperturas registradas</span><b>@FormatAccount(_dashboard.Account.RelicsOpened)</b><small>RELIC</small>
+                        </div>
+                    }
                 </div>
             }
 

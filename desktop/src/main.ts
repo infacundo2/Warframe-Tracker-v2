@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, screen, shell } from "electron";
 import { ChildProcess, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import path from "node:path";
@@ -33,6 +34,21 @@ let inventoryPollTimer: NodeJS.Timeout | undefined;
 let inventoryPollInFlight = false;
 let lastInventoryDigest = "";
 const pendingInventoryDigests = new Set<string>();
+
+function errorMessage(value: unknown): string {
+  return value instanceof Error ? value.message : String(value ?? "");
+}
+
+// ow-electron can reject an internal package-manager promise while its
+// WebContents is being destroyed. Ignore only that known shutdown race and
+// keep reporting every other unhandled rejection.
+process.on("unhandledRejection", (reason) => {
+  const message = errorMessage(reason);
+  const expectedPackageShutdown = message.includes("package manager service destroyed");
+  if (expectedPackageShutdown && (quitting || BrowserWindow.getAllWindows().length === 0))
+    return;
+  log("Promesa no controlada en el proceso principal", reason);
+});
 
 // In packaged apps stdout is normally absent. During local development the
 // parent terminal can also disappear while Electron keeps running. Node emits
@@ -159,6 +175,14 @@ async function findLoopbackPort(): Promise<number> {
 }
 
 function backendCommand(): { executable: string; args: string[]; workingDirectory: string } {
+  const portableBackend = process.env.WARFRAME_TRACKER_BACKEND_EXE;
+  if (portableBackend && existsSync(portableBackend)) {
+    return {
+      executable: portableBackend,
+      args: [],
+      workingDirectory: path.dirname(portableBackend)
+    };
+  }
   if (app.isPackaged) {
     const executable = path.join(process.resourcesPath, "backend", "WarframeInventory.exe");
     return {
@@ -201,7 +225,10 @@ async function startBackend(): Promise<void> {
   backend.stdout?.on("data", (chunk) => process.stdout.write(`[backend] ${chunk}`));
   backend.stderr?.on("data", (chunk) => process.stderr.write(`[backend] ${chunk}`));
   backend.once("exit", (code) => {
-    log(`El backend local terminó con código ${code ?? "desconocido"}.`);
+    if (quitting)
+      log("El backend local se detuvo durante el cierre de la aplicación.");
+    else
+      log(`El backend local terminó con código ${code ?? "desconocido"}.`);
     backend = undefined;
     if (!quitting && mainWindow) {
       void dialog.showMessageBox(mainWindow, {
@@ -502,6 +529,11 @@ app.on("before-quit", () => {
   globalShortcut.unregisterAll();
   if (backend && backend.exitCode === null)
     backend.kill();
+});
+
+app.on("will-quit", () => {
+  quitting = true;
+  stopInventoryPolling();
 });
 
 app.on("window-all-closed", () => app.quit());

@@ -160,6 +160,10 @@ window.warframeTracker = {
         localStorage.setItem("warframe-reduced-energy", enabled ? "1" : "0");
     },
     copyText: async (content) => navigator.clipboard.writeText(content),
+    goBack: () => {
+        if (window.history.length > 1) window.history.back();
+        else window.location.assign("/");
+    },
     audio: tennoAudio
 };
 

@@ -26,6 +26,10 @@ public sealed class DesktopInventorySyncService
     {
         "MiscItems", "Recipes", "Consumables"
     };
+    private const string AyaUniqueName = "/Lotus/Types/Items/MiscItems/SchismKey";
+    private const string DucatsUniqueName = "/Lotus/Types/Items/MiscItems/PrimeBucks";
+    private const long WarframeMasteryXp = 900_000;
+    private const long WeaponMasteryXp = 450_000;
 
     private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
     private readonly object _gate = new();
@@ -120,6 +124,8 @@ public sealed class DesktopInventorySyncService
         var matchedRelics = new Dictionary<string, DesktopMatchedItem>(StringComparer.Ordinal);
         var matchedComponents = new Dictionary<string, DesktopMatchedComponent>(StringComparer.Ordinal);
         var resources = new Dictionary<string, DesktopMatchedItem>(StringComparer.Ordinal);
+        var masteredWarframes = new Dictionary<string, DesktopMasteredItem>(StringComparer.Ordinal);
+        var masteredWeapons = new Dictionary<string, DesktopMasteredItem>(StringComparer.Ordinal);
         var unknown = new List<string>();
 
         foreach (var item in capture.Inventory.Items)
@@ -160,6 +166,14 @@ public sealed class DesktopInventorySyncService
             }
         }
 
+        foreach (var (uniqueName, xp) in capture.Inventory.Experience)
+        {
+            if (xp >= WarframeMasteryXp && warframeByUnique.TryGetValue(uniqueName, out var warframe))
+                masteredWarframes[uniqueName] = new(uniqueName, warframe.Name, xp);
+            else if (xp >= WeaponMasteryXp && weaponByUnique.TryGetValue(uniqueName, out var weapon))
+                masteredWeapons[uniqueName] = new(uniqueName, weapon.Name, xp);
+        }
+
         var currentWarframes = await db.UserWarframes.AsNoTracking()
             .Where(x => x.UserId == userId)
             .ToDictionaryAsync(x => x.WarframeUnique, cancellationToken);
@@ -187,6 +201,10 @@ public sealed class DesktopInventorySyncService
             .ToDictionary(x => x.Key, x => x.Value.Owned ? 1 : 0, StringComparer.Ordinal));
         AddOwnedChanges(changes, "Arma", matchedWeapons, currentWeapons
             .ToDictionary(x => x.Key, x => x.Value.Owned ? 1 : 0, StringComparer.Ordinal));
+        AddMasteryChanges(changes, "Maestría Warframe", masteredWarframes, currentWarframes
+            .ToDictionary(x => x.Key, x => x.Value.Mastered, StringComparer.Ordinal));
+        AddMasteryChanges(changes, "Maestría Arma", masteredWeapons, currentWeapons
+            .ToDictionary(x => x.Key, x => x.Value.Mastered, StringComparer.Ordinal));
         AddQuantityChanges(changes, "Mod", matchedMods, currentMods
             .ToDictionary(x => x.Key, x => x.Value.Quantity, StringComparer.Ordinal));
         AddQuantityChanges(changes, "Reliquia", matchedRelics, currentRelics
@@ -220,6 +238,8 @@ public sealed class DesktopInventorySyncService
             capture.Inventory.Account,
             matchedWarframes,
             matchedWeapons,
+            masteredWarframes,
+            masteredWeapons,
             matchedMods,
             matchedRelics,
             matchedComponents,
@@ -241,20 +261,31 @@ public sealed class DesktopInventorySyncService
         if (capture.Id != preview.CaptureId)
             throw new DesktopInventoryException("Hay una captura más reciente. Analízala antes de aplicar.");
 
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        // Cada reintento usa un contexto nuevo y toda la aplicación queda dentro de
+        // una única transacción atómica. Esto es obligatorio con EnableRetryOnFailure.
+        await using var strategyDb = await _dbFactory.CreateDbContextAsync(cancellationToken);
+        var strategy = strategyDb.Database.CreateExecutionStrategy();
+        var changed = await strategy.ExecuteAsync(async () =>
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            await using var transaction = await db.Database
+                .BeginTransactionAsync(cancellationToken);
 
-        var changed = 0;
-        changed += await ApplyWarframesAsync(db, userId, preview, cancellationToken);
-        changed += await ApplyWeaponsAsync(db, userId, preview, cancellationToken);
-        changed += await ApplyModsAsync(db, userId, preview, cancellationToken);
-        changed += await ApplyRelicsAsync(db, userId, preview, cancellationToken);
-        changed += await ApplyComponentsAsync(db, userId, preview, cancellationToken);
-        changed += await ApplyResourcesAsync(db, userId, preview, cancellationToken);
-        ApplyAccount(db, userId, preview.Account);
+            var attemptChanged = 0;
+            attemptChanged += await ApplyWarframesAsync(db, userId, preview, cancellationToken);
+            attemptChanged += await ApplyWeaponsAsync(db, userId, preview, cancellationToken);
+            attemptChanged += await ApplyModsAsync(db, userId, preview, cancellationToken);
+            attemptChanged += await ApplyRelicsAsync(db, userId, preview, cancellationToken);
+            attemptChanged += await ApplyComponentsAsync(db, userId, preview, cancellationToken);
+            attemptChanged += await ApplyResourcesAsync(db, userId, preview, cancellationToken);
+            ApplyAccount(db, userId, preview.Account);
 
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return attemptChanged;
+        });
+
+        // Se descarta una sola vez y únicamente después de un commit exitoso.
         lock (_gate)
         {
             if (_capture?.Id == preview.CaptureId)
@@ -295,14 +326,16 @@ public sealed class DesktopInventorySyncService
         }
 
         var items = new Dictionary<(string Section, string Unique), int>();
+        var experience = new Dictionary<string, long>(StringComparer.Ordinal);
         var sections = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Walk(root, "Root", items, sections, experience);
         var account = new DesktopAccountValues(
-            FindLong(root, "Credits"),
+            FindLong(root, "RegularCredits", "Credits"),
             FindLong(root, "FusionPoints", "Endo"),
             FindLong(root, "PremiumCredits", "Platinum"),
-            FindLong(root, "PrimeBucks", "Ducats"),
-            null);
-        Walk(root, "Root", items, sections);
+            FindLong(root, "PrimeBucks", "Ducats") ?? FindItemQuantity(items, DucatsUniqueName),
+            FindLong(root, "Aya") ?? FindItemQuantity(items, AyaUniqueName),
+            ToNullableInt(FindLong(root, "PlayerLevel", "MasteryRank")));
         unwrapped?.Dispose();
 
         var entries = items.Select(x => new ParsedItem(x.Key.Section, x.Key.Unique, x.Value))
@@ -310,33 +343,43 @@ public sealed class DesktopInventorySyncService
         var hasEquipment = sections.Overlaps(WarframeSections)
                            || sections.Overlaps(WeaponSections);
         var hasInventory = sections.Contains("MiscItems") || sections.Contains("Upgrades");
-        return new ParsedInventory(entries, sections, account, hasEquipment && hasInventory);
+        return new ParsedInventory(entries, sections, experience, account, hasEquipment && hasInventory);
     }
 
     private static void Walk(
         JsonElement element,
         string section,
         IDictionary<(string Section, string Unique), int> items,
-        ISet<string> sections)
+        ISet<string> sections,
+        IDictionary<string, long> experience)
     {
         if (element.ValueKind == JsonValueKind.Object)
         {
             if (TryGetString(element, "ItemType", out var unique)
                 && !string.IsNullOrWhiteSpace(unique))
             {
-                var quantity = TryGetInt(element, "ItemCount", out var count) ? Math.Max(0, count) : 1;
-                var key = (section, unique);
-                items[key] = checked((items.TryGetValue(key, out var previous) ? previous : 0)
-                                     + quantity);
-                sections.Add(section);
+                if (TryGetLong(element, "XP", out var xp))
+                    experience[unique] = Math.Max(
+                        experience.TryGetValue(unique, out var previousXp) ? previousXp : 0,
+                        xp);
+
+                // XPInfo is historical Codex/mastery data, not an owned inventory stack.
+                if (!section.Equals("XPInfo", StringComparison.OrdinalIgnoreCase))
+                {
+                    var quantity = TryGetInt(element, "ItemCount", out var count) ? Math.Max(0, count) : 1;
+                    var key = (section, unique);
+                    items[key] = checked((items.TryGetValue(key, out var previous) ? previous : 0)
+                                         + quantity);
+                    sections.Add(section);
+                }
             }
             foreach (var property in element.EnumerateObject())
-                Walk(property.Value, property.Name, items, sections);
+                Walk(property.Value, property.Name, items, sections, experience);
         }
         else if (element.ValueKind == JsonValueKind.Array)
         {
             foreach (var child in element.EnumerateArray())
-                Walk(child, section, items, sections);
+                Walk(child, section, items, sections, experience);
         }
     }
 
@@ -367,6 +410,30 @@ public sealed class DesktopInventorySyncService
         value = 0;
         return false;
     }
+
+    private static bool TryGetLong(JsonElement element, string name, out long value)
+    {
+        foreach (var property in element.EnumerateObject())
+        {
+            if (property.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+                && property.Value.TryGetInt64(out value))
+                return true;
+        }
+        value = 0;
+        return false;
+    }
+
+    private static long? FindItemQuantity(
+        IReadOnlyDictionary<(string Section, string Unique), int> items,
+        string uniqueName)
+    {
+        var matches = items.Where(x => x.Key.Unique.Equals(uniqueName, StringComparison.Ordinal))
+            .Select(x => (long)x.Value).ToArray();
+        return matches.Length == 0 ? null : matches.Sum();
+    }
+
+    private static int? ToNullableInt(long? value)
+        => value is null ? null : checked((int)value.Value);
 
     private static long? FindLong(JsonElement root, params string[] names)
     {
@@ -466,6 +533,16 @@ public sealed class DesktopInventorySyncService
         }
     }
 
+    private static void AddMasteryChanges(
+        ICollection<DesktopInventoryChange> output,
+        string category,
+        IReadOnlyDictionary<string, DesktopMasteredItem> incoming,
+        IReadOnlyDictionary<string, bool> current)
+    {
+        foreach (var item in incoming.Values.Where(x => !current.GetValueOrDefault(x.UniqueName)))
+            output.Add(new(category, item.UniqueName, item.Name, 0, 1));
+    }
+
     private static async Task<int> ApplyWarframesAsync(
         ApplicationDbContext db, string userId, DesktopInventoryPreview preview,
         CancellationToken cancellationToken)
@@ -487,17 +564,39 @@ public sealed class DesktopInventorySyncService
         {
             if (!stored.TryGetValue(item.UniqueName, out var entry))
             {
-                db.UserWarframes.Add(new UserWarframe
+                entry = new UserWarframe
                 {
                     UserId = userId, WarframeUnique = item.UniqueName,
                     Owned = true, OwnershipState = "built"
-                });
+                };
+                db.UserWarframes.Add(entry);
+                stored[item.UniqueName] = entry;
                 changed++;
             }
             else if (!entry.Owned || entry.OwnershipState != "built")
             {
                 entry.Owned = true;
                 entry.OwnershipState = "built";
+                changed++;
+            }
+        }
+        foreach (var item in preview.MasteredWarframes.Values)
+        {
+            if (!stored.TryGetValue(item.UniqueName, out var entry))
+            {
+                entry = new UserWarframe
+                {
+                    UserId = userId, WarframeUnique = item.UniqueName,
+                    Owned = preview.Warframes.ContainsKey(item.UniqueName),
+                    OwnershipState = preview.Warframes.ContainsKey(item.UniqueName) ? "built" : "missing"
+                };
+                db.UserWarframes.Add(entry);
+                stored[item.UniqueName] = entry;
+            }
+            if (!entry.Mastered || entry.MasteryXp < item.Xp)
+            {
+                entry.Mastered = true;
+                entry.MasteryXp = Math.Max(entry.MasteryXp, item.Xp);
                 changed++;
             }
         }
@@ -525,17 +624,39 @@ public sealed class DesktopInventorySyncService
         {
             if (!stored.TryGetValue(item.UniqueName, out var entry))
             {
-                db.UserWeapons.Add(new UserWeapon
+                entry = new UserWeapon
                 {
                     UserId = userId, WeaponUnique = item.UniqueName,
                     Owned = true, OwnershipState = "built"
-                });
+                };
+                db.UserWeapons.Add(entry);
+                stored[item.UniqueName] = entry;
                 changed++;
             }
             else if (!entry.Owned || entry.OwnershipState != "built")
             {
                 entry.Owned = true;
                 entry.OwnershipState = "built";
+                changed++;
+            }
+        }
+        foreach (var item in preview.MasteredWeapons.Values)
+        {
+            if (!stored.TryGetValue(item.UniqueName, out var entry))
+            {
+                entry = new UserWeapon
+                {
+                    UserId = userId, WeaponUnique = item.UniqueName,
+                    Owned = preview.Weapons.ContainsKey(item.UniqueName),
+                    OwnershipState = preview.Weapons.ContainsKey(item.UniqueName) ? "built" : "missing"
+                };
+                db.UserWeapons.Add(entry);
+                stored[item.UniqueName] = entry;
+            }
+            if (!entry.Mastered || entry.MasteryXp < item.Xp)
+            {
+                entry.Mastered = true;
+                entry.MasteryXp = Math.Max(entry.MasteryXp, item.Xp);
                 changed++;
             }
         }
@@ -661,7 +782,7 @@ public sealed class DesktopInventorySyncService
         DesktopAccountValues account)
     {
         if (account.Credits is null && account.Endo is null && account.Platinum is null
-            && account.Ducats is null && account.Aya is null)
+            && account.Ducats is null && account.Aya is null && account.MasteryRank is null)
             return;
         var snapshot = db.AlecaAccountSnapshots.Local.FirstOrDefault(x => x.UserId == userId)
                        ?? db.AlecaAccountSnapshots.SingleOrDefault(x => x.UserId == userId);
@@ -675,6 +796,7 @@ public sealed class DesktopInventorySyncService
         if (account.Platinum is not null) snapshot.Platinum = checked((int)account.Platinum.Value);
         if (account.Ducats is not null) snapshot.Ducats = checked((int)account.Ducats.Value);
         if (account.Aya is not null) snapshot.Aya = checked((int)account.Aya.Value);
+        if (account.MasteryRank is not null) snapshot.MasteryRank = account.MasteryRank;
         snapshot.SyncedUtc = DateTime.UtcNow;
     }
 
@@ -687,6 +809,7 @@ public sealed class DesktopInventorySyncService
     private sealed record ParsedInventory(
         IReadOnlyList<ParsedItem> Items,
         IReadOnlySet<string> Sections,
+        IReadOnlyDictionary<string, long> Experience,
         DesktopAccountValues Account,
         bool IsAuthoritative);
 
@@ -718,12 +841,18 @@ public sealed record DesktopAccountValues(
     long? Endo,
     long? Platinum,
     long? Ducats,
-    long? Aya);
+    long? Aya,
+    int? MasteryRank);
 
 public sealed record DesktopMatchedItem(
     string UniqueName,
     string Name,
     int Quantity);
+
+public sealed record DesktopMasteredItem(
+    string UniqueName,
+    string Name,
+    long Xp);
 
 public sealed record DesktopMatchedComponent(
     string UniqueName,
@@ -748,6 +877,8 @@ public sealed record DesktopInventoryPreview(
     DesktopAccountValues Account,
     IReadOnlyDictionary<string, DesktopMatchedItem> Warframes,
     IReadOnlyDictionary<string, DesktopMatchedItem> Weapons,
+    IReadOnlyDictionary<string, DesktopMasteredItem> MasteredWarframes,
+    IReadOnlyDictionary<string, DesktopMasteredItem> MasteredWeapons,
     IReadOnlyDictionary<string, DesktopMatchedItem> Mods,
     IReadOnlyDictionary<string, DesktopMatchedItem> Relics,
     IReadOnlyDictionary<string, DesktopMatchedComponent> Components,

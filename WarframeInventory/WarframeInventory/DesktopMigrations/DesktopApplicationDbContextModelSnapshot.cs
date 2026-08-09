@@ -15,7 +15,7 @@ namespace WarframeInventory.DesktopMigrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.29");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -843,6 +843,12 @@ namespace WarframeInventory.DesktopMigrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("Mastered")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("MasteryXp")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("Owned")
                         .HasColumnType("INTEGER");
 
@@ -871,6 +877,12 @@ namespace WarframeInventory.DesktopMigrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Mastered")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("MasteryXp")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("Owned")

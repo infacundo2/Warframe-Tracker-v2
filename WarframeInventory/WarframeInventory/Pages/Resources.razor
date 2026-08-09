@@ -1,5 +1,9 @@
 @page "/resources"
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
 @inject ResourceCatalogService ResourceCatalog
+@inject WarframeInventory.Data.ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthState
 
 <MudContainer MaxWidth="MaxWidth.False" Class="px-6 py-4 resource-page">
     <section class="orokin-panel resource-hero">
@@ -28,6 +32,12 @@
             <MudSelectItem T="string" Value="@("Planetario")">Recursos planetarios</MudSelectItem>
             <MudSelectItem T="string" Value="@("Drop específico")">Drops específicos</MudSelectItem>
             <MudSelectItem T="string" Value="@("Especial")">Obtención especial</MudSelectItem>
+        </MudSelect>
+        <MudSelect T="string" Label="Mi inventario" @bind-Value="ownership"
+                   Variant="Variant.Outlined">
+            <MudSelectItem T="string" Value="@("Todos")">Todos</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Poseídos")">Solo poseídos</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Faltantes")">Solo faltantes</MudSelectItem>
         </MudSelect>
     </div>
 
@@ -58,6 +68,11 @@
                         <div>
                             <span class="resource-class">@resource.Category</span>
                             <MudText Typo="Typo.h5">@resource.Name</MudText>
+                            <MudChip T="string" Size="Size.Small"
+                                     Color="@(OwnedQuantity(resource) > 0 ? Color.Success : Color.Default)"
+                                     Variant="Variant.Outlined">
+                                Posees @OwnedQuantity(resource).ToString("N0")
+                            </MudChip>
                         </div>
                     </div>
 
@@ -129,11 +144,16 @@
     private IReadOnlyList<ResourceInfo> resources = [];
     private string search = "";
     private string category = "Todos";
+    private string ownership = "Todos";
+    private Dictionary<string, int> ownedResources = new(StringComparer.Ordinal);
     private bool loading = true;
     private string error = "";
 
     private IEnumerable<ResourceInfo> FilteredResources => resources
         .Where(resource => category == "Todos" || resource.Category == category)
+        .Where(resource => ownership == "Todos"
+            || ownership == "Poseídos" && OwnedQuantity(resource) > 0
+            || ownership == "Faltantes" && OwnedQuantity(resource) == 0)
         .Where(resource => string.IsNullOrWhiteSpace(search)
             || resource.Name.Contains(search, StringComparison.CurrentCultureIgnoreCase)
             || resource.LocationSummary.Contains(search, StringComparison.CurrentCultureIgnoreCase)
@@ -144,6 +164,14 @@
         try
         {
             resources = await ResourceCatalog.GetResourcesAsync();
+            var authState = await AuthState.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                ownedResources = await Db.UserResources.AsNoTracking()
+                    .Where(x => x.UserId == userId)
+                    .ToDictionaryAsync(x => x.ResourceUnique, x => x.Quantity);
+            }
         }
         catch (Exception ex)
         {
@@ -154,6 +182,9 @@
             loading = false;
         }
     }
+
+    private int OwnedQuantity(ResourceInfo resource)
+        => ownedResources.GetValueOrDefault(resource.UniqueName);
 
     private static string ImageUrl(string imageName)
         => string.IsNullOrWhiteSpace(imageName)

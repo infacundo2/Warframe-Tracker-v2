@@ -20,6 +20,13 @@
                       Immediate="true"
                       DebounceInterval="350"
                       OnDebounceIntervalElapsed="RefreshAsync" />
+        <MudSelect T="string" Value="@masteryFilter" ValueChanged="ChangeMasteryFilterAsync"
+                   Label="Progreso personal" Variant="Variant.Outlined" Class="catalog-toolbar">
+            <MudSelectItem T="string" Value="@("Todos")">Todos</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Dominadas")">Dominadas</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Poseídas")">Poseídas actualmente</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Pendientes")">Maestría pendiente</MudSelectItem>
+        </MudSelect>
 
         @if (loading)
         {
@@ -43,6 +50,13 @@
 
                             <MudCardContent>
                                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">@w.Name</MudText>
+                                @if (w.Mastered)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success"
+                                             Variant="Variant.Outlined" Icon="@Icons.Material.Filled.MilitaryTech">
+                                        Maestría completa
+                                    </MudChip>
+                                }
                                 <MudText Typo="Typo.caption">@WarframeSpanishText.Type(w.Type)</MudText>
                                 <MudText Typo="Typo.body2" Class="line-clamp-3">@w.Description</MudText>
                             </MudCardContent>
@@ -84,6 +98,7 @@
     private List<WeaponViewModel> pagedWeapons = new();
     private bool loading = true;
     private string? searchTerm = "";
+    private string masteryFilter = "Todos";
     private int currentPage = 1;
     private int totalPages = 1;
     private const int pageSize = 10;
@@ -114,6 +129,20 @@
             StateHasChanged();
 
             var query = Db.Weapons.AsNoTracking().AsQueryable();
+            if (!string.IsNullOrWhiteSpace(userId) && masteryFilter != "Todos")
+            {
+                var rows = await Db.UserWeapons.AsNoTracking()
+                    .Where(x => x.UserId == userId).ToListAsync();
+                var keys = masteryFilter switch
+                {
+                    "Dominadas" => rows.Where(x => x.Mastered).Select(x => x.WeaponUnique).ToList(),
+                    "Poseídas" => rows.Where(x => x.Owned).Select(x => x.WeaponUnique).ToList(),
+                    _ => rows.Where(x => x.Mastered).Select(x => x.WeaponUnique).ToList()
+                };
+                query = masteryFilter == "Pendientes"
+                    ? query.Where(x => !keys.Contains(x.UniqueName))
+                    : query.Where(x => keys.Contains(x.UniqueName));
+            }
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 string term = searchTerm.ToLower();
@@ -151,6 +180,7 @@
                 Type = w.Type,
                 ImageName = w.ImageName,
                 IsOwned = ownedList.Any(o => o.WeaponUnique == w.UniqueName && o.Owned),
+                Mastered = ownedList.Any(o => o.WeaponUnique == w.UniqueName && o.Mastered),
                 OwnershipState = ownedList.FirstOrDefault(o => o.WeaponUnique == w.UniqueName) is { } row
                     ? NormalizeState(row.OwnershipState, row.Owned) : "missing"
             }).ToList();
@@ -232,6 +262,12 @@
         await LoadPageAsync(newPage);
     }
 
+    private async Task ChangeMasteryFilterAsync(string value)
+    {
+        masteryFilter = value;
+        await RefreshAsync();
+    }
+
     private static string GetImageUrl(string? imageName)
         => string.IsNullOrWhiteSpace(imageName)
             ? "/images/item-placeholder.svg"
@@ -246,6 +282,7 @@
         public string? Type { get; set; }
         public string? ImageName { get; set; }
         public bool IsOwned { get; set; }
+        public bool Mastered { get; set; }
         public string OwnershipState { get; set; } = "missing";
     }
 }

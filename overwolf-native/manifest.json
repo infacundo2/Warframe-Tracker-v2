@@ -1,0 +1,91 @@
+{
+    "manifest_version":  1,
+    "type":  "WebApp",
+    "meta":  {
+                 "name":  "Warframe Tracker",
+                 "version":  "0.1.0",
+                 "minimum-overwolf-version":  "0.199.0.15",
+                 "author":  "infacundo2",
+                 "description":  "Bilingual Warframe inventory and farming companion powered by Overwolf GEP.",
+                 "dock_button_title":  "Warframe Tracker",
+                 "icon":  "assets/IconMouseOver.png",
+                 "icon_gray":  "assets/IconMouseNormal.png",
+                 "launcher_icon":  "assets/launcher_icon.ico",
+                 "window_icon":  "assets/WindowIcon.png"
+             },
+    "permissions":  [
+                        "GameInfo",
+                        "Hotkeys",
+                        "Web"
+                    ],
+    "data":  {
+                 "start_window":  "main",
+                 "game_targeting":  {
+                                        "type":  "dedicated",
+                                        "game_ids":  [
+                                                         8954
+                                                     ]
+                                    },
+                 "game_events":  [
+                                     8954
+                                 ],
+                 "launch_events":  [
+                                       {
+                                           "event":  "GameLaunch",
+                                           "event_data":  {
+                                                              "game_ids":  [
+                                                                               8954
+                                                                           ]
+                                                          },
+                                           "start_minimized":  false
+                                       }
+                                   ],
+                 "windows":  {
+                                 "main":  {
+                                              "file":  "main.html",
+                                              "desktop_only":  true,
+                                              "native_window":  true,
+                                              "use_os_windowing":  true,
+                                              "transparent":  false,
+                                              "resizable":  true,
+                                              "background_optimization":  false,
+                                              "size":  {
+                                                           "width":  1440,
+                                                           "height":  900
+                                                       },
+                                              "min_size":  {
+                                                               "width":  960,
+                                                               "height":  620
+                                                           }
+                                          }
+                             },
+                 "hotkeys":  {
+                                 "show_tracker":  {
+                                                      "title":  "Show or hide Warframe Tracker",
+                                                      "action-type":  "custom",
+                                                      "default":  "Ctrl+Shift+T",
+                                                      "passthrough":  true
+                                                  }
+                             },
+                 "externally_connectable":  {
+                                                "matches":  [
+                                                                "http://127.0.0.1",
+                                                                "http://127.0.0.1:43127",
+                                                                "http://localhost",
+                                                                "https://infacundo2.github.io"
+                                                            ]
+                                            },
+                 "force_browser":  "user",
+                 "auto_relaunch_on_crash":  true,
+                 "disable_cleanup":  false,
+                 "logging":  {
+                                 "ignore_externally_connectable":  true,
+                                 "disable_blocking":  false
+                             },
+                 "developer":  {
+                                   "enable_auto_refresh":  true,
+                                   "reload_delay":  1000,
+                                   "filter":  "*.json;*.html;*.js;*.css"
+                               }
+             }
+}

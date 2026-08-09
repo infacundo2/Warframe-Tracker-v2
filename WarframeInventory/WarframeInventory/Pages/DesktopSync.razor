@@ -1,15 +1,19 @@
 @page "/desktop-sync"
+@page "/native-sync"
 @attribute [Authorize]
 @using System.Security.Claims
 @inject DesktopInventorySyncService InventorySync
+@inject NativeInventorySyncService NativeInventorySync
 @inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+@inject ILogger<DesktopSync> Logger
 
 <PageTitle>Captura automática de inventario</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="desktop-sync-page">
     <section class="orokin-panel desktop-sync-hero">
         <div>
-            <div class="eyebrow">OVERWOLF GEP // CANAL LOCAL</div>
+            <div class="eyebrow">OVERWOLF GEP // @(nativeMode ? "NATIVE SEGURO" : "CANAL LOCAL")</div>
             <MudText Typo="Typo.h3" Class="page-title">Inventario automático</MudText>
             <MudText>
                 Inicia Tracker antes de Warframe. La app recibe el inventario durante el inicio
@@ -115,11 +119,27 @@
             <div class="relic-sync-metrics">
                 <div><span>Warframes</span><b>@preview.Warframes.Count</b></div>
                 <div><span>Armas</span><b>@preview.Weapons.Count</b></div>
+                <div><span>Warframes dominados</span><b>@preview.MasteredWarframes.Count</b></div>
+                <div><span>Armas dominadas</span><b>@preview.MasteredWeapons.Count</b></div>
                 <div><span>Mods</span><b>@preview.Mods.Count</b></div>
                 <div><span>Reliquias</span><b>@preview.Relics.Count</b></div>
                 <div><span>Componentes</span><b>@preview.Components.Count</b></div>
                 <div><span>Recursos</span><b>@preview.Resources.Count</b></div>
             </div>
+
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Datos de cuenta capturados</MudText>
+            <div class="relic-sync-metrics">
+                <div><span>Créditos</span><b>@FormatValue(preview.Account.Credits)</b></div>
+                <div><span>Endo</span><b>@FormatValue(preview.Account.Endo)</b></div>
+                <div><span>Ducados</span><b>@FormatValue(preview.Account.Ducats)</b></div>
+                <div><span>Aya</span><b>@FormatValue(preview.Account.Aya)</b></div>
+                <div><span>Platino</span><b>@FormatValue(preview.Account.Platinum)</b></div>
+                <div><span>Rango de maestría</span><b>@FormatValue(preview.Account.MasteryRank)</b></div>
+            </div>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+                “Colección” y “reliquias abiertas” no pertenecen al inventario GEP. Solo se muestran
+                cuando un perfil público vinculado entrega esas métricas; no se inventan durante esta captura.
+            </MudAlert>
 
             @if (!preview.IsAuthoritative)
             {
@@ -179,12 +199,17 @@
     private Severity severity = Severity.Info;
     private DesktopCaptureStatus status = DesktopCaptureStatus.Empty;
     private DesktopInventoryPreview? preview;
+    private bool nativeMode;
 
     protected override async Task OnInitializedAsync()
     {
         var authentication = await AuthState.GetAuthenticationStateAsync();
         userId = authentication.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-        status = InventorySync.GetStatus();
+        nativeMode = new Uri(Navigation.Uri).AbsolutePath.Equals(
+            "/native-sync", StringComparison.OrdinalIgnoreCase);
+        status = nativeMode
+            ? NativeInventorySync.GetStatus(userId)
+            : InventorySync.GetStatus();
     }
 
     private IEnumerable<DesktopInventoryChange> FilteredChanges =>
@@ -193,9 +218,14 @@
             || x.Category.Contains(filter, StringComparison.CurrentCultureIgnoreCase))
         ?? [];
 
+    private static string FormatValue(long? value)
+        => value?.ToString("N0") ?? "No recibido";
+
     private Task RefreshAsync()
     {
-        status = InventorySync.GetStatus();
+        status = nativeMode
+            ? NativeInventorySync.GetStatus(userId)
+            : InventorySync.GetStatus();
         message = status.HasCapture
             ? $"Captura recibida: {status.DistinctItems:N0} objetos distintos."
             : "Aún no llegó una captura. Provoca una pantalla de carga en Warframe y vuelve a intentar.";
@@ -207,7 +237,9 @@
     {
         await RunAsync(async () =>
         {
-            preview = await InventorySync.PreviewAsync(userId);
+            preview = nativeMode
+                ? await NativeInventorySync.PreviewAsync(userId)
+                : await InventorySync.PreviewAsync(userId);
             message = $"Análisis listo: {preview.Changes.Count:N0} cambios pendientes.";
             severity = preview.IsAuthoritative ? Severity.Success : Severity.Warning;
         });
@@ -219,9 +251,13 @@
             return;
         await RunAsync(async () =>
         {
-            var result = await InventorySync.ApplyAsync(userId, preview);
+            var result = nativeMode
+                ? await NativeInventorySync.ApplyAsync(userId, preview)
+                : await InventorySync.ApplyAsync(userId, preview);
             preview = null;
-            status = InventorySync.GetStatus();
+            status = nativeMode
+                ? NativeInventorySync.GetStatus(userId)
+                : InventorySync.GetStatus();
             message = $"Inventario aplicado correctamente: {result.ChangedRecords:N0} registros modificados.";
             severity = Severity.Success;
         });
@@ -240,8 +276,12 @@
             message = exception.Message;
             severity = Severity.Error;
         }
-        catch
+        catch (Exception exception)
         {
+            Logger.LogError(
+                exception,
+                "Falló una operación de sincronización GEP para el usuario {UserId}.",
+                userId);
             message = "Ocurrió un error inesperado. El inventario no fue modificado.";
             severity = Severity.Error;
         }

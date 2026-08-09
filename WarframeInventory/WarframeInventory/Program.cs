@@ -12,8 +12,16 @@ using WarframeInventory.Services;
 var builder = WebApplication.CreateBuilder(args);
 var desktopMode = builder.Configuration.GetValue<bool>("DesktopMode")
                   || Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DESKTOP") == "1";
+var databaseProvider = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DATABASE_PROVIDER")
+                       ?? builder.Configuration["DatabaseProvider"]
+                       ?? (desktopMode ? "Sqlite" : "MySql");
+var useSqlite = databaseProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase);
+var useMySql = databaseProvider.Equals("MySql", StringComparison.OrdinalIgnoreCase);
+if (!useSqlite && !useMySql)
+    throw new InvalidOperationException(
+        "DatabaseProvider debe ser 'Sqlite' o 'MySql'.");
 var localDataRoot = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DATA_DIR");
-if (desktopMode)
+if (desktopMode || useSqlite)
 {
     localDataRoot = string.IsNullOrWhiteSpace(localDataRoot)
         ? Path.Combine(
@@ -21,9 +29,16 @@ if (desktopMode)
             "WarframeTracker")
         : Path.GetFullPath(localDataRoot);
     Directory.CreateDirectory(localDataRoot);
+}
+if (desktopMode)
+{
     builder.WebHost.UseUrls(
         Environment.GetEnvironmentVariable("WARFRAME_TRACKER_URL")
         ?? "http://127.0.0.1:43127");
+    // `dotnet run -c Release` does not expose static web assets from referenced
+    // packages by default. The local Native/Electron host still needs assets
+    // such as MudBlazor.min.js and MudBlazor.min.css from the NuGet package.
+    builder.WebHost.UseStaticWebAssets();
 }
 
 builder.Services.AddDataProtection()
@@ -42,7 +57,7 @@ builder.Logging.AddFilter(
     LogLevel.Warning);
 
 var configuration = builder.Configuration;
-if (desktopMode)
+if (useSqlite)
 {
     var sqlitePath = Path.Combine(localDataRoot!, "tracker.db");
     builder.Services.AddPooledDbContextFactory<DesktopApplicationDbContext>(options =>
@@ -52,15 +67,21 @@ if (desktopMode)
 }
 else
 {
-    var host = configuration["ConnectionStrings:DB_HOST"] ?? "localhost";
-    var user = configuration["ConnectionStrings:DB_USER"]
+    var host = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_HOST")
+               ?? configuration["ConnectionStrings:DB_HOST"] ?? "localhost";
+    var port = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_PORT")
+               ?? configuration["ConnectionStrings:DB_PORT"] ?? "3306";
+    var user = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_USER")
+               ?? configuration["ConnectionStrings:DB_USER"]
                ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_USER");
-    var pass = configuration["ConnectionStrings:DB_PASS"]
+    var pass = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_PASS")
+               ?? configuration["ConnectionStrings:DB_PASS"]
                ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_PASS");
-    var dbName = configuration["ConnectionStrings:DB_NAME"]
+    var dbName = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_NAME")
+                 ?? configuration["ConnectionStrings:DB_NAME"]
                  ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_NAME");
     var connectionString =
-        $"server={host};port=3306;database={dbName};user={user};password={pass};" +
+        $"server={host};port={port};database={dbName};user={user};password={pass};" +
         "SslMode=None;AllowPublicKeyRetrieval=True;Pooling=True;MinimumPoolSize=0;MaximumPoolSize=50;";
     var serverVersion = ServerVersion.AutoDetect(connectionString);
     builder.Services.AddPooledDbContextFactory<ApplicationDbContext>(options =>
@@ -95,12 +116,33 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    // The production site is embedded by the Overwolf Native shell. Its
+    // authentication cookie therefore needs explicit cross-site iframe
+    // support and must only travel over HTTPS. Local QA remains HTTP loopback.
+    options.Cookie.SameSite = desktopMode ? SameSiteMode.Lax : SameSiteMode.None;
+    options.Cookie.SecurePolicy = desktopMode
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.ExpireTimeSpan = TimeSpan.FromDays(14);
     options.SlidingExpiration = true;
     options.LoginPath = "/auth/login";
     options.AccessDeniedPath = "/auth/login";
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        else
+            context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        else
+            context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 builder.Services.AddRateLimiter(options =>
@@ -122,6 +164,15 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+    options.AddPolicy("native-inventory", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 15,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 });
 
 builder.Services.AddResponseCompression(options =>
@@ -134,6 +185,7 @@ builder.Services.Configure<BrotliCompressionProviderOptions>(x => x.Level = Comp
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<CatalogCacheService>();
 builder.Services.AddSingleton<DesktopInventorySyncService>();
+builder.Services.AddSingleton<NativeInventorySyncService>();
 builder.Services.AddMudServices();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor(options =>
@@ -217,14 +269,35 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+    .AllowAnonymous();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
+
+var migrationRequested = args.Contains("--migrate-database", StringComparer.OrdinalIgnoreCase)
+                         || configuration.GetValue<bool>("ApplyDatabaseMigrations")
+                         || Environment.GetEnvironmentVariable(
+                             "WARFRAME_TRACKER_APPLY_MIGRATIONS") == "1";
+// La base local pertenece exclusivamente a esta instalación y puede actualizarse sola.
+// MySQL puede ser compartido: solo se migra mediante una orden administrativa explícita.
+if (useSqlite || migrationRequested)
+{
+    using var migrationScope = app.Services.CreateScope();
+    var migrationDatabase = migrationScope.ServiceProvider
+        .GetRequiredService<ApplicationDbContext>();
+    await migrationDatabase.Database.MigrateAsync();
+}
+
+if (args.Contains("--migrate-database", StringComparer.OrdinalIgnoreCase))
+{
+    Console.WriteLine($"Migraciones aplicadas con el proveedor {databaseProvider}.");
+    return;
+}
 
 if (desktopMode)
 {
     using var desktopScope = app.Services.CreateScope();
     var desktopDatabase = desktopScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await desktopDatabase.Database.MigrateAsync();
     if (args.Contains("--validate-desktop", StringComparer.OrdinalIgnoreCase))
     {
         Console.WriteLine($"Modo escritorio validado con {desktopDatabase.Database.ProviderName}.");

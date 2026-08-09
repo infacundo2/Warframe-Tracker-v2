@@ -17,7 +17,7 @@ namespace WarframeInventory.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.10")
+                .HasAnnotation("ProductVersion", "8.0.29")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -884,6 +884,12 @@ namespace WarframeInventory.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Mastered")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<long>("MasteryXp")
+                        .HasColumnType("bigint");
+
                     b.Property<bool>("Owned")
                         .HasColumnType("tinyint(1)");
 
@@ -915,6 +921,12 @@ namespace WarframeInventory.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Mastered")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<long>("MasteryXp")
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("Owned")
                         .HasColumnType("tinyint(1)");

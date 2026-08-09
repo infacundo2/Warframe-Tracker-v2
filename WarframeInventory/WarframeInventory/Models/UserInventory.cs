@@ -7,6 +7,8 @@ namespace WarframeInventory.Models
         public string WarframeUnique { get; set; } = "";
         public bool Owned { get; set; }
         public string OwnershipState { get; set; } = "missing";
+        public bool Mastered { get; set; }
+        public long MasteryXp { get; set; }
     }
 
     public class UserWeapon
@@ -16,6 +18,8 @@ namespace WarframeInventory.Models
         public string WeaponUnique { get; set; } = "";
         public bool Owned { get; set; }
         public string OwnershipState { get; set; } = "missing";
+        public bool Mastered { get; set; }
+        public long MasteryXp { get; set; }
     }
 
     public class UserComponent

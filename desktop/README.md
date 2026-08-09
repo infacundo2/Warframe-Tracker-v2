@@ -39,6 +39,11 @@ En el primer inicio la base SQLite está vacía y el catálogo público se desca
 en segundo plano. La primera vista previa puede tardar alrededor de un minuto en
 estar disponible.
 
+El modo Electron no fuerza el proveedor de base de datos. SQLite es siempre el
+valor seguro por defecto; una conexión MySQL de QA solo se habilita mediante las
+variables externas documentadas en el README principal. La portable nunca debe
+incluir credenciales y no aplica migraciones a MySQL automáticamente.
+
 ## Empaquetado
 
 ```powershell

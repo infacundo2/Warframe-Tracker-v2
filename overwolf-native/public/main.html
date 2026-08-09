@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-src http://127.0.0.1:43127 http://localhost:* http://127.0.0.1:* https://infacundo2.github.io; connect-src 'self'; object-src 'none'; base-uri 'none'">
+  <title>Warframe Tracker</title>
+  <link rel="stylesheet" href="css/native.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">◇</span><b>WARFRAME</b><span>TRACKER</span><em>NATIVE</em></div>
+    <div id="signal" class="signal" data-state="waiting">
+      <i></i><div><strong id="signal-title">INITIALIZING</strong><small id="signal-detail">Starting the Native controller…</small></div>
+    </div>
+  </header>
+
+  <main>
+    <aside class="capture-panel">
+      <p class="eyebrow">OVERWOLF GEP // LOCAL CHANNEL</p>
+      <h1>Automatic inventory</h1>
+      <p class="intro">The raw capture stays on this PC for up to 30 minutes. Nothing is sent until you press the confirmation button.</p>
+
+      <section class="capture-card">
+        <div id="capture-empty">
+          <span class="scanner"></span>
+          <h2>Waiting for a capture</h2>
+          <p>Start Warframe, open Inventory, or travel through a Relay, Dojo or mission.</p>
+        </div>
+        <div id="capture-data" hidden>
+          <h2>Capture ready</h2>
+          <dl>
+            <div><dt>Detected entries</dt><dd id="capture-items">0</dd></div>
+            <div><dt>Received</dt><dd id="capture-time">—</dd></div>
+            <div><dt>Source</dt><dd id="capture-source">—</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="send-capture" class="primary" disabled>Send to Tracker for review</button>
+        <button id="discard-capture" class="secondary">Discard local capture</button>
+      </div>
+      <p class="privacy-note">The application never logs the inventory JSON and never reads Warframe memory or network traffic directly.</p>
+    </aside>
+
+    <section class="tracker-panel">
+      <div class="frame-toolbar">
+        <span>TRACKER INTERFACE</span>
+        <button id="reload-frame" title="Reload Tracker">↻</button>
+      </div>
+      <div id="tracker-setup" class="tracker-setup">
+        <div>
+          <p class="eyebrow">ONE-TIME CONFIGURATION</p>
+          <h2>Connect the Tracker website</h2>
+          <p>Use HTTPS in production. Localhost HTTP is accepted only for development.</p>
+          <label for="tracker-url">Tracker URL</label>
+          <input id="tracker-url" type="url" spellcheck="false" placeholder="https://tracker.example.com/native-sync?mode=native">
+          <button id="save-url" class="primary">Open Tracker</button>
+          <p class="hint">The production origin must also be added to <code>manifest.json</code> and the Content Security Policy before packaging.</p>
+        </div>
+      </div>
+      <iframe id="tracker-frame" title="Warframe Tracker web interface" hidden></iframe>
+    </section>
+  </main>
+
+  <script src="runtime-config.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
