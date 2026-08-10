@@ -6,6 +6,7 @@
 @inject AuthenticationStateProvider AuthState
 @inject UserGoalService GoalService
 @inject GoalAnalysisService AnalysisService
+@implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
     <section class="goal-hero orokin-panel">
@@ -24,6 +25,22 @@
             </div>
         }
     </section>
+
+    @if (!string.IsNullOrWhiteSpace(userId) && goals.Count > 0)
+    {
+        <div class="goal-toolbar mt-4">
+            <MudTextField @bind-Value="searchTerm" Placeholder="Buscar objetivo..."
+                          Immediate="true" DebounceInterval="300"
+                          OnDebounceIntervalElapsed="RefreshGoalsAsync"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+            <MudSelect T="string" Value="@statusFilter" ValueChanged="ChangeStatusFilterAsync"
+                       Label="Estado" Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("active")">Activos</MudSelectItem>
+                <MudSelectItem T="string" Value="@("completed")">Completados</MudSelectItem>
+                <MudSelectItem T="string" Value="@("all")">Todos</MudSelectItem>
+            </MudSelect>
+        </div>
+    }
 
     @if (loading)
     {
@@ -50,8 +67,20 @@
     }
     else
     {
+        @if (analysisLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-4" />
+            <MudText Typo="Typo.caption" Class="mt-1">Analizando esta página de objetivos...</MudText>
+        }
+        @if (!string.IsNullOrWhiteSpace(analysisError))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-4">
+                @analysisError
+                <MudButton OnClick="LoadAnalysisPageAsync" Size="Size.Small" Variant="Variant.Text">Reintentar</MudButton>
+            </MudAlert>
+        }
         <MudGrid Class="mt-4">
-            @foreach (var goal in goals.OrderBy(x => x.IsCompleted).ThenBy(x => x.Priority).ThenBy(x => x.DisplayName))
+            @foreach (var goal in VisibleGoals)
             {
                 <MudItem xs="12" md="6">
                     <MudPaper Class="@($"goal-card {(goal.IsCompleted ? "goal-card--complete" : "")}")">
@@ -178,6 +207,13 @@
                 </MudItem>
             }
         </MudGrid>
+        @if (totalPages > 1)
+        {
+            <div class="d-flex justify-center mt-5">
+                <MudPagination Selected="@currentPage" Count="@totalPages"
+                               SelectedChanged="ChangePageAsync" Color="Color.Primary" />
+            </div>
+        }
     }
 </MudContainer>
 
@@ -187,6 +223,35 @@
         new Dictionary<int, GoalAnalysis>();
     private string userId = "";
     private bool loading = true;
+    private bool analysisLoading;
+    private string analysisError = "";
+    private string searchTerm = "";
+    private string statusFilter = "active";
+    private int currentPage = 1;
+    private int totalPages = 1;
+    private const int PageSize = 6;
+    private CancellationTokenSource? analysisCts;
+    private int analysisRequest;
+
+    private IReadOnlyList<UserGoal> FilteredGoals
+    {
+        get
+        {
+            IEnumerable<UserGoal> query = goals;
+            query = statusFilter switch
+            {
+                "active" => query.Where(x => !x.IsCompleted),
+                "completed" => query.Where(x => x.IsCompleted),
+                _ => query
+            };
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                query = query.Where(x => x.DisplayName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+            return query.OrderBy(x => x.IsCompleted).ThenBy(x => x.Priority)
+                .ThenBy(x => x.DisplayName).ToList();
+        }
+    }
+    private IReadOnlyList<UserGoal> VisibleGoals => FilteredGoals
+        .Skip((currentPage - 1) * PageSize).Take(PageSize).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -199,16 +264,60 @@
             goals.AddRange(await db.UserGoals.AsNoTracking()
                 .Where(x => x.UserId == userId)
                 .ToListAsync());
-            analyses = await AnalysisService.AnalyzeAsync(userId, goals);
+            await LoadAnalysisPageAsync();
         }
 
         loading = false;
     }
 
+    private async Task LoadAnalysisPageAsync()
+    {
+        var request = ++analysisRequest;
+        analysisCts?.Cancel();
+        analysisCts?.Dispose();
+        analysisCts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        analysisLoading = true;
+        analysisError = "";
+        var filteredCount = FilteredGoals.Count;
+        totalPages = Math.Max(1, (int)Math.Ceiling(filteredCount / (double)PageSize));
+        currentPage = Math.Clamp(currentPage, 1, totalPages);
+        try
+        {
+            var result = await AnalysisService.AnalyzeAsync(userId, VisibleGoals, analysisCts.Token);
+            if (request == analysisRequest) analyses = result;
+        }
+        catch (OperationCanceledException)
+        {
+            if (request == analysisRequest)
+            {
+                analysisError = "El análisis tardó demasiado. La página fue liberada para que puedas reintentar.";
+                analyses = new Dictionary<int, GoalAnalysis>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error analizando objetivos: {ex.Message}");
+            if (request == analysisRequest)
+            {
+                analysisError = "No fue posible analizar los objetivos. Reintenta o revisa el despliegue de la base de datos.";
+                analyses = new Dictionary<int, GoalAnalysis>();
+            }
+        }
+        finally
+        {
+            if (request == analysisRequest) analysisLoading = false;
+        }
+    }
+
+    private async Task RefreshGoalsAsync() { currentPage = 1; await LoadAnalysisPageAsync(); }
+    private async Task ChangeStatusFilterAsync(string value) { statusFilter = value; await RefreshGoalsAsync(); }
+    private async Task ChangePageAsync(int value) { currentPage = value; await LoadAnalysisPageAsync(); }
+
     private async Task ChangePriorityAsync(UserGoal goal, int value)
     {
         goal.Priority = value;
         await GoalService.UpdateAsync(userId, goal.Id, goal.Priority, goal.IsCompleted);
+        await LoadAnalysisPageAsync();
     }
 
     private async Task ChangeCompletedAsync(UserGoal goal, bool value)
@@ -216,18 +325,20 @@
         goal.IsCompleted = value;
         goal.CompletedUtc = value ? DateTime.UtcNow : null;
         await GoalService.UpdateAsync(userId, goal.Id, goal.Priority, value);
+        await LoadAnalysisPageAsync();
     }
     private async Task ChangeDesiredAsync(UserGoal goal, int value)
     {
         goal.DesiredQuantity = Math.Clamp(value, 1, 9999);
         await GoalService.UpdateDesiredQuantityAsync(userId, goal.Id, goal.DesiredQuantity);
-        analyses = await AnalysisService.AnalyzeAsync(userId, goals);
+        await LoadAnalysisPageAsync();
     }
 
     private async Task DeleteAsync(UserGoal goal)
     {
         await GoalService.DeleteAsync(userId, goal.Id);
         goals.Remove(goal);
+        await LoadAnalysisPageAsync();
     }
 
     private static string GoalTypeLabel(string type) => type switch
@@ -248,4 +359,10 @@
 
     private static string TargetUrl(UserGoal goal)
         => $"/{(goal.TargetType == "weapon" ? "weapons" : goal.TargetType + "s")}/{Uri.EscapeDataString(goal.TargetUnique)}";
+
+    public void Dispose()
+    {
+        analysisCts?.Cancel();
+        analysisCts?.Dispose();
+    }
 }

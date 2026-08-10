@@ -18,28 +18,52 @@ public sealed class GoalAnalysisService
         var warframeKeys = goals.Where(x => x.TargetType == "warframe").Select(x => x.TargetUnique).Distinct().ToList();
         var weaponKeys = goals.Where(x => x.TargetType == "weapon").Select(x => x.TargetUnique).Distinct().ToList();
         var modKeys = goals.Where(x => x.TargetType == "mod").Select(x => x.TargetUnique).Distinct().ToList();
+        var componentParentKeys = warframeKeys.Concat(weaponKeys).Distinct().ToList();
+        var goalTargetKeys = goals.Select(x => x.TargetUnique).Distinct().ToList();
 
-        var userComponents = await db.UserComponents.AsNoTracking().Where(x => x.UserId == userId).ToListAsync(ct);
-        var userRelics = await db.UserRelics.AsNoTracking().Where(x => x.UserId == userId && x.Quantity > 0).ToListAsync(ct);
-        var relicQuantities = userRelics.ToDictionary(x => x.RelicUnique, x => x.Quantity);
-        var relics = await db.Relics.AsNoTracking()
-            .Select(x => new Relic { UniqueName = x.UniqueName, Name = x.Name, Vaulted = x.Vaulted })
-            .ToListAsync(ct);
+        var userComponents = await db.UserComponents.AsNoTracking()
+            .Where(x => x.UserId == userId && componentParentKeys.Contains(x.ParentUnique)).ToListAsync(ct);
         var warframes = await db.Warframes.AsNoTracking().Where(x => warframeKeys.Contains(x.UniqueName))
             .Select(x => new { x.UniqueName, x.ComponentsJson }).ToDictionaryAsync(x => x.UniqueName, ct);
         var weapons = await db.Weapons.AsNoTracking().Where(x => weaponKeys.Contains(x.UniqueName))
             .Select(x => new { x.UniqueName, x.ComponentsJson }).ToDictionaryAsync(x => x.UniqueName, ct);
+        var relatedRelicNames = warframes.Values.Select(x => x.ComponentsJson)
+            .Concat(weapons.Values.Select(x => x.ComponentsJson))
+            .SelectMany(DeserializeComponents).SelectMany(x => x.Drops)
+            .Select(x => CleanRelicName(x.Location)).Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var catalogRelicNames = relatedRelicNames.SelectMany(x => new[] { $"Reliquia {x}", $"{x} Relic", x })
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var relicGoalKeys = goals.Where(x => x.TargetType == "relic").Select(x => x.TargetUnique).Distinct().ToList();
+        var relicGoalNames = relicGoalKeys.Count == 0 ? [] : await db.Relics.AsNoTracking()
+            .Where(x => relicGoalKeys.Contains(x.UniqueName)).Select(x => x.Name).Distinct().ToListAsync(ct);
+        var neededRelicNames = catalogRelicNames.Concat(relicGoalNames)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var relics = neededRelicNames.Count == 0 ? [] : await db.Relics.AsNoTracking()
+            .Where(x => neededRelicNames.Contains(x.Name))
+            .Select(x => new Relic { UniqueName = x.UniqueName, Name = x.Name, Vaulted = x.Vaulted })
+            .ToListAsync(ct);
+        var neededRelicKeys = relics.Select(x => x.UniqueName).ToList();
+        var userRelics = neededRelicKeys.Count == 0 ? [] : await db.UserRelics.AsNoTracking()
+            .Where(x => x.UserId == userId && x.Quantity > 0 && neededRelicKeys.Contains(x.RelicUnique))
+            .ToListAsync(ct);
+        var relicQuantities = userRelics.ToDictionary(x => x.RelicUnique, x => x.Quantity);
         var ownedWarframes = (await db.UserWarframes.AsNoTracking()
             .Where(x => x.UserId == userId && x.Owned && warframeKeys.Contains(x.WarframeUnique))
             .Select(x => x.WarframeUnique).ToListAsync(ct)).ToHashSet();
         var ownedWeapons = (await db.UserWeapons.AsNoTracking()
             .Where(x => x.UserId == userId && x.Owned && weaponKeys.Contains(x.WeaponUnique))
             .Select(x => x.WeaponUnique).ToListAsync(ct)).ToHashSet();
-        var ownedMods = (await db.UserMods.AsNoTracking()
-            .Where(x => x.UserId == userId && (x.Owned || x.Quantity > 0))
-            .Select(x => x.ModUnique).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var builds = await db.SavedBuilds.AsNoTracking()
-            .Where(x => x.UserId == userId && !x.IsArchived).ToListAsync(ct);
+            .Where(x => x.UserId == userId && !x.IsArchived && goalTargetKeys.Contains(x.TargetUnique))
+            .ToListAsync(ct);
+        var relevantModKeys = builds.SelectMany(x => BuildService.DeserializeSlots(x.ModsJson))
+            .Select(x => x.ModUnique).Where(x => !string.IsNullOrWhiteSpace(x))
+            .Concat(modKeys).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var ownedMods = (relevantModKeys.Count == 0 ? [] : await db.UserMods.AsNoTracking()
+            .Where(x => x.UserId == userId && relevantModKeys.Contains(x.ModUnique)
+                        && (x.Owned || x.Quantity > 0))
+            .Select(x => x.ModUnique).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var buildsByTarget = builds.GroupBy(x => x.TargetUnique).ToDictionary(x => x.Key,
             x => (IReadOnlyList<GoalBuildSummary>)x.Select(build =>
             {

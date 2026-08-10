@@ -835,7 +835,15 @@
                          "No fue posible cargar los Warframes. Reintenta en unos segundos.":  "Warframes could not be loaded. Try again in a few seconds.",
                          "No fue posible cargar las armas. Reintenta en unos segundos.":  "Weapons could not be loaded. Try again in a few seconds.",
                          "No fue posible cargar los mods. Reintenta en unos segundos.":  "Mods could not be loaded. Try again in a few seconds.",
-                         "No fue posible cargar las reliquias. Reintenta en unos segundos.":  "Relics could not be loaded. Try again in a few seconds."
+                         "No fue posible cargar las reliquias. Reintenta en unos segundos.":  "Relics could not be loaded. Try again in a few seconds.",
+                         "Buscar objetivo...":  "Search goal...",
+                         "Estado":  "Status",
+                         "Activos":  "Active",
+                         "Completados":  "Completed",
+                         "Analizando esta página de objetivos...":  "Analyzing this page of goals...",
+                         "Reintentar":  "Retry",
+                         "El análisis tardó demasiado. La página fue liberada para que puedas reintentar.":  "The analysis took too long. The page was released so you can retry.",
+                         "No fue posible analizar los objetivos. Reintenta o revisa el despliegue de la base de datos.":  "Goals could not be analyzed. Retry or verify the database deployment."
                      },
     "patterns":  [
                      {

@@ -131,6 +131,8 @@ a { text-underline-offset: .2em; }
 .goal-relic b { color: #fff; }
 .goal-relic i { margin-left: .35rem; color: #6fcfae; }
 .goal-relic small { grid-column: 1 / -1; color: #8ca8b3; letter-spacing: .06em; }
+.goal-toolbar { display:grid; grid-template-columns:minmax(14rem,2fr) minmax(10rem,1fr); gap:.75rem; }
+@media(max-width:600px){.goal-toolbar{grid-template-columns:1fr}}
 .planner-hero {
     display: flex;
     align-items: end;
