@@ -1,4 +1,9 @@
-# Warframe Tracker Native 0.1.1
+# Warframe Tracker Native 0.1.2
+
+- Paquete Native reconstruido desde el código actual para incorporar por
+  completo el panel GEP plegable y la configuración vigente de Render.
+- La interfaz remota incluye los filtros e indicadores de maestría para
+  Warframes y armas cuando la captura contiene datos históricos `XPInfo`.
 
 - El panel lateral de inventario automático queda oculto por defecto sin
   detener GEP y puede mostrarse con el nuevo indicador compacto `GEP`.
