@@ -425,6 +425,7 @@ namespace WarframeInventory.DesktopMigrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CompatName")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
@@ -450,15 +451,18 @@ namespace WarframeInventory.DesktopMigrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("Owned")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Polarity")
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Rarity")
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("UniqueName")
@@ -467,6 +471,14 @@ namespace WarframeInventory.DesktopMigrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompatName");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("Polarity");
+
+                    b.HasIndex("Rarity");
 
                     b.HasIndex("UniqueName")
                         .IsUnique();
@@ -492,6 +504,7 @@ namespace WarframeInventory.DesktopMigrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("Owned")
@@ -515,6 +528,8 @@ namespace WarframeInventory.DesktopMigrations
 
                     b.HasIndex("UniqueName")
                         .IsUnique();
+
+                    b.HasIndex("Vaulted", "Name");
 
                     b.ToTable("Relics");
                 });
@@ -655,7 +670,16 @@ namespace WarframeInventory.DesktopMigrations
                     b.Property<int>("Capacity")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("FormaCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsCompleted")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ModsJson")
@@ -932,6 +956,7 @@ namespace WarframeInventory.DesktopMigrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("Owned")
@@ -943,6 +968,8 @@ namespace WarframeInventory.DesktopMigrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name");
 
                     b.HasIndex("UniqueName")
                         .IsUnique();
@@ -977,12 +1004,14 @@ namespace WarframeInventory.DesktopMigrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("Owned")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Type")
+                        .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("UniqueName")
@@ -991,6 +1020,10 @@ namespace WarframeInventory.DesktopMigrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("Type");
 
                     b.HasIndex("UniqueName")
                         .IsUnique();

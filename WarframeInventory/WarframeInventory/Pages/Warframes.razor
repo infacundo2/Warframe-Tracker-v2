@@ -27,6 +27,10 @@
             <MudSelectItem T="string" Value="@("Poseídos")">Poseídos actualmente</MudSelectItem>
             <MudSelectItem T="string" Value="@("Pendientes")">Maestría pendiente</MudSelectItem>
         </MudSelect>
+        @if (!string.IsNullOrWhiteSpace(loadError))
+        {
+            <MudAlert Severity="Severity.Error">@loadError</MudAlert>
+        }
 
         @if (loading)
         {
@@ -98,6 +102,7 @@
     private List<WarframeViewModel> pagedWarframes = new();
     private string userId = "";
     private bool loading = true;
+    private string loadError = "";
     private string? searchTerm = "";
     private string masteryFilter = "Todos";
     private int currentPage = 1;
@@ -106,14 +111,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Console.WriteLine("============== DEBUG WARFRAMES ==============");
-        Console.WriteLine($"🔹 Entrando a OnInitializedAsync");
-
         var authState = await AuthState.GetAuthenticationStateAsync();
         var user = authState.User;
         userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-
-        Console.WriteLine($"👤 Usuario autenticado: {user.Identity?.Name} ({userId})");
         await RefreshAsync();
     }
 
@@ -128,22 +128,20 @@
         try
         {
             loading = true;
+            loadError = "";
             StateHasChanged();
 
             var query = Db.Warframes.AsNoTracking().AsQueryable();
             if (!string.IsNullOrWhiteSpace(userId) && masteryFilter != "Todos")
             {
-                var rows = await Db.UserWarframes.AsNoTracking()
-                    .Where(x => x.UserId == userId).ToListAsync();
-                var keys = masteryFilter switch
+                var inventory = Db.UserWarframes.AsNoTracking().Where(x => x.UserId == userId);
+                query = masteryFilter switch
                 {
-                    "Dominados" => rows.Where(x => x.Mastered).Select(x => x.WarframeUnique).ToList(),
-                    "Poseídos" => rows.Where(x => x.Owned).Select(x => x.WarframeUnique).ToList(),
-                    _ => rows.Where(x => x.Mastered).Select(x => x.WarframeUnique).ToList()
+                    "Dominados" => query.Where(w => inventory.Any(x => x.WarframeUnique == w.UniqueName && x.Mastered)),
+                    "Poseídos" => query.Where(w => inventory.Any(x => x.WarframeUnique == w.UniqueName && x.Owned)),
+                    "Pendientes" => query.Where(w => !inventory.Any(x => x.WarframeUnique == w.UniqueName && x.Mastered)),
+                    _ => query
                 };
-                query = masteryFilter == "Pendientes"
-                    ? query.Where(x => !keys.Contains(x.UniqueName))
-                    : query.Where(x => keys.Contains(x.UniqueName));
             }
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
@@ -159,19 +157,17 @@
                 .OrderBy(w => w.Name)
                 .Skip((currentPage - 1) * pageSize)
                 .Take(pageSize)
+                .Select(w => new
+                {
+                    w.Id, w.UniqueName, w.Name, w.Description, w.ImageName
+                })
                 .ToListAsync();
-            
-            Console.WriteLine("🔹 Consultando UserWarframes para este usuario...");
-
 
             var pageKeys = result.Select(x => x.UniqueName).ToList();
             var ownedList = await Db.UserWarframes.AsNoTracking()
                 .Where(u => u.UserId == userId && pageKeys.Contains(u.WarframeUnique))
                 .ToListAsync();
-
-            Console.WriteLine($"📊 Registros encontrados en UserWarframes para este usuario: {ownedList.Count}");
-                foreach (var o in ownedList)
-                    Console.WriteLine($"   -> {o.WarframeUnique}, Owned={o.Owned}");
+            var ownedByKey = ownedList.ToDictionary(x => x.WarframeUnique, StringComparer.OrdinalIgnoreCase);
 
             pagedWarframes = result.Select(w => new WarframeViewModel
             {
@@ -184,9 +180,9 @@
                     ? "/images/item-placeholder.svg"
                     : $"https://cdn.warframestat.us/img/{w.ImageName}",
                 Loaded = true,
-                IsOwned = ownedList.Any(o => o.WarframeUnique == w.UniqueName && o.Owned),
-                Mastered = ownedList.Any(o => o.WarframeUnique == w.UniqueName && o.Mastered),
-                OwnershipState = ownedList.FirstOrDefault(o => o.WarframeUnique == w.UniqueName) is { } row
+                IsOwned = ownedByKey.TryGetValue(w.UniqueName, out var owned) && owned.Owned,
+                Mastered = ownedByKey.TryGetValue(w.UniqueName, out var mastered) && mastered.Mastered,
+                OwnershipState = ownedByKey.GetValueOrDefault(w.UniqueName) is { } row
                     ? NormalizeState(row.OwnershipState, row.Owned) : "missing"
             }).ToList();
 
@@ -196,6 +192,9 @@
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Error cargando warframes: {ex.Message}");
+            loadError = "No fue posible cargar los Warframes. Reintenta en unos segundos.";
+            loading = false;
+            StateHasChanged();
         }
     }
 

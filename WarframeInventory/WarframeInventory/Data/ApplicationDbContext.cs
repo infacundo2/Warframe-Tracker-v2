@@ -169,6 +169,22 @@ namespace WarframeInventory.Data
             modelBuilder.Entity<Mod>().Property(x => x.UniqueName).HasMaxLength(255);
             modelBuilder.Entity<Weapon>().Property(x => x.UniqueName).HasMaxLength(255);
             modelBuilder.Entity<Relic>().Property(x => x.UniqueName).HasMaxLength(255);
+            modelBuilder.Entity<Warframe>().Property(x => x.Name).HasMaxLength(255);
+            modelBuilder.Entity<Weapon>().Property(x => x.Name).HasMaxLength(255);
+            modelBuilder.Entity<Weapon>().Property(x => x.Type).HasMaxLength(80);
+            modelBuilder.Entity<Mod>().Property(x => x.Name).HasMaxLength(255);
+            modelBuilder.Entity<Mod>().Property(x => x.CompatName).HasMaxLength(128);
+            modelBuilder.Entity<Mod>().Property(x => x.Polarity).HasMaxLength(64);
+            modelBuilder.Entity<Mod>().Property(x => x.Rarity).HasMaxLength(64);
+            modelBuilder.Entity<Relic>().Property(x => x.Name).HasMaxLength(255);
+            modelBuilder.Entity<Warframe>().HasIndex(x => x.Name);
+            modelBuilder.Entity<Weapon>().HasIndex(x => x.Name);
+            modelBuilder.Entity<Weapon>().HasIndex(x => x.Type);
+            modelBuilder.Entity<Mod>().HasIndex(x => x.Name);
+            modelBuilder.Entity<Mod>().HasIndex(x => x.CompatName);
+            modelBuilder.Entity<Mod>().HasIndex(x => x.Polarity);
+            modelBuilder.Entity<Mod>().HasIndex(x => x.Rarity);
+            modelBuilder.Entity<Relic>().HasIndex(x => new { x.Vaulted, x.Name });
 
             // =============================
             // IGNORAR MODELOS NO PERSISTENTES

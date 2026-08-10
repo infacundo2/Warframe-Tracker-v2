@@ -25,11 +25,12 @@ La base Native está implementada y preparada para QA:
 - Atajo `Ctrl+Shift+T` declarado en el manifest.
 - Iconos de tienda validados por peso y paquete OPK automatizado.
 
-Todavía faltan dos datos externos que no podemos inventar:
+Todavía falta un dato externo que no podemos inventar:
 
 1. Confirmación de Overwolf de que la propuesta/GEP aprobados se transfieren de
    ow-Electron a Native.
-2. URL HTTPS definitiva donde estará alojado el Tracker ASP.NET.
+
+El Tracker ASP.NET usa actualmente `https://warframe-inventory.onrender.com`.
 
 No se necesita `OW_DEV_KEY` para la aplicación Native publicada ni un
 certificado OV/EV propio. Para cargar builds no publicadas, la cuenta de
@@ -148,13 +149,18 @@ con feature `match_info` y key `inventory`.
 
 ## 7. Configurar la URL HTTPS definitiva
 
-Cuando tengamos el dominio real:
+La dirección del Tracker se centraliza en `tracker.config.json`. Para mover el
+backend a otro proveedor, cambia solamente `trackerUrl` o ejecuta:
 
 ```powershell
-.\Configurar-Tracker.ps1 -TrackerUrl "https://tracker.example.com/native-sync"
+.\Configurar-Tracker.ps1 -TrackerUrl "https://tracker.example.com"
 npm run validate:official
 npm test
 ```
+
+Si entregas solo el dominio, el script agrega `/native-sync`. También acepta la
+variable temporal `WARFRAME_TRACKER_PUBLIC_URL`. Cada `npm run build` vuelve a
+generar la configuración desde ese archivo central.
 
 El script actualiza simultáneamente:
 

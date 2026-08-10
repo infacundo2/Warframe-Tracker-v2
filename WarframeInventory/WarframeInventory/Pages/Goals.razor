@@ -79,6 +79,17 @@
                                 <MudProgressLinear Value="@analysis.ProgressPercent"
                                                    Color="@(analysis.ProgressPercent == 100 ? Color.Success : Color.Primary)"
                                                    Rounded="true" />
+                                @if (analysis.Builds.Count > 0)
+                                {
+                                    <div class="goal-combined-progress">
+                                        <span>PROGRESO GENERAL CON BUILD</span><b>@analysis.OverallProgressPercent%</b>
+                                    </div>
+                                    <MudProgressLinear Value="@analysis.OverallProgressPercent" Color="Color.Secondary" Rounded="true" />
+                                    @foreach (var build in analysis.Builds.Take(2))
+                                    {
+                                        <span class="goal-build-summary">@build.Name · @build.OwnedMods/@build.TotalMods mods · @build.Percent%</span>
+                                    }
+                                }
                                 @if (analysis.IsOneAway)
                                 {
                                     <span class="goal-one-away">A una pieza de completarse</span>
@@ -107,10 +118,11 @@
                             {
                                 <div class="goal-relics">
                                     <span class="goal-relics__title">RELIQUIAS ÚTILES</span>
-                                    @foreach (var relic in analysis.RelatedRelics.Take(3))
+                                    @foreach (var relic in analysis.RelatedRelics)
                                     {
                                         <span class="goal-relic">
-                                            @relic.Name · <b>@relic.OwnedQuantity</b>
+                                            <strong>@relic.Name</strong> · @relic.Rarity · <b>Total @relic.OwnedQuantity</b>
+                                            <small>I @relic.Intact · E @relic.Exceptional · P @relic.Flawless · R @relic.Radiant</small>
                                             <i>@(relic.Vaulted ? "En bóveda" : "Disponible")</i>
                                         </span>
                                     }

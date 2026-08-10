@@ -50,11 +50,16 @@ $env:WARFRAME_TRACKER_DB_PASS = "contraseña"
 $env:WARFRAME_TRACKER_DB_NAME = "base-qa"
 ```
 
-Una base MySQL compartida nunca se migra automáticamente. El administrador debe
-respaldarla y ejecutar una sola vez el backend con `--migrate-database` y esas
-variables. También puede habilitarlo explícitamente con
-`WARFRAME_TRACKER_APPLY_MIGRATIONS=1`. No se deben distribuir esas variables ni
-credenciales dentro de ZIP, instaladores o archivos versionados.
+Una base MySQL compartida solo se migra cuando existe una orden explícita. El
+administrador puede ejecutar una vez el backend con `--migrate-database` o usar
+`WARFRAME_TRACKER_APPLY_MIGRATIONS=1`. El Blueprint de Render activa esta última
+opción para aplicar migraciones versionadas al desplegar una nueva build. No se
+deben distribuir variables ni credenciales dentro de ZIP, instaladores o
+archivos versionados.
+
+La URL pública consumida por Overwolf Native se cambia en un solo lugar:
+`overwolf-native/tracker.config.json`. `npm run build` regenera la URL del iframe,
+el origen permitido del manifiesto y su CSP.
 
 ## Importación segura alternativa
 

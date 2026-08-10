@@ -4,8 +4,9 @@
   "private": true,
   "description": "Overwolf Native shell for Warframe Tracker",
   "scripts": {
+    "configure": "powershell -NoProfile -ExecutionPolicy Bypass -File Configurar-Tracker.ps1",
     "clean": "node scripts/clean.mjs",
-    "build": "npm run clean && tsc -p tsconfig.json && node scripts/build-assets.mjs",
+    "build": "npm run configure && npm run clean && tsc -p tsconfig.json && node scripts/build-assets.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "validate": "npm run build && node scripts/validate.mjs",
     "validate:official": "npm run build && node scripts/validate-official.mjs",

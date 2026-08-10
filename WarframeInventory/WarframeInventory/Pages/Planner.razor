@@ -44,6 +44,37 @@
             </MudSelect>
         </section>
 
+        <section class="planner-overview">
+            <MudPaper Class="planner-budget">
+                <span>PROGRESO DEL EQUIPAMIENTO</span>
+                <b>@plan.Components.Count(x => x.IsComplete) / @plan.Components.Count</b>
+                <MudProgressLinear Value="@ComponentProgress" Color="@(ComponentProgress == 100 ? Color.Success : Color.Primary)" Rounded="true" />
+                <small>Presupuesto inicial recomendado: @plan.RecommendedTraceBudget vestigios</small>
+            </MudPaper>
+            @foreach (var component in plan.Components)
+            {
+                <MudPaper Class="@($"planner-piece {(component.IsComplete ? "is-complete" : "is-missing")}")">
+                    <span>@(component.IsComplete ? "OBTENIDA" : "PENDIENTE")</span>
+                    <b>@WarframeSpanishText.Reward(component.Name)</b>
+                    <small>Tengo @component.Owned · Necesito @component.Required · Faltan @component.Missing</small>
+                </MudPaper>
+            }
+        </section>
+
+        @if (plan.RelatedBuilds.Count > 0)
+        {
+            <section class="planner-builds">
+                <div><span>BUILDS RELACIONADAS</span><MudLink Href="/builds">Abrir constructor</MudLink></div>
+                @foreach (var build in plan.RelatedBuilds)
+                {
+                    <MudPaper Class="planner-build-progress">
+                        <b>@build.Name</b><span>@build.OwnedMods/@build.TotalMods mods · @build.Percent%</span>
+                        <MudProgressLinear Value="@build.Percent" Color="@(build.Percent == 100 || build.Completed ? Color.Success : Color.Primary)" Rounded="true" />
+                    </MudPaper>
+                }
+            </section>
+        }
+
         @if (plan.Routes.Count == 0)
         {
             <MudPaper Class="goal-empty mt-5">
@@ -78,6 +109,7 @@
                                         </MudLink>
                                         <span>@(route.Vaulted ? "EN BÓVEDA" : "DISPONIBLE")</span>
                                     </div>
+                                    <div class="planner-rarity">@route.Rarity · recompensa en esta reliquia</div>
 
                                     <div class="planner-owned">
                                         <b>Total @route.TotalOwned</b>
@@ -101,6 +133,7 @@
                                         <span>REFINAMIENTO RECOMENDADO</span>
                                         <strong>@route.RecommendedRefinement</strong>
                                         <small>@route.TraceCost vestigios · @route.RecommendedChance.ToString("0.00")% por apertura</small>
+                                        <p>@route.RecommendedAction</p>
                                     </div>
 
                                     <div class="planner-confidence">
@@ -153,6 +186,8 @@
     private string strategy = "balanced";
     private FarmPlan? plan;
     private bool loading = true;
+    private int ComponentProgress => plan is null || plan.Components.Count == 0 ? 0
+        : (int)Math.Round(plan.Components.Count(x => x.IsComplete) * 100d / plan.Components.Count);
 
     protected override async Task OnParametersSetAsync()
     {

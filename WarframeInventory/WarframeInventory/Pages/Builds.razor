@@ -9,12 +9,19 @@
 @inject NavigationManager Nav
 @inject IJSRuntime Js
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 build-page">
     <section class="orokin-panel build-hero">
-        <div class="eyebrow">ARSENAL SIMULADO // CONFIGURACIONES</div>
-        <MudText Typo="Typo.h3" Class="page-title">Constructor ligero</MudText>
-        <MudText>Combina mods, calcula capacidad y detecta piezas faltantes.</MudText>
+        <div>
+            <div class="eyebrow">ARSENAL SIMULADO // CONFIGURACIONES</div>
+            <MudText Typo="Typo.h3" Class="page-title">Constructor y checklist de builds</MudText>
+            <MudText>Busca equipamiento y mods sin descargar listas completas. El checklist se sincroniza con tu inventario.</MudText>
+        </div>
+        @if (workspace is not null)
+        {
+            <div class="build-kpi"><b>@workspace.Builds.Count(x => x.IsCompleted)</b><span>completadas</span></div>
+        }
     </section>
+
     @if (workspace is null)
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-4" />
@@ -23,59 +30,98 @@
     {
         <MudPaper Class="build-editor mt-4">
             <MudTextField @bind-Value="name" Label="Nombre de la build" Variant="Variant.Outlined" />
-            <MudSelect T="string" Label="Objetivo" Value="@targetUnique" ValueChanged="SelectTarget"
-                       Variant="Variant.Outlined">
+            <MudTextField @bind-Value="tags" Label="Etiquetas" Placeholder="acero, supervivencia..." Variant="Variant.Outlined" />
+            <MudNumericField T="int" @bind-Value="capacity" Label="Capacidad" Min="0" Max="90" Variant="Variant.Outlined" />
+            <MudNumericField T="int" @bind-Value="forma" Label="Forma" Min="0" Max="100" Variant="Variant.Outlined" />
+        </MudPaper>
+
+        <MudPaper Class="build-picker mt-4">
+            <div class="build-picker__title"><b>1. Seleccionar equipamiento</b><span>Máximo 60 resultados por búsqueda</span></div>
+            <div class="build-filter-grid">
+                <MudTextField @bind-Value="targetSearch" Label="Buscar equipamiento" Placeholder="Reve..."
+                              Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="RefreshTargetsAsync"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                <MudSelect T="string" Value="@targetCategory" ValueChanged="ChangeTargetCategoryAsync" Label="Categoría">
+                    <MudSelectItem T="string" Value="@("all")">Todo</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("warframe")">Warframe</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("primary")">Arma primaria</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("secondary")">Arma secundaria</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("melee")">Cuerpo a cuerpo</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("archwing")">Archwing / Archgun</MudSelectItem>
+                </MudSelect>
+            </div>
+            <MudSelect T="string" Label="Resultado" Value="@targetUnique" ValueChanged="SelectTarget"
+                       Variant="Variant.Outlined" Class="mt-2">
                 @foreach (var target in workspace.Targets)
                 {
-                    <MudSelectItem T="string" Value="@target.UniqueName">
-                        @target.Name · @WarframeSpanishText.Type(target.Type)
-                    </MudSelectItem>
+                    <MudSelectItem T="string" Value="@target.UniqueName">@target.Name · @TargetTypeLabel(target.Type)</MudSelectItem>
                 }
             </MudSelect>
-            <MudTextField @bind-Value="tags" Label="Etiquetas" Placeholder="acero, supervivencia..."
-                          Variant="Variant.Outlined" />
-            <MudNumericField T="int" @bind-Value="capacity" Label="Capacidad" Min="0" Max="90"
-                             Variant="Variant.Outlined" />
-            <MudNumericField T="int" @bind-Value="forma" Label="Forma" Min="0" Max="100"
-                             Variant="Variant.Outlined" />
+            @if (selectedTarget is not null)
+            {
+                <div class="selected-build-target"><b>@selectedTarget.Name</b><span>@TargetTypeLabel(selectedTarget.Type) · @selectedTarget.Category</span></div>
+            }
         </MudPaper>
+
+        <MudPaper Class="build-picker mt-4">
+            <div class="build-picker__title"><b>2. Buscar mods</b><span>Los filtros se ejecutan en el servidor</span></div>
+            <div class="build-mod-filters">
+                <MudTextField @bind-Value="modSearch" Label="Buscar mod" Placeholder="Adaptación..."
+                              Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="RefreshModsAsync"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                <MudSelect T="string" Value="@compatibility" ValueChanged="@(v => ChangeModFilterAsync("compat", v))" Label="Compatibilidad">
+                    <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+                    @foreach (var item in workspace.Filters.Compatibilities) { <MudSelectItem T="string" Value="@item">@item</MudSelectItem> }
+                </MudSelect>
+                <MudSelect T="string" Value="@polarity" ValueChanged="@(v => ChangeModFilterAsync("polarity", v))" Label="Polaridad">
+                    <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+                    @foreach (var item in workspace.Filters.Polarities) { <MudSelectItem T="string" Value="@item">@item</MudSelectItem> }
+                </MudSelect>
+                <MudSelect T="string" Value="@rarity" ValueChanged="@(v => ChangeModFilterAsync("rarity", v))" Label="Rareza">
+                    <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+                    @foreach (var item in workspace.Filters.Rarities) { <MudSelectItem T="string" Value="@item">@WarframeSpanishText.Rarity(item)</MudSelectItem> }
+                </MudSelect>
+                <MudSelect T="string" Value="@ownership" ValueChanged="@(v => ChangeModFilterAsync("owned", v))" Label="Inventario">
+                    <MudSelectItem T="string" Value="@("all")">Todos</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("owned")">Los tengo</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("missing")">Me faltan</MudSelectItem>
+                </MudSelect>
+            </div>
+        </MudPaper>
+
         <div class="build-summary">
-            <span>CAPACIDAD CON POLARIDADES <b class="@(EffectiveDrain > capacity ? "is-over" : "")">@EffectiveDrain / @capacity</b></span>
+            <span>CAPACIDAD <b class="@(EffectiveDrain > capacity ? "is-over" : "")">@EffectiveDrain / @capacity</b></span>
             <span>SIN POLARIDADES <b class="@(RawDrain > capacity ? "is-over" : "")">@RawDrain / @capacity</b></span>
             <span>FORMA SUGERIDA <b>@SuggestedForma</b></span>
-            <span>MODS FALTANTES <b>@slots.Count(x => !x.Owned)</b></span>
+            <span>CHECKLIST <b>@slots.Count(x => x.Owned && !string.IsNullOrWhiteSpace(x.ModUnique)) / @slots.Count(x => !string.IsNullOrWhiteSpace(x.ModUnique))</b></span>
         </div>
+
         <div class="build-slots">
-            @for (var index = 0; index < 8; index++)
+            @for (var index = 0; index < slots.Count; index++)
             {
                 var slotIndex = index;
                 <MudPaper Class="@($"build-slot {(slots[slotIndex].Owned ? "" : "is-missing")}")">
-                    <MudSelect T="string" Label="@($"Ranura {slotIndex + 1}")"
-                               Value="@slots[slotIndex].ModUnique"
+                    <MudSelect T="string" Label="@SlotLabel(slotIndex)" Value="@slots[slotIndex].ModUnique"
                                ValueChanged="@((string value) => SelectMod(slotIndex, value))"
                                Variant="Variant.Outlined" Clearable="true">
-                        @foreach (var mod in workspace.Mods)
+                        @foreach (var mod in AvailableMods(slots[slotIndex]))
                         {
-                            <MudSelectItem T="string" Value="@mod.UniqueName">
-                                @mod.Name · @mod.Drain @(mod.Owned ? "" : "· FALTA")
-                            </MudSelectItem>
+                            <MudSelectItem T="string" Value="@mod.UniqueName">@mod.Name · @mod.Drain @(mod.Owned ? "" : "· FALTA")</MudSelectItem>
                         }
                     </MudSelect>
                     @if (!string.IsNullOrWhiteSpace(slots[slotIndex].ModUnique))
                     {
+                        <MudCheckBox T="bool" Checked="@slots[slotIndex].Owned"
+                                     CheckedChanged="@(value => SetSlotOwnedAsync(slotIndex, value))"
+                                     Label="Tengo este mod" Color="Color.Success" />
                         <div class="build-slot__settings">
                             <MudNumericField T="int" Value="@slots[slotIndex].Rank"
                                              ValueChanged="@((int value) => SetRank(slotIndex, value))"
-                                             Label="Rango" Min="0" Max="@slots[slotIndex].MaxRank"
-                                             Variant="Variant.Outlined" />
+                                             Label="Rango" Min="0" Max="@slots[slotIndex].MaxRank" Variant="Variant.Outlined" />
                             <MudSelect T="string" Value="@slots[slotIndex].SlotPolarity"
                                        ValueChanged="@((string value) => SetPolarity(slotIndex, value))"
-                                       Label="Polaridad de ranura" Variant="Variant.Outlined"
-                                       Clearable="true">
-                                @foreach (var polarity in Polarities)
-                                {
-                                    <MudSelectItem T="string" Value="@polarity">@polarity</MudSelectItem>
-                                }
+                                       Label="Polaridad de ranura" Variant="Variant.Outlined" Clearable="true">
+                                @foreach (var item in workspace.Filters.Polarities) { <MudSelectItem T="string" Value="@item">@item</MudSelectItem> }
                             </MudSelect>
                         </div>
                         <small>@slots[slotIndex].Polarity · @slots[slotIndex].EffectiveDrain capacidad efectiva</small>
@@ -83,36 +129,32 @@
                 </MudPaper>
             }
         </div>
-        <MudButton OnClick="SaveAsync" Disabled="@(!CanSave)" Variant="Variant.Filled"
-                   Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">Guardar build</MudButton>
-        <MudButton OnClick="CreateMissingGoalsAsync"
-                   Disabled="@(slots.All(x => x.Owned || string.IsNullOrWhiteSpace(x.ModUnique)))"
-                   Variant="Variant.Outlined" Color="Color.Secondary"
-                   StartIcon="@Icons.Material.Filled.TrackChanges">
-            Crear objetivos para mods faltantes
-        </MudButton>
-        <MudButton OnClick="ShareAsync" Disabled="@(!CanSave)" Variant="Variant.Text"
-                   Color="Color.Primary" StartIcon="@Icons.Material.Filled.Share">
-            Copiar enlace
-        </MudButton>
-        @if (!string.IsNullOrWhiteSpace(message))
-        {
-            <MudAlert Severity="Severity.Success" Class="mt-3">@message</MudAlert>
-        }
-        <MudText Typo="Typo.h5" Class="mt-6 mb-2">Builds guardadas</MudText>
+
+        <div class="build-actions">
+            <MudButton OnClick="SaveAsync" Disabled="@(!CanSave)" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">@(currentBuildId == 0 ? "Guardar build" : "Actualizar build")</MudButton>
+            <MudButton OnClick="NewBuild" Variant="Variant.Outlined">Nueva</MudButton>
+            <MudButton OnClick="CreateMissingGoalsAsync" Disabled="@(slots.All(x => x.Owned || string.IsNullOrWhiteSpace(x.ModUnique)))" Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.TrackChanges">Objetivos para mods faltantes</MudButton>
+            <MudButton OnClick="ShareAsync" Disabled="@(!CanSave)" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Share">Copiar enlace</MudButton>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(message)) { <MudAlert Severity="@messageSeverity" Class="mt-3">@message</MudAlert> }
+
+        <div class="saved-build-heading">
+            <MudText Typo="Typo.h5">Builds guardadas</MudText>
+            <MudCheckBox T="bool" @bind-Checked="showArchived" Label="Mostrar archivadas" />
+        </div>
         <div class="saved-builds">
-            @foreach (var build in workspace.Builds)
+            @foreach (var build in workspace.Builds.Where(x => showArchived || !x.IsArchived))
             {
-                <MudPaper Class="saved-build">
-                    <span>@build.TargetName</span><b>@build.Name</b>
-                    <small>@build.Tags · @build.Capacity capacidad · @build.FormaCount Forma</small>
+                var progress = workspace.Progress.GetValueOrDefault(build.Id) ?? new BuildProgress(0, 0);
+                <MudPaper Class="@($"saved-build {(build.IsCompleted ? "is-complete" : "")} {(build.IsArchived ? "is-archived" : "")}")">
+                    <span>@build.TargetName · @TargetTypeLabel(build.TargetType)</span><b>@build.Name</b>
+                    <MudProgressLinear Value="@progress.Percent" Color="@(progress.Percent == 100 ? Color.Success : Color.Primary)" Rounded="true" />
+                    <small>@progress.Owned/@progress.Total mods · @progress.Percent% · @build.Capacity capacidad · @build.FormaCount Forma</small>
                     <div>
-                        <MudButton OnClick="@(() => LoadSaved(build))" Size="Size.Small"
-                                   Variant="Variant.Text">Editar</MudButton>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       OnClick="@(() => DeleteAsync(build.Id))"
-                                       Color="Color.Error" Size="Size.Small"
-                                       aria-label="Eliminar build" />
+                        <MudButton OnClick="@(() => LoadSaved(build))" Size="Size.Small" Variant="Variant.Text">Editar</MudButton>
+                        <MudButton OnClick="@(() => ToggleCompleteAsync(build))" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">@(build.IsCompleted ? "Reabrir" : "Completar")</MudButton>
+                        <MudButton OnClick="@(() => ToggleArchiveAsync(build))" Size="Size.Small" Variant="Variant.Text">@(build.IsArchived ? "Restaurar" : "Archivar")</MudButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteAsync(build.Id))" Color="Color.Error" Size="Size.Small" aria-label="Eliminar build" />
                     </div>
                 </MudPaper>
             }
@@ -121,130 +163,133 @@
 </MudContainer>
 
 @code {
-    [SupplyParameterFromQuery(Name = "share")]
-    public string? SharedBuild { get; set; }
+    [SupplyParameterFromQuery(Name = "share")] public string? SharedBuild { get; set; }
     private BuildWorkspace? workspace;
+    private BuildTarget? selectedTarget;
     private string userId = "", name = "", tags = "", targetUnique = "", message = "";
-    private int capacity = 30, forma;
-    private List<BuildSlot> slots = Enumerable.Range(0, 8)
-        .Select(_ => new BuildSlot("", "", 0, "", true)).ToList();
+    private string targetSearch = "", targetCategory = "all", modSearch = "";
+    private string compatibility = "all", polarity = "all", rarity = "all", ownership = "all";
+    private int capacity = 30, forma, currentBuildId;
+    private bool showArchived;
+    private Severity messageSeverity = Severity.Success;
+    private List<BuildSlot> slots = EmptySlots();
     private int RawDrain => slots.Sum(x => x.RankedDrain);
     private int EffectiveDrain => slots.Sum(x => x.EffectiveDrain);
-    private int SuggestedForma => slots.Count(x => !string.IsNullOrWhiteSpace(x.ModUnique)
-        && !string.IsNullOrWhiteSpace(x.SlotPolarity));
-    private IEnumerable<string> Polarities => workspace is null ? []
-        : workspace.Mods.Select(x => x.Polarity)
-            .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x);
-    private bool CanSave => !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(targetUnique);
+    private int SuggestedForma => slots.Count(x => !string.IsNullOrWhiteSpace(x.ModUnique) && !string.IsNullOrWhiteSpace(x.SlotPolarity));
+    private bool CanSave => !string.IsNullOrWhiteSpace(name) && selectedTarget is not null;
+
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthState.GetAuthenticationStateAsync();
         userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
         workspace = await BuildManager.LoadAsync(userId);
-        targetUnique = workspace.Targets.FirstOrDefault()?.UniqueName ?? "";
+        selectedTarget = workspace.Targets.FirstOrDefault();
+        targetUnique = selectedTarget?.UniqueName ?? "";
         LoadShared();
     }
-    private void SelectTarget(string value) => targetUnique = value;
+
+    private async Task RefreshTargetsAsync()
+    {
+        if (workspace is null) return;
+        var rows = await BuildManager.SearchTargetsAsync(targetSearch, targetCategory);
+        workspace = workspace with { Targets = rows };
+    }
+    private async Task ChangeTargetCategoryAsync(string value) { targetCategory = value; await RefreshTargetsAsync(); }
+    private void SelectTarget(string value)
+    {
+        targetUnique = value;
+        selectedTarget = workspace?.Targets.FirstOrDefault(x => x.UniqueName == value) ?? selectedTarget;
+    }
+    private async Task RefreshModsAsync()
+    {
+        if (workspace is null) return;
+        var rows = await BuildManager.SearchModsAsync(userId, modSearch, compatibility, polarity, rarity, ownership);
+        workspace = workspace with { Mods = rows };
+    }
+    private async Task ChangeModFilterAsync(string filter, string value)
+    {
+        switch (filter) { case "compat": compatibility = value; break; case "polarity": polarity = value; break; case "rarity": rarity = value; break; case "owned": ownership = value; break; }
+        await RefreshModsAsync();
+    }
+    private IEnumerable<BuildMod> AvailableMods(BuildSlot slot)
+    {
+        var rows = workspace?.Mods ?? [];
+        if (string.IsNullOrWhiteSpace(slot.ModUnique) || rows.Any(x => x.UniqueName == slot.ModUnique)) return rows;
+        return rows.Prepend(new BuildMod(slot.ModUnique, slot.Name, slot.Drain, slot.MaxRank, slot.Polarity, "", "", slot.Owned));
+    }
     private void SelectMod(int index, string value)
     {
+        if (string.IsNullOrWhiteSpace(value)) { slots[index] = EmptySlot(); return; }
         var mod = workspace?.Mods.FirstOrDefault(x => x.UniqueName == value);
-        slots[index] = mod is null ? new("", "", 0, "", true)
-            : new(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned)
-                { MaxRank = mod.MaxRank, Rank = mod.MaxRank };
+        if (mod is null) return;
+        slots[index] = new(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned) { MaxRank = mod.MaxRank, Rank = mod.MaxRank };
     }
-    private void SetRank(int index, int value)
-        => slots[index] = slots[index] with { Rank = Math.Clamp(value, 0, slots[index].MaxRank) };
-    private void SetPolarity(int index, string value)
-        => slots[index] = slots[index] with { SlotPolarity = value ?? "" };
+    private async Task SetSlotOwnedAsync(int index, bool value)
+    {
+        var slot = slots[index];
+        await BuildManager.SetModOwnedAsync(userId, slot.ModUnique, value);
+        slots[index] = slot with { Owned = value };
+        message = value ? $"{slot.Name} marcado como poseído." : $"{slot.Name} marcado como faltante.";
+    }
+    private void SetRank(int index, int value) => slots[index] = slots[index] with { Rank = Math.Clamp(value, 0, slots[index].MaxRank) };
+    private void SetPolarity(int index, string value) => slots[index] = slots[index] with { SlotPolarity = value ?? "" };
     private async Task SaveAsync()
     {
-        var target = workspace!.Targets.First(x => x.UniqueName == targetUnique);
-        await BuildManager.SaveAsync(userId, 0, name, target, tags, capacity, forma, slots);
+        if (selectedTarget is null) return;
+        await BuildManager.SaveAsync(userId, currentBuildId, name, selectedTarget, tags, capacity, forma, slots);
         workspace = await BuildManager.LoadAsync(userId);
-        message = "Build guardada en el archivo del operador.";
+        message = currentBuildId == 0 ? "Build guardada." : "Build actualizada.";
+        messageSeverity = Severity.Success;
+    }
+    private void NewBuild()
+    {
+        currentBuildId = 0; name = ""; tags = ""; capacity = 30; forma = 0; slots = EmptySlots(); message = "Nueva build lista.";
     }
     private async Task CreateMissingGoalsAsync()
     {
-        var missing = slots.Where(x => !x.Owned && !string.IsNullOrWhiteSpace(x.ModUnique))
-            .Select(x => ("mod", x.ModUnique, x.Name));
+        var missing = slots.Where(x => !x.Owned && !string.IsNullOrWhiteSpace(x.ModUnique)).Select(x => ("mod", x.ModUnique, x.Name));
         var created = await GoalService.EnsureManyAsync(userId, missing);
-        message = created == 0 ? "Los mods faltantes ya estaban en tus objetivos."
-            : $"{created} objetivos de mods creados.";
+        message = created == 0 ? "Los mods faltantes ya estaban en tus objetivos." : $"{created} objetivos de mods creados.";
     }
     private void LoadSaved(SavedBuild build)
     {
-        name = build.Name;
-        tags = build.Tags;
-        targetUnique = build.TargetUnique;
-        capacity = build.Capacity;
-        forma = build.FormaCount;
-        slots = NormalizeSlots(DeserializeSlots(build.ModsJson));
-        message = $"Editando {build.Name}. Al guardar se creará una copia nueva.";
+        currentBuildId = build.Id; name = build.Name; tags = build.Tags; targetUnique = build.TargetUnique;
+        selectedTarget = new BuildTarget(build.TargetType, build.TargetUnique, build.TargetName, TargetTypeLabel(build.TargetType));
+        capacity = build.Capacity; forma = build.FormaCount; slots = NormalizeSlots(DeserializeSlots(build.ModsJson));
+        message = $"Editando {build.Name}.";
     }
-    private async Task DeleteAsync(int id)
-    {
-        await BuildManager.DeleteAsync(userId, id);
-        workspace = await BuildManager.LoadAsync(userId);
-        message = "Build eliminada.";
-    }
+    private async Task ToggleCompleteAsync(SavedBuild build) { await BuildManager.SetStatusAsync(userId, build.Id, !build.IsCompleted, build.IsArchived); workspace = await BuildManager.LoadAsync(userId); }
+    private async Task ToggleArchiveAsync(SavedBuild build) { await BuildManager.SetStatusAsync(userId, build.Id, build.IsCompleted, !build.IsArchived); workspace = await BuildManager.LoadAsync(userId); }
+    private async Task DeleteAsync(int id) { await BuildManager.DeleteAsync(userId, id); workspace = await BuildManager.LoadAsync(userId); message = "Build eliminada."; }
     private async Task ShareAsync()
     {
         var payload = new SharedBuildPayload(name, targetUnique, tags, capacity, forma, slots);
         var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload));
         var encoded = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        var url = Nav.ToAbsoluteUri($"/builds?share={encoded}").ToString();
-        await Js.InvokeVoidAsync("warframeTracker.copyText", url);
+        await Js.InvokeVoidAsync("warframeTracker.copyText", Nav.ToAbsoluteUri($"/builds?share={encoded}").ToString());
         message = "Enlace copiado. No incluye datos de tu cuenta.";
     }
     private void LoadShared()
     {
-        if (string.IsNullOrWhiteSpace(SharedBuild)) return;
+        if (string.IsNullOrWhiteSpace(SharedBuild) || workspace is null) return;
         try
         {
             var encoded = SharedBuild.Replace('-', '+').Replace('_', '/');
             encoded = encoded.PadRight(encoded.Length + (4 - encoded.Length % 4) % 4, '=');
-            var payload = JsonSerializer.Deserialize<SharedBuildPayload>(
-                Encoding.UTF8.GetString(Convert.FromBase64String(encoded)));
-            if (payload is null || workspace is null
-                || !workspace.Targets.Any(x => x.UniqueName == payload.TargetUnique)) return;
-            name = payload.Name;
-            targetUnique = payload.TargetUnique;
-            tags = payload.Tags;
-            capacity = Math.Clamp(payload.Capacity, 0, 90);
-            forma = Math.Clamp(payload.Forma, 0, 100);
-            slots = NormalizeSlots(payload.Slots);
-            message = "Build compartida cargada. Los mods faltantes se comparan con tu inventario.";
+            var payload = JsonSerializer.Deserialize<SharedBuildPayload>(Encoding.UTF8.GetString(Convert.FromBase64String(encoded)));
+            if (payload is null) return;
+            name = payload.Name; targetUnique = payload.TargetUnique; tags = payload.Tags;
+            selectedTarget = workspace.Targets.FirstOrDefault(x => x.UniqueName == targetUnique);
+            capacity = Math.Clamp(payload.Capacity, 0, 90); forma = Math.Clamp(payload.Forma, 0, 100); slots = NormalizeSlots(payload.Slots);
+            message = "Build compartida cargada.";
         }
-        catch (Exception) { message = "El enlace compartido no es válido."; }
+        catch (Exception) { message = "El enlace compartido no es válido."; messageSeverity = Severity.Error; }
     }
-    private static List<BuildSlot> DeserializeSlots(string json)
-    {
-        try
-        {
-            return (JsonSerializer.Deserialize<List<BuildSlot>>(json) ?? [])
-                .Take(8).Concat(Enumerable.Range(0, 8)
-                    .Select(_ => new BuildSlot("", "", 0, "", true))).Take(8).ToList();
-        }
-        catch (JsonException) { return Enumerable.Range(0, 8)
-            .Select(_ => new BuildSlot("", "", 0, "", true)).ToList(); }
-    }
-    private List<BuildSlot> NormalizeSlots(IEnumerable<BuildSlot> source)
-    {
-        var normalized = source.Take(8).Select(slot =>
-        {
-            var mod = workspace?.Mods.FirstOrDefault(x => x.UniqueName == slot.ModUnique);
-            return mod is null ? new BuildSlot("", "", 0, "", true)
-                : new BuildSlot(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned)
-                {
-                    MaxRank = mod.MaxRank,
-                    Rank = Math.Clamp(slot.Rank, 0, mod.MaxRank),
-                    SlotPolarity = slot.SlotPolarity
-                };
-        }).ToList();
-        return normalized.Concat(Enumerable.Range(0, 8)
-            .Select(_ => new BuildSlot("", "", 0, "", true))).Take(8).ToList();
-    }
-    private sealed record SharedBuildPayload(
-        string Name, string TargetUnique, string Tags, int Capacity, int Forma,
-        IReadOnlyList<BuildSlot> Slots);
+    private static List<BuildSlot> DeserializeSlots(string json) { try { return JsonSerializer.Deserialize<List<BuildSlot>>(json) ?? []; } catch { return []; } }
+    private static List<BuildSlot> NormalizeSlots(IEnumerable<BuildSlot> source) => source.Take(10).Concat(Enumerable.Range(0, 10).Select(_ => EmptySlot())).Take(10).ToList();
+    private static List<BuildSlot> EmptySlots() => Enumerable.Range(0, 10).Select(_ => EmptySlot()).ToList();
+    private static BuildSlot EmptySlot() => new("", "", 0, "", true);
+    private string SlotLabel(int index) => selectedTarget?.Type == "warframe" ? index switch { 0 => "Aura", 1 => "Exilus", _ => $"Ranura {index - 1}" } : $"Ranura {index + 1}";
+    private static string TargetTypeLabel(string type) => type switch { "warframe" => "Warframe", "primary" => "Primaria", "secondary" => "Secundaria", "melee" => "Cuerpo a cuerpo", "archwing" => "Archwing / Archgun", "weapon" => "Arma", _ => type };
+    private sealed record SharedBuildPayload(string Name, string TargetUnique, string Tags, int Capacity, int Forma, IReadOnlyList<BuildSlot> Slots);
 }

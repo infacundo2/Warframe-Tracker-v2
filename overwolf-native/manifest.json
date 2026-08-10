@@ -50,12 +50,12 @@
                                               "resizable":  true,
                                               "background_optimization":  false,
                                               "size":  {
-                                                           "width":  1440,
-                                                           "height":  900
+                                                           "width":  1680,
+                                                           "height":  980
                                                        },
                                               "min_size":  {
-                                                               "width":  960,
-                                                               "height":  620
+                                                               "width":  1180,
+                                                               "height":  720
                                                            }
                                           }
                              },

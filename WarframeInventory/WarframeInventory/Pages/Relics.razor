@@ -40,6 +40,10 @@
             <MudSelectItem T="string" Value="@("available")">Solo disponibles</MudSelectItem>
             <MudSelectItem T="string" Value="@("vaulted")">Solo vaulted</MudSelectItem>
         </MudSelect>
+        @if (!string.IsNullOrWhiteSpace(loadError))
+        {
+            <MudAlert Severity="Severity.Error">@loadError</MudAlert>
+        }
 
         @if (loading)
         {
@@ -99,6 +103,7 @@
 @code {
     private List<RelicViewModel> pagedRelics = new();
     private bool loading = true;
+    private string loadError = "";
     private string? searchTerm = "";
     private string availabilityFilter = "all";
     private int currentPage = 1;
@@ -116,11 +121,15 @@
     private async Task LoadPageAsync(int page)
     {
         loading = true;
+        loadError = "";
         StateHasChanged();
+        try
+        {
 
         // Las cuatro variantes siguen cargadas para el inventario I/E/P/R.
         // El catálogo muestra solo la representación Intacta (Bronze).
         var query = Db.Relics
+            .AsNoTracking()
             .Where(r => r.UniqueName.EndsWith("Bronze"))
             .AsQueryable();
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -144,6 +153,10 @@
             .OrderBy(r => r.Name)
             .Skip((currentPage - 1) * pageSize)
             .Take(pageSize)
+            .Select(r => new
+            {
+                r.Id, r.UniqueName, r.Name, r.Category, r.Vaulted, r.ImageName
+            })
             .ToListAsync();
 
         // 🔹 Cargar inventario del usuario
@@ -151,6 +164,7 @@
         var userRelics = await Db.UserRelics.AsNoTracking()
             .Where(u => u.UserId == userId && pageKeys.Contains(u.RelicUnique))
             .ToListAsync();
+        var ownedByKey = userRelics.ToDictionary(x => x.RelicUnique, StringComparer.OrdinalIgnoreCase);
 
         pagedRelics = relics.Select(r => new RelicViewModel
         {
@@ -160,11 +174,19 @@
             Category = r.Category,
             Vaulted = r.Vaulted,
             ImageName = r.ImageName,
-            OwnedCount = userRelics.FirstOrDefault(u => u.RelicUnique == r.UniqueName)?.Quantity ?? 0
+            OwnedCount = ownedByKey.GetValueOrDefault(r.UniqueName)?.Quantity ?? 0
         }).ToList();
 
         loading = false;
         StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando reliquias: {ex.Message}");
+            loadError = "No fue posible cargar las reliquias. Reintenta en unos segundos.";
+            loading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task UpdateOwnedAsync(RelicViewModel relic, int count)

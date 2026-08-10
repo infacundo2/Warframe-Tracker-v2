@@ -34,24 +34,41 @@ public sealed class FarmPlannerService
         var inventory = await db.UserComponents.AsNoTracking()
             .Where(x => x.UserId == userId && x.ParentUnique == goal.TargetUnique)
             .ToDictionaryAsync(x => x.ComponentName, StringComparer.OrdinalIgnoreCase, ct);
+        var componentStatuses = components.Select(component =>
+        {
+            inventory.TryGetValue(component.Name, out var stored);
+            var required = Math.Max(1, component.ItemCount);
+            var owned = stored is null ? 0 : Math.Max(stored.Quantity, stored.Owned ? required : 0);
+            return new FarmComponentStatus(component.Name, required, owned,
+                Math.Max(0, required - owned));
+        }).ToList();
         var missing = components
             .Where(x => !inventory.TryGetValue(x.Name, out var stored)
                         || (!stored.Owned && stored.Quantity < Math.Max(1, x.ItemCount)))
             .ToList();
 
-        var relics = await db.Relics.AsNoTracking().ToListAsync(ct);
+        var relatedRelicNames = missing.SelectMany(x => x.Drops)
+            .Select(x => CleanRelicName(x.Location))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var exactRelicNames = relatedRelicNames.SelectMany(x => new[]
+            { $"Reliquia {x}", $"{x} Relic", x }).Distinct().ToList();
+        var relics = exactRelicNames.Count == 0 ? [] : await db.Relics.AsNoTracking()
+            .Where(x => exactRelicNames.Contains(x.Name)).ToListAsync(ct);
         var userRelics = await db.UserRelics.AsNoTracking()
             .Where(x => x.UserId == userId && x.Quantity > 0)
             .ToDictionaryAsync(x => x.RelicUnique, x => x.Quantity, ct);
         var activeGoalTargets = await db.UserGoals.AsNoTracking()
             .Where(x => x.UserId == userId && !x.IsCompleted)
             .Select(x => new { x.TargetUnique, x.DisplayName }).ToListAsync(ct);
+        var rewardLinks = await db.RelicRewards.AsNoTracking()
+            .Select(x => new { x.ItemUnique, x.RelicUnique }).ToListAsync(ct);
         var goalNamesByRelic = new Dictionary<string, HashSet<string>>();
         foreach (var target in activeGoalTargets)
         {
-            var linkedKeys = await db.RelicRewards.AsNoTracking()
-                .Where(x => x.ItemUnique.StartsWith(target.TargetUnique))
-                .Select(x => x.RelicUnique).Distinct().ToListAsync(ct);
+            var linkedKeys = rewardLinks
+                .Where(x => x.ItemUnique.StartsWith(target.TargetUnique, StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.RelicUnique).Distinct(StringComparer.OrdinalIgnoreCase);
             foreach (var key in linkedKeys)
             {
                 if (!goalNamesByRelic.TryGetValue(key, out var names))
@@ -117,13 +134,15 @@ public sealed class FarmPlannerService
                     variants.All(x => x.Vaulted),
                     owned,
                     chances,
+                    RarityFromChance(chances.GetValueOrDefault("Intacta")),
                     recommended,
                     TraceCost(recommended),
                     AttemptsFor(probability, .50),
                     AttemptsFor(probability, .75),
                     AttemptsFor(probability, .90),
                     locations,
-                    usefulGoals));
+                    usefulGoals,
+                    RecommendAction(owned.Values.Sum(), variants.All(x => x.Vaulted), recommended)));
             }
         }
 
@@ -140,8 +159,32 @@ public sealed class FarmPlannerService
             _ => routes.OrderByDescending(x => x.TotalOwned > 0).ThenBy(x => x.Vaulted)
         };
 
-        return new FarmPlan(goal.Id, goal.DisplayName, strategy, missing.Select(x => x.Name).ToList(),
-            ordered.ToList());
+        var orderedRoutes = ordered.ToList();
+        var savedBuilds = await db.SavedBuilds.AsNoTracking()
+            .Where(x => x.UserId == userId && x.TargetUnique == goal.TargetUnique && !x.IsArchived)
+            .OrderByDescending(x => x.UpdatedUtc).ToListAsync(ct);
+        var buildModKeys = savedBuilds.SelectMany(x => BuildService.DeserializeSlots(x.ModsJson))
+            .Select(x => x.ModUnique).Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct().ToList();
+        var ownedBuildMods = buildModKeys.Count == 0 ? [] : await db.UserMods.AsNoTracking()
+            .Where(x => x.UserId == userId && buildModKeys.Contains(x.ModUnique)
+                        && (x.Owned || x.Quantity > 0))
+            .Select(x => x.ModUnique).ToListAsync(ct);
+        var ownedBuildSet = ownedBuildMods.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var relatedBuilds = savedBuilds.Select(x =>
+        {
+            var keys = BuildService.DeserializeSlots(x.ModsJson).Select(s => s.ModUnique)
+                .Where(s => !string.IsNullOrWhiteSpace(s)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            return new FarmBuildProgress(x.Id, x.Name, keys.Count(k => ownedBuildSet.Contains(k)),
+                keys.Count, x.IsCompleted);
+        }).ToList();
+        var traceBudget = componentStatuses.Where(x => !x.IsComplete)
+            .Sum(component => orderedRoutes.Where(x => x.ComponentName == component.Name)
+                .OrderByDescending(x => x.TotalOwned > 0).ThenBy(x => x.Vaulted)
+                .ThenByDescending(x => x.RecommendedChance).FirstOrDefault()?.TraceCost ?? 0);
+
+        return new FarmPlan(goal.Id, goal.DisplayName, strategy, componentStatuses,
+            missing.Select(x => x.Name).ToList(), orderedRoutes, relatedBuilds, traceBudget);
     }
 
     private static List<WarframeComponent> DeserializeComponents(string? json)
@@ -248,6 +291,16 @@ public sealed class FarmPlannerService
         _ => 0
     };
 
+    private static string RarityFromChance(double chance)
+        => chance <= 2.01 ? "Rara" : chance <= 11.01 ? "Poco común" : "Común";
+
+    private static string RecommendAction(int totalOwned, bool vaulted, string refinement)
+        => totalOwned > 0
+            ? $"Refinar a {refinement} y abrir la copia que ya posees."
+            : vaulted
+                ? "No posees esta reliquia y está vaulted: prioriza intercambio o una escuadra compartida."
+                : $"Conseguir esta reliquia y mejorarla a {refinement}.";
+
     private static int AttemptsFor(double percentage, double confidence)
     {
         var probability = Math.Clamp(percentage / 100d, .000001, .999999);
@@ -292,8 +345,20 @@ public sealed record FarmPlan(
     int GoalId,
     string TargetName,
     string Strategy,
+    IReadOnlyList<FarmComponentStatus> Components,
     IReadOnlyList<string> MissingComponents,
-    IReadOnlyList<FarmRoute> Routes);
+    IReadOnlyList<FarmRoute> Routes,
+    IReadOnlyList<FarmBuildProgress> RelatedBuilds,
+    int RecommendedTraceBudget);
+
+public sealed record FarmComponentStatus(string Name, int Required, int Owned, int Missing)
+{
+    public bool IsComplete => Missing == 0;
+}
+public sealed record FarmBuildProgress(int BuildId, string Name, int OwnedMods, int TotalMods, bool Completed)
+{
+    public int Percent => TotalMods == 0 ? 0 : (int)Math.Round(OwnedMods * 100d / TotalMods);
+}
 
 public sealed record FarmRoute(
     string ComponentName,
@@ -302,13 +367,15 @@ public sealed record FarmRoute(
     bool Vaulted,
     IReadOnlyDictionary<string, int> Owned,
     IReadOnlyDictionary<string, double> Chances,
+    string Rarity,
     string RecommendedRefinement,
     int TraceCost,
     int Attempts50,
     int Attempts75,
     int Attempts90,
     IReadOnlyList<RelicLocation> Locations,
-    IReadOnlyList<string> UsefulGoals)
+    IReadOnlyList<string> UsefulGoals,
+    string RecommendedAction)
 {
     public int TotalOwned => Owned.Values.Sum();
     public double RecommendedChance => Chances.GetValueOrDefault(RecommendedRefinement);

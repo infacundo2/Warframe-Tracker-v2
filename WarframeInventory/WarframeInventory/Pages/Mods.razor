@@ -4,6 +4,7 @@
 @using System.Security.Claims
 @inject WarframeInventory.Data.ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthState
+@inject Microsoft.Extensions.Caching.Memory.IMemoryCache Cache
 @using WarframeInventory.Models
 @using MudBlazor
 
@@ -78,6 +79,10 @@
                 <MudSelectItem T="string" Value="@("missing")">Faltantes</MudSelectItem>
             </MudSelect>
         </div>
+        @if (!string.IsNullOrWhiteSpace(loadError))
+        {
+            <MudAlert Severity="Severity.Error">@loadError</MudAlert>
+        }
 
         @if (loading)
         {

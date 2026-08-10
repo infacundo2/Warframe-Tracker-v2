@@ -248,6 +248,15 @@ function toggleWindow(): void {
   });
 }
 
+function toggleMaximize(): void {
+  overwolf.windows.getWindowState(currentWindowId, result => {
+    if (result.window_state === "maximized")
+      overwolf.windows.restore(currentWindowId);
+    else
+      overwolf.windows.maximize(currentWindowId);
+  });
+}
+
 async function initialize(): Promise<void> {
   overwolf.windows.getCurrentWindow(result => { if (result.window?.id) currentWindowId = result.window.id; });
   overwolf.games.events.onInfoUpdates2.addListener(update => {
@@ -267,6 +276,17 @@ async function initialize(): Promise<void> {
   byId("reload-frame").addEventListener("click", () => {
     const frame = byId<HTMLIFrameElement>("tracker-frame");
     if (frame.src) frame.src = frame.src;
+  });
+  byId("window-minimize").addEventListener("click", () => overwolf.windows.minimize(currentWindowId));
+  byId("window-maximize").addEventListener("click", toggleMaximize);
+  byId("window-close").addEventListener("click", () => overwolf.windows.close(currentWindowId));
+  const topbar = document.querySelector<HTMLElement>(".topbar");
+  topbar?.addEventListener("dblclick", event => {
+    if (!(event.target as HTMLElement).closest("button")) toggleMaximize();
+  });
+  topbar?.addEventListener("mousedown", event => {
+    if (!(event.target as HTMLElement).closest("button"))
+      overwolf.windows.dragMove(currentWindowId);
   });
 
   const configUrl = window.WarframeTrackerNativeConfig?.trackerUrl ?? "";

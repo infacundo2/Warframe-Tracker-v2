@@ -1,10 +1,23 @@
 param(
-    [Parameter(Mandatory = $true)]
     [string]$TrackerUrl
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$configPath = Join-Path $projectRoot 'tracker.config.json'
+if ([string]::IsNullOrWhiteSpace($TrackerUrl)) {
+    $TrackerUrl = $env:WARFRAME_TRACKER_PUBLIC_URL
+}
+if ([string]::IsNullOrWhiteSpace($TrackerUrl) -and (Test-Path -LiteralPath $configPath)) {
+    $TrackerUrl = (Get-Content -LiteralPath $configPath -Raw -Encoding utf8 | ConvertFrom-Json).trackerUrl
+}
+if ([string]::IsNullOrWhiteSpace($TrackerUrl)) {
+    throw 'Define trackerUrl in tracker.config.json, pass -TrackerUrl, or set WARFRAME_TRACKER_PUBLIC_URL.'
+}
+$candidate = [Uri]$TrackerUrl
+if ($candidate.AbsolutePath -eq '/') {
+    $TrackerUrl = $TrackerUrl.TrimEnd('/') + '/native-sync'
+}
 $uri = [Uri]$TrackerUrl
 if (-not $uri.IsAbsoluteUri) { throw 'TrackerUrl must be an absolute URL.' }
 $isLoopback = $uri.Host -in @('localhost', '127.0.0.1')
@@ -12,6 +25,11 @@ if ($uri.Scheme -ne 'https' -and -not ($isLoopback -and $uri.Scheme -eq 'http'))
     throw 'Use HTTPS. HTTP is accepted only for localhost development.'
 }
 $origin = $uri.GetLeftPart([UriPartial]::Authority)
+
+[IO.File]::WriteAllText(
+    $configPath,
+    (@{ trackerUrl = $uri.AbsoluteUri } | ConvertTo-Json) + "`r`n",
+    [Text.UTF8Encoding]::new($false))
 
 $runtimePath = Join-Path $projectRoot 'public\runtime-config.js'
 $serializedUrl = ConvertTo-Json $uri.AbsoluteUri -Compress

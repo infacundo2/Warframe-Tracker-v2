@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
 using WarframeInventory.Data;
 using WarframeInventory.Models;
@@ -11,6 +12,7 @@ public partial class Mods
 {
     private List<ModViewModel> pagedMods = new();
     private bool loading = true;
+    private string loadError = "";
     private string? searchTerm = "";
     private int currentPage = 1;
     private int totalPages = 1;
@@ -28,18 +30,24 @@ public partial class Mods
 
     protected override async Task OnInitializedAsync()
     {
-        Console.WriteLine("============== DEBUG MODS ==============");
         var authState = await AuthState.GetAuthenticationStateAsync();
         var user = authState.User;
         userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-        Console.WriteLine($"👤 Usuario autenticado: {user.Identity?.Name} ({userId})");
 
-        compatibilities = await Db.Mods.AsNoTracking().Where(x => x.CompatName != null && x.CompatName != "")
-            .Select(x => x.CompatName!).Distinct().OrderBy(x => x).ToListAsync();
-        polarities = await Db.Mods.AsNoTracking().Where(x => x.Polarity != null && x.Polarity != "")
-            .Select(x => x.Polarity!).Distinct().OrderBy(x => x).ToListAsync();
-        rarities = await Db.Mods.AsNoTracking().Where(x => x.Rarity != null && x.Rarity != "")
-            .Select(x => x.Rarity!).Distinct().OrderBy(x => x).ToListAsync();
+        var facets = await Cache.GetOrCreateAsync("catalog:mods:facets", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            var compatibilityValues = await Db.Mods.AsNoTracking().Where(x => x.CompatName != null && x.CompatName != "")
+                .Select(x => x.CompatName!).Distinct().OrderBy(x => x).ToListAsync();
+            var polarityValues = await Db.Mods.AsNoTracking().Where(x => x.Polarity != null && x.Polarity != "")
+                .Select(x => x.Polarity!).Distinct().OrderBy(x => x).ToListAsync();
+            var rarityValues = await Db.Mods.AsNoTracking().Where(x => x.Rarity != null && x.Rarity != "")
+                .Select(x => x.Rarity!).Distinct().OrderBy(x => x).ToListAsync();
+            return new ModFacets(compatibilityValues, polarityValues, rarityValues);
+        });
+        compatibilities = facets?.Compatibilities ?? [];
+        polarities = facets?.Polarities ?? [];
+        rarities = facets?.Rarities ?? [];
         if (!string.IsNullOrWhiteSpace(userId))
         {
             duplicateMods = await (
@@ -71,6 +79,7 @@ public partial class Mods
         try
         {
             loading = true;
+            loadError = "";
             StateHasChanged();
 
             var query = Db.Mods.AsNoTracking().AsQueryable();
@@ -109,17 +118,16 @@ public partial class Mods
                 .OrderBy(m => m.Name)
                 .Skip((currentPage - 1) * pageSize)
                 .Take(pageSize)
+                .Select(m => new
+                {
+                    m.Id, m.UniqueName, m.Name, m.Description, m.Polarity, m.Rarity, m.ImageName
+                })
                 .ToListAsync();
-
-            Console.WriteLine($"📦 Mods cargados: {mods.Count}");
             var pageKeys = mods.Select(x => x.UniqueName).ToList();
             var ownedList = await Db.UserMods.AsNoTracking()
                 .Where(u => u.UserId == userId && pageKeys.Contains(u.ModUnique))
                 .ToListAsync();
-
-            Console.WriteLine($"📊 Registros de usuario encontrados: {ownedList.Count}");
-            foreach (var o in ownedList)
-                Console.WriteLine($"   -> {o.ModUnique}, Owned={o.Owned}");
+            var ownedByKey = ownedList.ToDictionary(x => x.ModUnique, StringComparer.OrdinalIgnoreCase);
 
             pagedMods = mods.Select(m => new ModViewModel
             {
@@ -130,8 +138,8 @@ public partial class Mods
                 Polarity = m.Polarity,
                 Rarity = m.Rarity,
                 ImageName = m.ImageName,
-                IsOwned = ownedList.Any(o => o.ModUnique == m.UniqueName && o.Owned),
-                Quantity = ownedList.FirstOrDefault(o => o.ModUnique == m.UniqueName)?.Quantity ?? 0
+                IsOwned = ownedByKey.TryGetValue(m.UniqueName, out var inventory) && (inventory.Owned || inventory.Quantity > 0),
+                Quantity = ownedByKey.GetValueOrDefault(m.UniqueName)?.Quantity ?? 0
             }).ToList();
 
             loading = false;
@@ -140,6 +148,9 @@ public partial class Mods
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Error cargando mods: {ex}");
+            loadError = "No fue posible cargar los mods. Reintenta en unos segundos.";
+            loading = false;
+            StateHasChanged();
         }
     }
 
@@ -239,4 +250,5 @@ public partial class Mods
         public int ExtraCopies => Math.Max(0, Quantity - 1);
         public int EstimatedEndo { get; set; }
     }
+    private sealed record ModFacets(List<string> Compatibilities, List<string> Polarities, List<string> Rarities);
 }

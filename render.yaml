@@ -23,6 +23,8 @@ services:
         sync: false
       - key: WARFRAME_TRACKER_DB_NAME
         sync: false
+      - key: WARFRAME_TRACKER_APPLY_MIGRATIONS
+        value: "1"
       - key: ASPNETCORE_FORWARDEDHEADERS_ENABLED
         value: true
       - key: ASPNETCORE_URLS

@@ -27,6 +27,10 @@
             <MudSelectItem T="string" Value="@("Poseídas")">Poseídas actualmente</MudSelectItem>
             <MudSelectItem T="string" Value="@("Pendientes")">Maestría pendiente</MudSelectItem>
         </MudSelect>
+        @if (!string.IsNullOrWhiteSpace(loadError))
+        {
+            <MudAlert Severity="Severity.Error">@loadError</MudAlert>
+        }
 
         @if (loading)
         {
@@ -97,6 +101,7 @@
 @code {
     private List<WeaponViewModel> pagedWeapons = new();
     private bool loading = true;
+    private string loadError = "";
     private string? searchTerm = "";
     private string masteryFilter = "Todos";
     private int currentPage = 1;
@@ -106,11 +111,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Console.WriteLine("============== DEBUG WEAPONS ==============");
         var authState = await AuthState.GetAuthenticationStateAsync();
         var user = authState.User;
         userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-        Console.WriteLine($"👤 Usuario autenticado: {user.Identity?.Name} ({userId})");
 
         await RefreshAsync();
     }
@@ -126,22 +129,20 @@
         try
         {
             loading = true;
+            loadError = "";
             StateHasChanged();
 
             var query = Db.Weapons.AsNoTracking().AsQueryable();
             if (!string.IsNullOrWhiteSpace(userId) && masteryFilter != "Todos")
             {
-                var rows = await Db.UserWeapons.AsNoTracking()
-                    .Where(x => x.UserId == userId).ToListAsync();
-                var keys = masteryFilter switch
+                var inventory = Db.UserWeapons.AsNoTracking().Where(x => x.UserId == userId);
+                query = masteryFilter switch
                 {
-                    "Dominadas" => rows.Where(x => x.Mastered).Select(x => x.WeaponUnique).ToList(),
-                    "Poseídas" => rows.Where(x => x.Owned).Select(x => x.WeaponUnique).ToList(),
-                    _ => rows.Where(x => x.Mastered).Select(x => x.WeaponUnique).ToList()
+                    "Dominadas" => query.Where(w => inventory.Any(x => x.WeaponUnique == w.UniqueName && x.Mastered)),
+                    "Poseídas" => query.Where(w => inventory.Any(x => x.WeaponUnique == w.UniqueName && x.Owned)),
+                    "Pendientes" => query.Where(w => !inventory.Any(x => x.WeaponUnique == w.UniqueName && x.Mastered)),
+                    _ => query
                 };
-                query = masteryFilter == "Pendientes"
-                    ? query.Where(x => !keys.Contains(x.UniqueName))
-                    : query.Where(x => keys.Contains(x.UniqueName));
             }
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
@@ -157,19 +158,17 @@
                 .OrderBy(w => w.Name)
                 .Skip((currentPage - 1) * pageSize)
                 .Take(pageSize)
+                .Select(w => new
+                {
+                    w.Id, w.UniqueName, w.Name, w.Description, w.ImageName, w.Type
+                })
                 .ToListAsync();
-
-            Console.WriteLine($"📦 Armas cargadas: {result.Count}");
-            Console.WriteLine($"📊 Buscando UserWeapons para este usuario...");
 
             var pageKeys = result.Select(x => x.UniqueName).ToList();
             var ownedList = await Db.UserWeapons.AsNoTracking()
                 .Where(u => u.UserId == userId && pageKeys.Contains(u.WeaponUnique))
                 .ToListAsync();
-
-            Console.WriteLine($"📊 Registros de usuario encontrados: {ownedList.Count}");
-            foreach (var o in ownedList)
-                Console.WriteLine($"   -> {o.WeaponUnique}, Owned={o.Owned}");
+            var ownedByKey = ownedList.ToDictionary(x => x.WeaponUnique, StringComparer.OrdinalIgnoreCase);
 
             pagedWeapons = result.Select(w => new WeaponViewModel
             {
@@ -179,9 +178,9 @@
                 Description = w.Description,
                 Type = w.Type,
                 ImageName = w.ImageName,
-                IsOwned = ownedList.Any(o => o.WeaponUnique == w.UniqueName && o.Owned),
-                Mastered = ownedList.Any(o => o.WeaponUnique == w.UniqueName && o.Mastered),
-                OwnershipState = ownedList.FirstOrDefault(o => o.WeaponUnique == w.UniqueName) is { } row
+                IsOwned = ownedByKey.TryGetValue(w.UniqueName, out var owned) && owned.Owned,
+                Mastered = ownedByKey.TryGetValue(w.UniqueName, out var mastered) && mastered.Mastered,
+                OwnershipState = ownedByKey.GetValueOrDefault(w.UniqueName) is { } row
                     ? NormalizeState(row.OwnershipState, row.Owned) : "missing"
             }).ToList();
 
@@ -191,6 +190,9 @@
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Error cargando armas: {ex}");
+            loadError = "No fue posible cargar las armas. Reintenta en unos segundos.";
+            loading = false;
+            StateHasChanged();
         }
     }
 

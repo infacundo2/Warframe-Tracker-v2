@@ -35,7 +35,11 @@ declare const overwolf: {
   windows: {
     getCurrentWindow(callback: (result: OverwolfWindowResult) => void): void;
     restore(windowId: string, callback?: (result: OverwolfResult) => void): void;
+    minimize(windowId: string, callback?: (result: OverwolfResult) => void): void;
+    maximize(windowId: string, callback?: (result: OverwolfResult) => void): void;
     hide(windowId: string, callback?: (result: OverwolfResult) => void): void;
+    close(windowId: string, callback?: (result: OverwolfResult) => void): void;
+    dragMove(windowId: string, callback?: (result: OverwolfResult) => void): void;
     getWindowState(windowId: string, callback: (result: OverwolfResult & { window_state?: string }) => void): void;
   };
 };
