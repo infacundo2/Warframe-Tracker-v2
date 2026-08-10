@@ -21,7 +21,7 @@
   </header>
 
   <main>
-    <aside class="capture-panel">
+    <aside id="capture-panel" class="capture-panel">
       <p class="eyebrow">OVERWOLF GEP // LOCAL CHANNEL</p>
       <h1>Automatic inventory</h1>
       <p class="intro">The raw capture stays on this PC for up to 30 minutes. Nothing is sent until you press the confirmation button.</p>
@@ -51,7 +51,12 @@
 
     <section class="tracker-panel">
       <div class="frame-toolbar">
-        <span>TRACKER INTERFACE</span>
+        <div class="frame-toolbar__start">
+          <button id="toggle-capture-panel" class="panel-toggle" type="button"
+                  title="Show automatic inventory panel" aria-label="Show automatic inventory panel"
+                  aria-controls="capture-panel" aria-expanded="false">GEP</button>
+          <span>TRACKER INTERFACE</span>
+        </div>
         <button id="reload-frame" title="Reload Tracker">↻</button>
       </div>
       <div id="tracker-setup" class="tracker-setup">

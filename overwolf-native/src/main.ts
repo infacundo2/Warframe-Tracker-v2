@@ -11,6 +11,7 @@ const POLL_INTERVAL_MS = 2500;
 const DB_NAME = "warframe-tracker-native";
 const DB_STORE = "captures";
 const CAPTURE_KEY = "latest";
+const CAPTURE_PANEL_KEY = "warframe-tracker:capture-panel-open";
 
 let currentWindowId = "main";
 // `null` means Overwolf has not reported the initial game state yet. Without
@@ -36,6 +37,17 @@ function setSignal(state: SignalState, title: string, detail: string): void {
   signal.dataset.state = state;
   byId("signal-title").textContent = title;
   byId("signal-detail").textContent = detail;
+  const panelToggle = document.getElementById("toggle-capture-panel");
+  if (panelToggle) panelToggle.dataset.state = state;
+}
+
+function setCapturePanel(open: boolean): void {
+  document.body.classList.toggle("capture-panel-collapsed", !open);
+  const toggle = byId<HTMLButtonElement>("toggle-capture-panel");
+  toggle.setAttribute("aria-expanded", String(open));
+  toggle.title = open ? "Hide automatic inventory panel" : "Show automatic inventory panel";
+  toggle.setAttribute("aria-label", toggle.title);
+  localStorage.setItem(CAPTURE_PANEL_KEY, open ? "1" : "0");
 }
 
 function setCaptureUi(capture: StoredCapture | null): void {
@@ -277,6 +289,8 @@ async function initialize(): Promise<void> {
     const frame = byId<HTMLIFrameElement>("tracker-frame");
     if (frame.src) frame.src = frame.src;
   });
+  byId("toggle-capture-panel").addEventListener("click", () =>
+    setCapturePanel(document.body.classList.contains("capture-panel-collapsed")));
   byId("window-minimize").addEventListener("click", () => overwolf.windows.minimize(currentWindowId));
   byId("window-maximize").addEventListener("click", toggleMaximize);
   byId("window-close").addEventListener("click", () => overwolf.windows.close(currentWindowId));
@@ -295,6 +309,8 @@ async function initialize(): Promise<void> {
   // an old localhost value can silently override the production backend.
   const trackerUrl = configUrl || localStorage.getItem("trackerUrl") || "";
   byId<HTMLInputElement>("tracker-url").value = trackerUrl;
+  // Keep the controller active while hiding its large visual panel by default.
+  setCapturePanel(localStorage.getItem(CAPTURE_PANEL_KEY) === "1");
   configureTracker(trackerUrl);
   const restored = await loadCapture();
   if (restored) lastDigest = restored.digest;

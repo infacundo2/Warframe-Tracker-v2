@@ -11,3 +11,13 @@
 .window-controls #window-close:hover{background:#b93642;color:#fff}
 main{grid-template-columns:390px minmax(0,1fr)}
 @media(max-width:1300px){main{grid-template-columns:330px minmax(0,1fr)}.capture-panel{padding:22px 18px}.brand span:not(.brand-mark),.brand em{display:none}}
+
+/* The GEP controller keeps running when its visual panel is collapsed. */
+body.capture-panel-collapsed main{grid-template-columns:minmax(0,1fr)}
+body.capture-panel-collapsed .capture-panel{display:none}
+.frame-toolbar__start{display:flex;align-items:center;gap:12px}
+.frame-toolbar .panel-toggle{display:inline-flex;align-items:center;gap:7px;padding:4px 9px;font-size:10px;letter-spacing:.16em}
+.frame-toolbar .panel-toggle::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted);box-shadow:0 0 8px currentColor}
+.frame-toolbar .panel-toggle[data-state="ready"]::before,.frame-toolbar .panel-toggle[data-state="captured"]::before{background:var(--ok)}
+.frame-toolbar .panel-toggle[data-state="connecting"]::before{background:var(--gold)}
+.frame-toolbar .panel-toggle[data-state="error"]::before{background:var(--danger)}

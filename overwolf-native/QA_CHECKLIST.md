@@ -20,6 +20,7 @@
 - [ ] Layout works at 1180×720, 1366×768, 1920×1080 and 2560×1440.
 - [ ] Minimize, maximize/restore and close buttons work from the Native header.
 - [ ] Double-clicking or dragging the header behaves like a normal Windows window.
+- [ ] Collapsing the Automatic Inventory panel does not stop GEP or lose a capture.
 - [ ] English is the initial language and Spanish remains selectable.
 - [ ] `Ctrl+Shift+T` hides/restores the window without conflicting with Warframe.
 - [ ] Reduced-motion preference disables continuous animations.

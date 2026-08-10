@@ -3,7 +3,7 @@
     "type":  "WebApp",
     "meta":  {
                  "name":  "Warframe Tracker",
-                 "version":  "0.1.0",
+                 "version":  "0.1.1",
                  "minimum-overwolf-version":  "0.199.0.15",
                  "author":  "infacundo2",
                  "description":  "Bilingual Warframe inventory and farming companion powered by Overwolf GEP.",
