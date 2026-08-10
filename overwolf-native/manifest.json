@@ -72,7 +72,8 @@
                                                                 "http://127.0.0.1",
                                                                 "http://127.0.0.1:43127",
                                                                 "http://localhost",
-                                                                "https://infacundo2.github.io"
+                                                                "https://infacundo2.github.io",
+                                                                "https://warframe-inventory.onrender.com"
                                                             ]
                                             },
                  "force_browser":  "user",

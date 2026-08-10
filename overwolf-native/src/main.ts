@@ -270,9 +270,12 @@ async function initialize(): Promise<void> {
   });
 
   const configUrl = window.WarframeTrackerNativeConfig?.trackerUrl ?? "";
-  const savedUrl = localStorage.getItem("trackerUrl") ?? configUrl;
-  byId<HTMLInputElement>("tracker-url").value = savedUrl;
-  configureTracker(savedUrl);
+  // A URL shipped by the validated package is authoritative. Local storage is
+  // only a development fallback when no runtime URL was configured, otherwise
+  // an old localhost value can silently override the production backend.
+  const trackerUrl = configUrl || localStorage.getItem("trackerUrl") || "";
+  byId<HTMLInputElement>("tracker-url").value = trackerUrl;
+  configureTracker(trackerUrl);
   const restored = await loadCapture();
   if (restored) lastDigest = restored.digest;
   setCaptureUi(restored);
