@@ -5,10 +5,12 @@ using WarframeInventory.Data;
 namespace WarframeInventory.Services;
 
 public sealed record CatalogCounts(int Warframes, int Weapons, int Mods, int Relics);
+public sealed record RelicCatalogEntry(string UniqueName, string Name, bool Vaulted);
 
 public sealed class CatalogCacheService
 {
     private const string CountsKey = "catalog:counts:v1";
+    private const string RelicsKey = "catalog:relics:v1";
     private readonly IMemoryCache _cache;
     private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
@@ -39,5 +41,28 @@ public sealed class CatalogCacheService
         return counts;
     }
 
-    public void Invalidate() => _cache.Remove(CountsKey);
+    public async Task<IReadOnlyList<RelicCatalogEntry>> GetRelicsAsync(
+        CancellationToken ct = default)
+    {
+        if (_cache.TryGetValue(RelicsKey, out IReadOnlyList<RelicCatalogEntry>? cached)
+            && cached is not null)
+            return cached;
+
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var relics = await db.Relics.AsNoTracking()
+            .Select(relic => new RelicCatalogEntry(
+                relic.UniqueName,
+                relic.Name,
+                relic.Vaulted))
+            .ToListAsync(ct);
+
+        _cache.Set(RelicsKey, relics, TimeSpan.FromMinutes(15));
+        return relics;
+    }
+
+    public void Invalidate()
+    {
+        _cache.Remove(CountsKey);
+        _cache.Remove(RelicsKey);
+    }
 }

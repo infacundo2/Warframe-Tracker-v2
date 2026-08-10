@@ -212,6 +212,7 @@ builder.Services.AddScoped<FarmPlannerService>();
 builder.Services.AddScoped<BuildableAnalysisService>();
 builder.Services.AddScoped<CommandCenterService>();
 builder.Services.AddScoped<RelicIntelligenceService>();
+builder.Services.AddScoped<RelicLinkService>();
 builder.Services.AddHttpClient<MarketPriceService>(client =>
 {
     client.BaseAddress = new Uri("https://api.warframe.market/v2/");

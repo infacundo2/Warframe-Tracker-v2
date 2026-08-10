@@ -6,6 +6,7 @@
 @inject WarframeInventory.Data.ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthState
 @inject UserGoalService GoalService
+@inject RelicLinkService RelicLinkService
 @using MudBlazor
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
@@ -231,8 +232,9 @@
                             comp.Quantity = match.Quantity;
                         }
 
-                        await LoadRelicLinksAsync(comp);
                     }
+
+                    await RelicLinkService.PopulateAsync(components, userId, includeRelics: true);
                 }
             }
         }
