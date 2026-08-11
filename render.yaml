@@ -24,7 +24,10 @@ services:
       - key: WARFRAME_TRACKER_DB_NAME
         sync: false
       - key: WARFRAME_TRACKER_DB_SSL_MODE
-        value: Preferred
+        # The current cPanel MySQL endpoint advertises TLS but fails its
+        # handshake from Linux/OpenSSL. Re-enable Required/VerifyFull only
+        # after TLS is correctly configured on the database host.
+        value: Disabled
       - key: WARFRAME_TRACKER_DP_CERT_BASE64
         sync: false
       - key: WARFRAME_TRACKER_DP_CERT_PASSWORD

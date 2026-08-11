@@ -96,6 +96,13 @@ Las credenciales MySQL se configuran exclusivamente mediante los secretos
 MySqlConnector; usa `Required`, `VerifyCA` o `VerifyFull` cuando el proveedor de
 la base entregue TLS verificable.
 
+El servidor MySQL cPanel usado actualmente anuncia TLS, pero falla durante el
+handshake desde Linux/OpenSSL. Por eso el Blueprint de Render fija
+`WARFRAME_TRACKER_DB_SSL_MODE=Disabled` de forma explícita. Esta conexión no va
+cifrada: la solución definitiva es habilitar TLS correctamente en el hosting o
+migrar la base a un proveedor que entregue un endpoint TLS verificable; después
+de eso debe cambiarse a `VerifyFull`.
+
 La URL pública consumida por Overwolf Native se cambia en un solo lugar:
 `overwolf-native/tracker.config.json`. `npm run build` regenera la URL del iframe,
 el origen permitido del manifiesto y su CSP.
