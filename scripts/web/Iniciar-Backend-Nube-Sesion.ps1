@@ -3,7 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$raizProyecto = $PSScriptRoot
+$raizProyecto = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $archivoProyecto = Join-Path $raizProyecto "WarframeInventory\WarframeInventory\WarframeInventory.csproj"
 
 if (-not (Test-Path -LiteralPath $archivoProyecto)) {

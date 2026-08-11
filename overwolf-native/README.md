@@ -1,7 +1,7 @@
 # Warframe Tracker — Overwolf Native
 
 Esta es la variante **Overwolf Native** del Tracker. Vive en una carpeta
-independiente y no reemplaza ni modifica el cliente `desktop` basado en
+independiente y no reemplaza ni modifica el cliente `desktop-electron` basado en
 ow-Electron. Ambos pueden mantenerse y evolucionar en paralelo.
 
 ## Estado actual
@@ -184,7 +184,7 @@ npm run package:opk
 Resultado:
 
 ```text
-out\overwolf-native\Warframe-Tracker-Native-0.1.0.opk
+out\overwolf-native\Warframe-Tracker-Native-0.1.2.opk
 ```
 
 El script vuelve a compilar, valida y deja `manifest.json` en la raíz del OPK.
@@ -221,7 +221,7 @@ Preguntas que deben contestarnos:
 
 ## Volver a ow-Electron en el futuro
 
-No hay que revertir nada. La implementación anterior permanece en `desktop/` y
+No hay que revertir nada. La implementación anterior permanece en `desktop-electron/` y
 sus artefactos continúan separados. La integración compartida del servidor usa
 endpoints diferentes:
 

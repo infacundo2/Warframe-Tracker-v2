@@ -3,6 +3,14 @@
 .vscode
 .vs
 .dotnet-home
+.tools
+.archive
+desktop-electron
+overwolf-native
+tools
+docs
+scripts
+WarframeInventory/WarframeInventory.Tests
 **/bin
 **/obj
 **/out
@@ -11,3 +19,6 @@ out
 **/appsettings.Development.json
 *.user
 *.log
+*.db
+*.db-shm
+*.db-wal

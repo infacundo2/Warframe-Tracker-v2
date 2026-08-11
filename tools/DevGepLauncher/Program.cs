@@ -198,7 +198,7 @@ internal static class Program
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             for (var depth = 0; depth < 7 && directory is not null; depth++, directory = directory.Parent)
             {
-                var desktop = Path.Combine(directory.FullName, "desktop");
+                var desktop = Path.Combine(directory.FullName, "desktop-electron");
                 var executable = Path.Combine(
                     desktop, "node_modules", "@overwolf", "ow-electron", "dist", "electron.exe");
                 if (File.Exists(Path.Combine(desktop, "package.json")) && File.Exists(executable))

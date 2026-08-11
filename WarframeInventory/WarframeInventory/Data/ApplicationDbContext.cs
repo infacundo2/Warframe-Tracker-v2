@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using WarframeInventory.Models;
 
 namespace WarframeInventory.Data
 {
     // Incluye soporte de usuarios (Identity) + tus entidades de Warframe
-    public class ApplicationDbContext : IdentityDbContext
+    public class ApplicationDbContext : IdentityDbContext, IDataProtectionKeyContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options) { }
@@ -40,6 +41,7 @@ namespace WarframeInventory.Data
         public DbSet<RelicOpening> RelicOpenings => Set<RelicOpening>();
         public DbSet<RelicSyncProfile> RelicSyncProfiles => Set<RelicSyncProfile>();
         public DbSet<AlecaAccountSnapshot> AlecaAccountSnapshots => Set<AlecaAccountSnapshot>();
+        public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
         public override int SaveChanges()
         {

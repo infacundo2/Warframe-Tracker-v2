@@ -4,8 +4,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$repositoryRoot = $PSScriptRoot
-$desktopRoot = Join-Path $repositoryRoot "desktop"
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$desktopRoot = Join-Path $repositoryRoot "desktop-electron"
 $targetRoot = Join-Path $repositoryRoot $OutputDirectory
 $previousElectronMode = $env:ELECTRON_RUN_AS_NODE
 

@@ -5,7 +5,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$repositoryRoot = $PSScriptRoot
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $reportDirectory = Join-Path $repositoryRoot "docs\publishing\reports"
 $reportPath = Join-Path $reportDirectory "windows11-qa.txt"
 New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null
@@ -36,7 +36,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Fallaron las pruebas .NET." }
     Add-Result "Pruebas .NET: APROBADO"
 
-    Push-Location "desktop"
+    Push-Location "desktop-electron"
     try {
         npm run typecheck
         if ($LASTEXITCODE -ne 0) { throw "Falló TypeScript." }
@@ -84,4 +84,3 @@ finally {
 }
 
 Write-Host "Informe guardado en $reportPath"
-

@@ -3,15 +3,16 @@
 **/obj/
 **/out/
 out/
-desktop/node_modules/
-desktop/dist/
-desktop/build/
+desktop-electron/node_modules/
+desktop-electron/dist/
+desktop-electron/build/
 overwolf-native/node_modules/
 overwolf-native/dist/
 
 # Local tooling and IDE
 .dotnet-home/
 .tools/
+.archive/
 .vs/
 .vscode/
 *.user

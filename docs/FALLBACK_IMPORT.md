@@ -1,16 +1,17 @@
 # Importación alternativa y límites técnicos
 
-`Importar-Inventario-Seguro.ps1` abre un JSON de inventario, lo valida, inicia
+`scripts/inventory/Importar-Inventario-Seguro.ps1` abre un JSON de inventario, lo valida, inicia
 Warframe Tracker únicamente en `127.0.0.1` y entrega la captura mediante una
 clave aleatoria que no se escribe en disco.
 
 Uso:
 
 ```powershell
-.\Importar-Inventario-Seguro.ps1 .\inventario.json
+.\scripts\inventory\Importar-Inventario-Seguro.ps1 .\inventario.json
 ```
 
-También se puede arrastrar el JSON sobre `Importar-Inventario-Seguro.cmd`.
+También se puede arrastrar el JSON sobre
+`scripts/inventory/Importar-Inventario-Seguro.cmd`.
 
 ## Lo que este método no hace
 

@@ -2,8 +2,8 @@
 param()
 
 $ErrorActionPreference = "Stop"
-$repositoryRoot = $PSScriptRoot
-$sourcePath = Join-Path $repositoryRoot "desktop\build\icon.png"
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$sourcePath = Join-Path $repositoryRoot "desktop-electron\build\icon.png"
 $outputRoot = Join-Path $repositoryRoot "docs\publishing\store-assets"
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
 

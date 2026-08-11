@@ -28,7 +28,7 @@ la sesión actual:
 $env:OW_CLI_EMAIL = 'correo-aprobado'
 $env:OW_CLI_API_KEY = 'clave-de-consola'
 $env:OW_BUILD_KEY = 'build-key-de-la-app'
-.\Preparar-Build-Firmada.ps1 -CertificatePfx 'C:\ruta\certificado.pfx'
+.\scripts\desktop-electron\Preparar-Build-Firmada.ps1 -CertificatePfx 'C:\ruta\certificado.pfx'
 ```
 
 El script solicita la contraseña de manera oculta, valida que el certificado
@@ -44,4 +44,3 @@ Get-AuthenticodeSignature `
 ```
 
 No enviar una build pública si el resultado no es `Valid`.
-

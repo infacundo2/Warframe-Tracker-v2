@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$root = $PSScriptRoot
+$root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $uiRoot = Join-Path $root "WarframeInventory\WarframeInventory"
 $output = Join-Path $uiRoot "wwwroot\i18n"
 New-Item -ItemType Directory -Path $output -Force | Out-Null

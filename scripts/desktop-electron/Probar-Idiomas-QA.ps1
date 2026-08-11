@@ -2,8 +2,8 @@
 param()
 
 $ErrorActionPreference = "Stop"
-$root = $PSScriptRoot
-$desktop = Join-Path $root "desktop"
+$root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$desktop = Join-Path $root "desktop-electron"
 $reportRoot = Join-Path $root "docs\publishing\reports\languages"
 New-Item -ItemType Directory -Path $reportRoot -Force | Out-Null
 $previousElectronMode = $env:ELECTRON_RUN_AS_NODE

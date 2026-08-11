@@ -1,15 +1,38 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using MySqlConnector;
 using WarframeInventory.Data;
 using WarframeInventory.Services;
 
+var platformPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(platformPort))
+{
+    if (!int.TryParse(platformPort, out var parsedPort) || parsedPort is < 1 or > 65535)
+        throw new InvalidOperationException("PORT debe ser un puerto TCP válido.");
+
+    // The .NET container image defines HTTP_PORTS=8080. Replacing that value
+    // before the host is created avoids conflicting URL sources on Render.
+    Environment.SetEnvironmentVariable("ASPNETCORE_HTTP_PORTS", parsedPort.ToString());
+}
+
 var builder = WebApplication.CreateBuilder(args);
+var designTime = EF.IsDesignTime;
+var runningOnRender = string.Equals(
+    Environment.GetEnvironmentVariable("RENDER"),
+    "true",
+    StringComparison.OrdinalIgnoreCase);
+var behindReverseProxy = runningOnRender
+                         || Environment.GetEnvironmentVariable(
+                             "WARFRAME_TRACKER_BEHIND_PROXY") == "1";
 var desktopMode = builder.Configuration.GetValue<bool>("DesktopMode")
                   || Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DESKTOP") == "1";
 var databaseProvider = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DATABASE_PROVIDER")
@@ -41,11 +64,6 @@ if (desktopMode)
     builder.WebHost.UseStaticWebAssets();
 }
 
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(
-        Path.Combine(localDataRoot ?? builder.Environment.ContentRootPath, "DataProtectionKeys")))
-    .SetApplicationName("WarframeInventory");
-
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(
@@ -68,22 +86,48 @@ if (useSqlite)
 else
 {
     var host = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_HOST")
-               ?? configuration["ConnectionStrings:DB_HOST"] ?? "localhost";
+               ?? configuration["ConnectionStrings:DB_HOST"]
+               ?? (designTime ? "localhost" :
+                   throw new InvalidOperationException("Falta WARFRAME_TRACKER_DB_HOST."));
     var port = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_PORT")
                ?? configuration["ConnectionStrings:DB_PORT"] ?? "3306";
     var user = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_USER")
                ?? configuration["ConnectionStrings:DB_USER"]
-               ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_USER");
+               ?? (designTime ? "design" :
+                   throw new InvalidOperationException("Falta WARFRAME_TRACKER_DB_USER."));
     var pass = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_PASS")
                ?? configuration["ConnectionStrings:DB_PASS"]
-               ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_PASS");
+               ?? (designTime ? "design" :
+                   throw new InvalidOperationException("Falta WARFRAME_TRACKER_DB_PASS."));
     var dbName = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_NAME")
                  ?? configuration["ConnectionStrings:DB_NAME"]
-                 ?? throw new InvalidOperationException("Falta ConnectionStrings:DB_NAME");
-    var connectionString =
-        $"server={host};port={port};database={dbName};user={user};password={pass};" +
-        "SslMode=None;AllowPublicKeyRetrieval=True;Pooling=True;MinimumPoolSize=0;MaximumPoolSize=50;";
-    var serverVersion = ServerVersion.AutoDetect(connectionString);
+                 ?? (designTime ? "warframe_design" :
+                     throw new InvalidOperationException("Falta WARFRAME_TRACKER_DB_NAME."));
+    if (!uint.TryParse(port, out var databasePort) || databasePort > ushort.MaxValue)
+        throw new InvalidOperationException("WARFRAME_TRACKER_DB_PORT no es válido.");
+    var sslModeValue = Environment.GetEnvironmentVariable("WARFRAME_TRACKER_DB_SSL_MODE")
+                       ?? configuration["ConnectionStrings:DB_SSL_MODE"]
+                       ?? "Preferred";
+    if (!Enum.TryParse<MySqlSslMode>(sslModeValue, true, out var sslMode))
+        throw new InvalidOperationException(
+            "WARFRAME_TRACKER_DB_SSL_MODE debe ser un modo SSL válido de MySQL.");
+
+    var connectionString = new MySqlConnectionStringBuilder
+    {
+        Server = host,
+        Port = databasePort,
+        UserID = user,
+        Password = pass,
+        Database = dbName,
+        SslMode = sslMode,
+        AllowPublicKeyRetrieval = true,
+        Pooling = true,
+        MinimumPoolSize = 0,
+        MaximumPoolSize = 50
+    }.ConnectionString;
+    var serverVersion = designTime
+        ? new MySqlServerVersion(new Version(8, 0, 0))
+        : ServerVersion.AutoDetect(connectionString);
     builder.Services.AddPooledDbContextFactory<ApplicationDbContext>(options =>
         options.UseMySql(connectionString, serverVersion, mysql =>
             mysql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null)));
@@ -92,6 +136,69 @@ else
 // las páginas nuevas deben preferir IDbContextFactory.
 builder.Services.AddScoped(sp =>
     sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
+
+var dataProtection = builder.Services.AddDataProtection()
+    .SetApplicationName("WarframeInventory");
+if (builder.Environment.IsProduction() && !useSqlite)
+{
+    var certificateBase64 = Environment.GetEnvironmentVariable(
+        "WARFRAME_TRACKER_DP_CERT_BASE64");
+    var certificatePassword = Environment.GetEnvironmentVariable(
+        "WARFRAME_TRACKER_DP_CERT_PASSWORD");
+    if (string.IsNullOrWhiteSpace(certificateBase64)
+        || string.IsNullOrWhiteSpace(certificatePassword))
+    {
+        throw new InvalidOperationException(
+            "Producción requiere WARFRAME_TRACKER_DP_CERT_BASE64 y " +
+            "WARFRAME_TRACKER_DP_CERT_PASSWORD para proteger las claves de sesión.");
+    }
+
+    X509Certificate2 keyEncryptionCertificate;
+    try
+    {
+        keyEncryptionCertificate = new X509Certificate2(
+            Convert.FromBase64String(certificateBase64),
+            certificatePassword,
+            X509KeyStorageFlags.EphemeralKeySet);
+    }
+    catch (Exception exception) when (
+        exception is FormatException or CryptographicException)
+    {
+        throw new InvalidOperationException(
+            "El certificado de Data Protection no es un PKCS#12 válido.",
+            exception);
+    }
+
+    if (!keyEncryptionCertificate.HasPrivateKey)
+        throw new InvalidOperationException(
+            "El certificado de Data Protection debe incluir su clave privada.");
+
+    dataProtection
+        .PersistKeysToDbContext<ApplicationDbContext>()
+        .ProtectKeysWithCertificate(keyEncryptionCertificate);
+}
+else
+{
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(
+            localDataRoot ?? builder.Environment.ContentRootPath,
+            "DataProtectionKeys")));
+}
+
+if (behindReverseProxy)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                                   | ForwardedHeaders.XForwardedProto;
+        options.ForwardLimit = 1;
+        // Render's service port is reachable only through its edge proxy. Its
+        // proxy IP ranges aren't stable, so the trusted boundary is the Render
+        // network rather than a hard-coded address list.
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+}
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
@@ -244,17 +351,17 @@ builder.Services.AddHostedService<CatalogSyncBackgroundService>();
 
 var app = builder.Build();
 
+if (behindReverseProxy)
+    app.UseForwardedHeaders();
+
 if (!app.Environment.IsDevelopment() && !desktopMode)
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
-if (!desktopMode)
-{
-    app.UseForwardedHeaders();
+if (!desktopMode && !behindReverseProxy)
     app.UseHttpsRedirection();
-}
 app.UseResponseCompression();
 app.UseStaticFiles(new StaticFileOptions
 {

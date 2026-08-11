@@ -2,7 +2,8 @@
 param()
 
 $ErrorActionPreference = "Stop"
-$desktopDirectory = Join-Path $PSScriptRoot "desktop"
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$desktopDirectory = Join-Path $repositoryRoot "desktop-electron"
 $packageFile = Join-Path $desktopDirectory "package.json"
 
 if (-not (Test-Path -LiteralPath $packageFile)) {

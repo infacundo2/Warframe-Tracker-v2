@@ -21,7 +21,7 @@ Por ello, aunque `appsettings.json` tuviera credenciales MySQL correctas, el por
 
 ### 1. Uso de MySQL desde Electron
 
-Se modificó `desktop/dist/main.js` para:
+Se modificó `desktop-electron/dist/main.js` para:
 
 - Iniciar el backend con `WARFRAME_TRACKER_DESKTOP=0`.
 - Conservar el puerto local dinámico pasando explícitamente:

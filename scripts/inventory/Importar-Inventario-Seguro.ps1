@@ -8,7 +8,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$repoRoot = $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $projectDirectory = Join-Path $repoRoot "WarframeInventory\WarframeInventory"
 $projectFile = Join-Path $projectDirectory "WarframeInventory.csproj"
 $inventoryPath = (Resolve-Path -LiteralPath $Archivo).Path

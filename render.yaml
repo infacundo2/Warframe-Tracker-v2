@@ -23,9 +23,11 @@ services:
         sync: false
       - key: WARFRAME_TRACKER_DB_NAME
         sync: false
+      - key: WARFRAME_TRACKER_DB_SSL_MODE
+        value: Preferred
+      - key: WARFRAME_TRACKER_DP_CERT_BASE64
+        sync: false
+      - key: WARFRAME_TRACKER_DP_CERT_PASSWORD
+        sync: false
       - key: WARFRAME_TRACKER_APPLY_MIGRATIONS
         value: "1"
-      - key: ASPNETCORE_FORWARDEDHEADERS_ENABLED
-        value: true
-      - key: ASPNETCORE_URLS
-        value: http://0.0.0.0:10000

@@ -1,5 +1,9 @@
 # Warframe Tracker Desktop
 
+> Variante legada conservada para desarrollo futuro. La distribución actual
+> utiliza `overwolf-native`. No publiques este instalador sin revisar primero
+> los avisos pendientes del builder oficial de OW Electron.
+
 Cliente oficial de Overwolf Electron para obtener `match_info.inventory` de
 Warframe (game ID `8954`) y entregarlo al servidor Blazor local.
 
@@ -13,7 +17,7 @@ Requisitos:
 - Credenciales de desarrollo de Overwolf para activar GEP.
 
 ```powershell
-cd desktop
+cd desktop-electron
 npm install
 $env:OW_DEV_KEY = "token-de-desarrollo"
 npm run start:dev-gep

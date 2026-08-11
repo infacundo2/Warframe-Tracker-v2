@@ -33,7 +33,7 @@ incluir identificadores personales en esta entrega.
 
 ```powershell
 $env:OW_DEV_KEY = "clave-temporal"
-Set-Location .\desktop
+Set-Location .\desktop-electron
 npm run start:dev-gep
 ```
 
@@ -73,7 +73,7 @@ con Warframe.
 1. Recibir el UID, `OW_CLI_API_KEY` y `OW_BUILD_KEY` desde la consola.
 2. Obtener un certificado de firma de código emitido por una CA confiable.
 3. Solicitar la firma del paquete GEP y firmar el ejecutable/instalador.
-4. Ejecutar `Preparar-Build-Firmada.ps1`.
+4. Ejecutar `scripts/desktop-electron/Preparar-Build-Firmada.ps1`.
 5. Repetir las pruebas con datos reales y en la matriz física de DPI.
 6. Subir la build firmada y completar la ficha pública.
 

@@ -13,6 +13,10 @@ if ([string]::IsNullOrWhiteSpace($version)) { throw 'The manifest does not defin
 $zipPath = Join-Path $outputDirectory "Warframe-Tracker-Native-$version.zip"
 $opkPath = Join-Path $outputDirectory "Warframe-Tracker-Native-$version.opk"
 New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
+# Keep one distributable OPK only. Older versions remain reproducible from Git tags.
+Get-ChildItem -LiteralPath $outputDirectory -Filter 'Warframe-Tracker-Native-*.opk' -File |
+    Where-Object FullName -ne $opkPath |
+    Remove-Item -Force
 if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
 if (Test-Path -LiteralPath $opkPath) { Remove-Item -LiteralPath $opkPath -Force }
 Compress-Archive -Path (Join-Path $dist '*') -DestinationPath $zipPath -CompressionLevel Optimal

@@ -5,7 +5,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$repositoryRoot = $PSScriptRoot
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $certificatePath = (Resolve-Path -LiteralPath $CertificatePfx).Path
 $requiredOverwolfVariables = @("OW_CLI_EMAIL", "OW_CLI_API_KEY", "OW_BUILD_KEY")
 $missing = $requiredOverwolfVariables | Where-Object {
@@ -36,7 +36,7 @@ try {
 
     $env:CSC_LINK = $certificatePath
     $env:CSC_KEY_PASSWORD = $plainPassword
-    Push-Location (Join-Path $repositoryRoot "desktop")
+    Push-Location (Join-Path $repositoryRoot "desktop-electron")
     try {
         npm run package
         if ($LASTEXITCODE -ne 0) { throw "Falló la construcción firmada." }
@@ -62,4 +62,3 @@ finally {
     Remove-Item Env:CSC_LINK -ErrorAction SilentlyContinue
     Remove-Item Env:CSC_KEY_PASSWORD -ErrorAction SilentlyContinue
 }
-

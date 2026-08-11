@@ -7,6 +7,6 @@
     <Nullable>enable</Nullable>
     <AssemblyName>Warframe Tracker GEP Test</AssemblyName>
     <RootNamespace>WarframeTracker.DevGepLauncher</RootNamespace>
-    <ApplicationIcon>..\..\desktop\build\icon.ico</ApplicationIcon>
+    <ApplicationIcon Condition="Exists('..\..\desktop-electron\build\icon.ico')">..\..\desktop-electron\build\icon.ico</ApplicationIcon>
   </PropertyGroup>
 </Project>
