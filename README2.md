@@ -61,9 +61,11 @@ automáticamente con TrackerAgent.
 
 ### `WarframeTracker.Agent`
 
-Nuevo ejecutable .NET 8 para Windows. La Fase 1 ya existe y detecta el proceso
-`Warframe.x64.exe`. Todavía no captura inventario, no lee `EE.log` y no se
-comunica con Render.
+Ejecutable .NET 8 para Windows. Detecta `Warframe.x64.exe`, se empareja con
+Render mediante un token de dispositivo protegido con DPAPI, puede leer
+eventos resumidos de `EE.log` y contiene el pipeline de snapshots y cola
+offline. La captura directa permanece apagada hasta disponer de una fuente
+local aprobada; el provider de bandeja segura sirve para QA sin leer el juego.
 
 ## 3. Trabajo realizado en la Web y backend
 
@@ -403,14 +405,14 @@ Salida esperada:
 
 Usar `Ctrl+C` para apagarlo correctamente.
 
-## 10. TrackerAgent — trabajo que se hará
+## 10. TrackerAgent — Fases 2 a 6 implementadas
 
 ### Fase 2 — Emparejamiento y comunicación con Render
 
 Objetivo: conectar el Agent con la misma cuenta Identity de la Web sin guardar
 la contraseña.
 
-Se implementará:
+Implementado:
 
 1. Flujo de emparejamiento mediante navegador.
 2. Código temporal, de un solo uso y con expiración.
@@ -434,7 +436,7 @@ No se reutilizarán contraseñas, cookies copiadas ni una clave global.
 
 ### Fase 3 — EE.log
 
-Se implementará un lector opcional que:
+Se implementó un lector opcional que:
 
 - localice `EE.log` usando `LocalApplicationData` y permita override;
 - abra el archivo solo para lectura con escritura compartida;
@@ -450,7 +452,7 @@ contiene un inventario completo.
 
 ### Fase 4 — Inventory Provider
 
-Se definirá:
+Se definió:
 
 ```text
 IInventoryProvider
@@ -462,7 +464,7 @@ También se extraerá el núcleo reutilizable de
 Overwolf conservarán sus interfaces actuales y pasarán por el mismo parser,
 normalizador, diff y aplicación transaccional.
 
-El provider experimental:
+El provider experimental seguro:
 
 - permanecerá desactivado por defecto;
 - será reemplazable;
@@ -471,12 +473,13 @@ El provider experimental:
 - no usará inyección, hooks, escritura de memoria ni automatización;
 - podrá fallar sin cerrar el Agent.
 
-No se activará un método directo hasta confirmar que la fuente es real, segura,
-estable y distribuible.
+No se activó un método directo porque todavía no existe una fuente local
+confirmada, segura y distribuible. Para QA se agregó una bandeja de entrada de
+snapshots normalizados; no lee memoria ni tráfico del juego.
 
 ### Fase 5 — Snapshots y diferencias
 
-Se agregará:
+Se agregó:
 
 - snapshot normalizado local;
 - comparación `Added`, `Removed` y `Changed`;
@@ -492,7 +495,7 @@ antes de modificar MySQL.
 
 ### Fase 6 — Sincronización automática y modo offline
 
-Se implementará:
+Se implementó:
 
 - endpoints `/api/agent/v1/inventory/preview` y `apply`;
 - batches idempotentes;
@@ -523,7 +526,7 @@ Prioridad propuesta entre fuentes:
 - Inicio automático configurable con Windows.
 - Autoupdate únicamente después de estabilizar API, firma y rollback.
 
-## 11. Estructura futura prevista
+## 11. Estructura implementada y extensible
 
 ```text
 WarframeTracker.Agent/
@@ -561,18 +564,16 @@ No se moverán ni renombrarán proyectos existentes.
 
 Orden recomendado:
 
-1. Fase 2 del Agent: autenticación de dispositivo y conexión básica.
-2. Antiforgery, logout POST y autorización de páginas privadas.
-3. Corregir la búsqueda en español para `bóveda`/`vaulted` y nombres de piezas.
-4. Migrar páginas restantes a `IDbContextFactory`.
-5. Health check real de MySQL y estado de migraciones.
-6. TLS verificado entre Render y MySQL.
-7. Workflow de integración continua.
-8. Fase 3 del Agent: EE.log.
-9. Confirmar una fuente de inventario local segura.
-10. Fases 4, 5 y 6 del Agent.
-11. Optimización final de imágenes, fuentes, audio, caché e idiomas.
-12. Firma, instalador y distribución del Agent.
+1. Desplegar y validar en vivo el emparejamiento Agent -> Render.
+2. Confirmar una fuente de inventario local segura y distribuible.
+3. Antiforgery, logout POST y autorización de páginas privadas.
+4. Corregir la búsqueda en español para `bóveda`/`vaulted` y nombres de piezas.
+5. Migrar páginas restantes a `IDbContextFactory`.
+6. Health check real de MySQL y estado de migraciones.
+7. TLS verificado entre Render y MySQL.
+8. Workflow de integración continua.
+9. Optimización final de imágenes, fuentes, audio, caché e idiomas.
+10. Firma, instalador y distribución del Agent.
 
 ## 13. Reglas de seguridad y desarrollo
 
@@ -623,7 +624,7 @@ npm run typecheck
 
 - `README.md`: introducción y ejecución general.
 - `docs/tracker-agent-analysis.md`: análisis detallado de la Fase 0.
-- `WarframeTracker.Agent/README.md`: ejecución de la Fase 1.
+- `WarframeTracker.Agent/README.md`: ejecución y QA de las Fases 1 a 6.
 - `CODEX_HANDOFF.md`: contexto histórico para continuar con otra IA/equipo.
 - `docs/REPOSITORY_STRUCTURE.md`: estructura del repositorio.
 - `docs/ROADMAP.md`: roadmap previo del producto.
@@ -633,15 +634,15 @@ npm run typecheck
 
 ## 16. Próximo paso exacto
 
-El siguiente trabajo debe ser la **Fase 2 del TrackerAgent**:
+El siguiente paso es desplegar las migraciones y probar en vivo:
 
-1. Diseñar los contratos versionados de emparejamiento.
-2. Crear primero pruebas del flujo y expiración.
-3. Agregar `AgentDevice` y su migración sin tocar datos existentes.
-4. Implementar códigos temporales y almacenamiento hasheado.
-5. Implementar aprobación desde la cuenta Identity existente.
-6. Proteger el token en Windows.
-7. Validar `Agent -> HTTPS -> Render -> usuario correcto`.
+1. `Agent -> HTTPS -> Render -> IdentityUser correcto`.
+2. Revocación inmediata desde `/agent/devices`.
+3. Lectura de eventos reales de `EE.log` con el flag habilitado.
+4. Un snapshot de QA parcial, primero con autoaplicación apagada.
+5. Reintento offline e idempotencia con `AutomaticSyncEnabled=true` solamente
+   después de revisar el snapshot.
 
-Todavía no corresponde implementar inventario directo, EE.log, autoaplicación,
-tray, instalador o autoupdate.
+La captura automática del inventario real no debe habilitarse hasta confirmar
+una fuente permitida. Tray, instalador, firma y autoupdate siguen siendo fases
+posteriores.

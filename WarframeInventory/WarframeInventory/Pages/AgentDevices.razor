@@ -1,0 +1,65 @@
+@page "/agent/devices"
+@attribute [Authorize]
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using WarframeInventory.Data
+@using WarframeInventory.Models
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthState
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
+    <section class="orokin-panel pa-6">
+        <div class="eyebrow">SEGURIDAD // TRACKER AGENT</div>
+        <MudText Typo="Typo.h4" Class="page-title">Dispositivos vinculados</MudText>
+        <MudText>Revoca cualquier equipo que ya no utilices. Su token queda invalidado inmediatamente.</MudText>
+    </section>
+    @if (devices is null)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mt-4" />
+    }
+    else if (devices.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">Todavía no vinculaste TrackerAgent.</MudAlert>
+    }
+    else
+    {
+        <div class="mt-4 d-grid gap-3">
+            @foreach (var device in devices)
+            {
+                <MudPaper Class="pa-4 d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.h6">@device.Name</MudText>
+                        <MudText Typo="Typo.body2">Creado @device.CreatedUtc.ToLocalTime().ToString("g") · Última conexión @(device.LastSeenUtc?.ToLocalTime().ToString("g") ?? "nunca")</MudText>
+                    </div>
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined"
+                               OnClick="@(() => RevokeAsync(device.Id))">Revocar</MudButton>
+                </MudPaper>
+            }
+        </div>
+    }
+</MudContainer>
+
+@code {
+    private string userId = "";
+    private List<AgentDevice>? devices;
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        await LoadAsync();
+    }
+    private async Task LoadAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        devices = await db.AgentDevices.AsNoTracking()
+            .Where(x => x.UserId == userId && x.RevokedUtc == null)
+            .OrderByDescending(x => x.LastSeenUtc ?? x.CreatedUtc).ToListAsync();
+    }
+    private async Task RevokeAsync(Guid id)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        await db.AgentDevices.Where(x => x.Id == id && x.UserId == userId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.RevokedUtc, DateTime.UtcNow));
+        await LoadAsync();
+    }
+}

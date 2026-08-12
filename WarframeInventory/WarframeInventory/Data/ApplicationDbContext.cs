@@ -42,6 +42,9 @@ namespace WarframeInventory.Data
         public DbSet<RelicSyncProfile> RelicSyncProfiles => Set<RelicSyncProfile>();
         public DbSet<AlecaAccountSnapshot> AlecaAccountSnapshots => Set<AlecaAccountSnapshot>();
         public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+        public DbSet<AgentDevice> AgentDevices => Set<AgentDevice>();
+        public DbSet<AgentPairing> AgentPairings => Set<AgentPairing>();
+        public DbSet<InventorySyncBatch> InventorySyncBatches => Set<InventorySyncBatch>();
 
         public override int SaveChanges()
         {
@@ -252,6 +255,24 @@ namespace WarframeInventory.Data
                 .HasIndex(x => x.UserId).IsUnique();
             modelBuilder.Entity<AlecaAccountSnapshot>().Property(x => x.PublicUsername)
                 .HasMaxLength(64);
+            modelBuilder.Entity<AgentDevice>().HasKey(x => x.Id);
+            modelBuilder.Entity<AgentDevice>().HasIndex(x => x.TokenHash).IsUnique();
+            modelBuilder.Entity<AgentDevice>().HasIndex(x => new { x.UserId, x.RevokedUtc });
+            modelBuilder.Entity<AgentDevice>().Property(x => x.Name).HasMaxLength(80);
+            modelBuilder.Entity<AgentDevice>().Property(x => x.TokenHash).HasMaxLength(64);
+            modelBuilder.Entity<AgentPairing>().HasKey(x => x.Id);
+            modelBuilder.Entity<AgentPairing>().HasIndex(x => x.CodeHash).IsUnique();
+            modelBuilder.Entity<AgentPairing>().Property(x => x.CodeHash).HasMaxLength(64);
+            modelBuilder.Entity<AgentPairing>().Property(x => x.VerifierHash).HasMaxLength(64);
+            modelBuilder.Entity<AgentPairing>().Property(x => x.DeviceName).HasMaxLength(80);
+            modelBuilder.Entity<InventorySyncBatch>().HasKey(x => x.Id);
+            modelBuilder.Entity<InventorySyncBatch>()
+                .HasIndex(x => new { x.DeviceId, x.Sequence }).IsUnique();
+            modelBuilder.Entity<InventorySyncBatch>().HasIndex(x => new { x.UserId, x.ReceivedUtc });
+            modelBuilder.Entity<InventorySyncBatch>().Property(x => x.Source).HasMaxLength(32);
+            modelBuilder.Entity<InventorySyncBatch>().Property(x => x.ContentHash).HasMaxLength(64);
+            modelBuilder.Entity<InventorySyncBatch>().Property(x => x.Status).HasMaxLength(24);
+            modelBuilder.Entity<InventorySyncBatch>().Property(x => x.ErrorCode).HasMaxLength(80);
 
             modelBuilder.Entity<UserWarframe>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -279,6 +300,14 @@ namespace WarframeInventory.Data
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<AlecaAccountSnapshot>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
                 .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<AgentDevice>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
+                .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<AgentPairing>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
+                .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<InventorySyncBatch>().HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
+                .WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<InventorySyncBatch>().HasOne<AgentDevice>()
+                .WithMany().HasForeignKey(x => x.DeviceId).OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<RelicReward>().HasIndex(x => new { x.RelicUnique, x.ItemUnique }).IsUnique();
             modelBuilder.Entity<RelicReward>().HasOne<Relic>()

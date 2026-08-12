@@ -1,0 +1,23 @@
+{
+  "BatchId": "00000000-0000-0000-0000-000000000001",
+  "Sequence": 1,
+  "CapturedUtc": "2026-08-12T12:00:00Z",
+  "IsAuthoritative": false,
+  "ContentHash": "",
+  "Items": [
+    {
+      "Section": "MiscItems",
+      "UniqueName": "/Lotus/Types/Items/MiscItems/SchismKey",
+      "Quantity": 3,
+      "Experience": null
+    }
+  ],
+  "Account": {
+    "Credits": 100000,
+    "Endo": 5000,
+    "Platinum": null,
+    "Ducats": 250,
+    "Aya": 3,
+    "MasteryRank": 10
+  }
+}

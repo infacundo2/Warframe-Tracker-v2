@@ -1,0 +1,46 @@
+@page "/agent/connect"
+@attribute [Authorize]
+@using System.Security.Claims
+@inject AgentTokenService AgentTokens
+@inject AuthenticationStateProvider AuthState
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Class="orokin-panel pa-6">
+        <div class="eyebrow">TRACKER AGENT // EMPAREJAMIENTO SEGURO</div>
+        <MudText Typo="Typo.h4" Class="page-title">Conectar este equipo</MudText>
+        <MudText Class="mb-4">Confirma que el código coincide con el mostrado por TrackerAgent.</MudText>
+        <MudTextField T="string" @bind-Value="code" Label="Código temporal"
+                      Placeholder="ABCD-2345" Variant="Variant.Outlined" />
+        <MudButton OnClick="ApproveAsync" Disabled="@working" Color="Color.Primary"
+                   Variant="Variant.Filled" Class="mt-4" FullWidth="true">
+            @(working ? "Comprobando..." : "Vincular dispositivo")
+        </MudButton>
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <MudAlert Severity="@severity" Class="mt-4">@message</MudAlert>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [SupplyParameterFromQuery] public string? Code { get; set; }
+    private string code = "";
+    private string message = "";
+    private bool working;
+    private Severity severity = Severity.Info;
+
+    protected override void OnParametersSet() => code = Code?.Trim().ToUpperInvariant() ?? code;
+
+    private async Task ApproveAsync()
+    {
+        working = true;
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        var userId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        var approved = await AgentTokens.ApproveAsync(code, userId, CancellationToken.None);
+        severity = approved ? Severity.Success : Severity.Error;
+        message = approved
+            ? "Equipo vinculado. Ya puedes volver a TrackerAgent; el token se guardará cifrado en Windows."
+            : "El código no existe, venció o ya fue utilizado.";
+        working = false;
+    }
+}

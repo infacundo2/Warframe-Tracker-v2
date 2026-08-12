@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -12,6 +13,7 @@ using MudBlazor.Services;
 using MySqlConnector;
 using WarframeInventory.Data;
 using WarframeInventory.Services;
+using WarframeInventory.Security;
 
 var platformPort = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrWhiteSpace(platformPort))
@@ -217,6 +219,10 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 })
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
+builder.Services.AddAuthentication()
+    .AddScheme<AuthenticationSchemeOptions, AgentTokenAuthenticationHandler>(
+        AgentTokenAuthenticationHandler.SchemeName, _ => { });
+
 builder.Services.AddScoped<AuthenticationStateProvider,
     RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 builder.Services.AddCascadingAuthenticationState();
@@ -280,6 +286,23 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+    options.AddPolicy("agent-pairing", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 12, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
+            }));
+    options.AddPolicy("agent-device", context =>
+        RateLimitPartition.GetTokenBucketLimiter(
+            context.User.FindFirst("agent_device_id")?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 30, TokensPerPeriod = 15,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true, QueueLimit = 0
+            }));
 });
 
 builder.Services.AddResponseCompression(options =>
@@ -293,6 +316,8 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<CatalogCacheService>();
 builder.Services.AddSingleton<DesktopInventorySyncService>();
 builder.Services.AddSingleton<NativeInventorySyncService>();
+builder.Services.AddSingleton<AgentTokenService>();
+builder.Services.AddSingleton<AgentInventoryIngestionService>();
 builder.Services.AddMudServices();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor(options =>
