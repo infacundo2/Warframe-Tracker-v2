@@ -659,6 +659,7 @@
                          "relic-sync-privacy mt-4":  "relic-sync-privacy mt-4",
                          "relic-sync-progress mt-4":  "relic-sync-progress mt-4",
                          "Reliquia":  "Relic",
+                         "Plano":  "Blueprint",
                          "Reliquias":  "Relics",
                          "Reliquias abiertas":  "Open relics",
                          "reliquias con Ash Systems":  "relics with Ash Systems",
@@ -952,6 +953,34 @@
                      {
                          "source":  "componentes pendientes",
                          "target":  "components remaining"
+                     },
+                     {
+                         "source":  "rutas detectadas",
+                         "target":  "routes found"
+                     },
+                     {
+                         "source":  "disponibles en tu inventario",
+                         "target":  "available in your inventory"
+                     },
+                     {
+                         "source":  "Reliquia ",
+                         "target":  "Relic "
+                     },
+                     {
+                         "source":  "Conviene:",
+                         "target":  "Recommended:"
+                     },
+                     {
+                         "source":  "Ranura ",
+                         "target":  "Slot "
+                     },
+                     {
+                         "source":  " capacidad",
+                         "target":  " capacity"
+                     },
+                     {
+                         "source":  "FALTA",
+                         "target":  "MISSING"
                      },
                      {
                          "source":  "copias",

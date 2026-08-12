@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#02080d"/><stop offset=".55" stop-color="#0a2732"/><stop offset="1" stop-color="#030a10"/></linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#67e7ff" stroke-opacity=".1"/></pattern>
+  </defs>
+  <rect width="400" height="320" fill="url(#bg)"/><rect width="400" height="320" fill="url(#grid)"/>
+  <path d="M26 35H145M255 285H374" stroke="#dbb85c"/><path d="M26 45H105M295 275H374" stroke="#67e7ff" stroke-opacity=".55"/>
+  <g transform="translate(200 132)" fill="none">
+    <circle r="70" stroke="#67e7ff" stroke-opacity=".2"/><circle r="49" stroke="#67e7ff" stroke-opacity=".55"/>
+    <path d="M0-31L31 0 0 31-31 0Z" stroke="#dbb85c" stroke-width="3"/><circle r="10" fill="#eaf9ff"/>
+  </g>
+  <text x="200" y="237" text-anchor="middle" fill="#eaf9ff" font-family="Segoe UI,Arial" font-size="24" font-weight="700" letter-spacing="5">INFACUNDO2</text>
+  <text x="200" y="264" text-anchor="middle" fill="#67e7ff" font-family="Segoe UI,Arial" font-size="10" letter-spacing="4">COMMUNITY DEVELOPER</text>
+  <text x="200" y="286" text-anchor="middle" fill="#9bb6c2" font-family="Segoe UI,Arial" font-size="9">English • Español</text>
+</svg>

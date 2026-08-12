@@ -1,4 +1,4 @@
-# Overwolf MVP submission — copy-ready answers
+# Overwolf Native MVP submission — copy-ready answers
 
 ## Approval confirmation
 
@@ -9,70 +9,97 @@ idea.
 
 ## Does the app keep at least one desktop window open?
 
-Yes. Warframe Tracker is a visible OW-Electron desktop application. Its main
-window remains open while the app is running and can be shown or hidden with a
-configurable global shortcut. It is not a background-only process.
+Yes. Warframe Tracker is an Overwolf Native application with a visible,
+resizable desktop root window. Closing that root window closes the application.
+The app is not a background-only process. The `Ctrl+Shift+T` hotkey hides or
+restores the same window.
 
-## App description
+## Brief purpose
 
-Warframe Tracker is an English-first, bilingual (English/Spanish) Warframe
-companion for privately organizing collection progress and planning farming.
-It provides Warframe, weapon, mod, relic, component, and resource catalogs;
+Warframe Tracker is an English-first, bilingual English/Spanish Warframe
+companion. It organizes a player's confirmed collection and helps plan farming
+with searchable Warframe, weapon, mod, relic, component and resource catalogs;
 relic refinements and reward probabilities; goals; farming routes; comparisons;
-lightweight builds; and Worldstate context. Spanish is available as a persistent
-language option, making the tracker more intuitive for Spanish-speaking players.
+lightweight builds; and Worldstate context. Spanish remains available as a
+persistent language option for Spanish-speaking players.
+
+## Framework
+
+Overwolf Native (`WebApp`) using TypeScript, HTML and CSS for the visible shell,
+Overwolf GEP for Warframe events, and an HTTPS ASP.NET Core 8 service for the
+authenticated Tracker interface and confirmed cloud collection.
 
 ## Inventory feature and user control
 
-The desktop app receives inventory information only through Overwolf GEP. It
-does not inspect game memory, parse network traffic, automate gameplay, modify
-game files, or request Warframe credentials. A received snapshot is normalized
-locally and shown as a preview. The user must explicitly confirm before any
-collection changes are stored.
+Inventory is received only through Overwolf GEP `match_info.inventory`. The app
+does not inspect Warframe memory, capture network traffic, automate gameplay,
+modify game files, or request Warframe credentials. A raw snapshot is held
+locally for no more than 30 minutes. Nothing is sent to the Tracker service
+until the player presses **Send to Tracker for review**. The authenticated site
+then shows a preview and requires a second explicit confirmation before
+normalized collection data is stored.
+
+## Specific instructions for every window/tab (under 2,000 characters)
+
+Warframe Tracker opens one visible Native desktop window. Screenshots follow
+this order.
+
+1. **Native shell / Tracker:** Launch the app. The top status identifies whether
+Warframe is detected. Use the GEP button to show or hide Automatic Inventory;
+collapsing it does not stop capture. The right side contains the authenticated
+Tracker website. Sign in or create a Tracker profile; these are Tracker
+credentials, never Warframe credentials.
+2. **Command Center:** Review collection totals, current goals, nearly completed
+sets and farming priorities.
+3. **Warframes / Weapons / Mods:** Open each section from navigation, type in the
+search field, apply filters and open a detail page. Details show owned/mastered
+state, components, related relics and acquisition methods.
+4. **Relics:** Search or filter available/vaulted relics. One card represents a
+relic family. Open it to edit Intact, Exceptional, Flawless and Radiant counts
+and compare reward probabilities.
+5. **Resources:** Search by resource, location, enemy or category and open a
+resource to inspect farming locations and numerically sorted drops.
+6. **Goals / Planner / Builds / Compare:** Add an equipment goal, inspect missing
+components and useful owned relics, save a lightweight build, and type equipment
+names into the comparison fields.
+7. **Automatic inventory:** Start Tracker before Warframe. After sign-in or a
+Relay/Dojo/mission loading screen, wait for INVENTORY CAPTURED. Press **Send to
+Tracker for review**, inspect the preview, then explicitly apply it. Discard
+removes the temporary local snapshot.
+8. **Settings / Privacy / Support:** Test English/Spanish persistence, audio,
+hotkey reminder, data handling and support links.
+
+No advertising is included, so there is no ad container or reserved ad area.
 
 ## Testing completed
 
-- Windows 11 x64 installation and visible-window behavior.
-- English default interface and persistent Spanish language selection.
-- Automated layout checks at 1366×720, 1366×768, 1920×1080, 2560×1440, and
-  3840×2160.
-- Real Warframe GEP capture on August 4, 2026: GEP 400.22.0, game ID 8954,
-  `game_info` and `match_info`, authoritative snapshot of 2,406 distinct item
-  types, preview, and user-confirmed local application.
-- Independent Intact, Exceptional, Flawless, and Radiant relic quantities.
-- Local privacy/deletion flow, global shortcut, clean shutdown, and restart.
-- Dependency vulnerability checks and Microsoft Defender scan are included in
-  the delivery reports.
+- Native TypeScript build, automated tests and official manifest-schema check.
+- Visible root window and Warframe game ID `8954` targeting.
+- Real GEP `game_info` and `match_info.inventory` capture on Windows 11 x64.
+- Independent Intact, Exceptional, Flawless and Radiant relic quantities.
+- Authentication, preview-before-apply, per-user isolation and duplicate handling.
+- No development key, database password, session nonce or raw inventory is
+  packaged in the OPK or evidence.
 
-The evidence contains no raw inventory payload, player identifier, password, or
-developer key.
-
-## Reviewer instructions
-
-Install the included Windows x64 build and follow `MVP_QA_GUIDE_EN.md`. To repeat
-GEP capture from source, start Tracker in OW-Electron dev mode with a
-reviewer-owned temporary development key before opening Warframe, then trigger a
-loading screen by entering or leaving a Relay, Dojo, or mission. Open Account
-Sync, review the preview, and confirm only if desired.
+The manual QA result sheet and security report included with the submission
+identify every test and any item that still requires reviewer reproduction.
 
 ## Distribution and monetization
 
-The intended distribution is public and free so any player may use the app. The
-MVP displays no ads. If monetization is later required or approved, it will use
-only Overwolf-supported solutions, consent handling, and placements that comply
-with Overwolf and game requirements. No third-party advertising SDK is included.
+The intended distribution is public and free. The MVP contains no advertising.
+If monetization is added later, it will use only Overwolf-supported solutions,
+consent handling and compliant placements after the privacy policy is updated.
 
 ## Public URLs
 
-- Privacy Policy: `https://infacundo2.github.io/Warframe-Tracker-v2/privacy.html`
-- Terms of Use: `https://infacundo2.github.io/Warframe-Tracker-v2/terms.html`
+- Privacy: `https://infacundo2.github.io/Warframe-Tracker-v2/privacy.html`
+- Terms: `https://infacundo2.github.io/Warframe-Tracker-v2/terms.html`
 - Support: `https://infacundo2.github.io/Warframe-Tracker-v2/support.html`
 - Source: `https://github.com/infacundo2/Warframe-Tracker-v2`
 
-## Signing disclosure
+## Signing
 
-This review MVP is unsigned because the Overwolf Console UID/API/build key and
-production package signature are issued after MVP approval. A trusted Windows
-code-signing certificate will also be applied before public distribution. The
-review build may display a Windows unknown-publisher warning; it must not be
-published as the final store binary in this state.
+This is an Overwolf Native OPK. It contains no separate executable or native
+plugin and therefore does not require the OV/EV executable certificate that was
+required by the abandoned OW-Electron distribution. Overwolf will validate and
+distribute the approved Native package through its release channels.

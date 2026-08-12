@@ -1,94 +1,92 @@
-# Warframe Tracker 0.1.0 — MVP reviewer guide
+# Warframe Tracker Native 0.1.2 — MVP reviewer guide
 
-This document explains every major feature required to review the first public
-MVP. The application opens a visible desktop window, uses English by default,
-and includes a persistent Spanish language option.
+Warframe Tracker is an English-first Overwolf Native desktop companion with an
+optional persistent Spanish language. It always exposes a visible root window
+while running and uses Overwolf GEP—not process memory or network interception—
+to receive Warframe inventory information.
 
-## Install and first launch
+## 1. Install and launch
 
-1. On Windows 11 x64, run `Warframe-Tracker-Setup-0.1.0.exe`.
-2. Complete the installer and open **Warframe Tracker** from the desktop or
-   Start menu.
-3. Confirm that the main desktop window remains visible while the app runs.
-4. Review the onboarding pages. They explain local storage, safe inventory
-   capture, and privacy before profile creation.
-5. Create a local profile. No Warframe password is requested.
+1. Install the supplied `Warframe-Tracker-Native-0.1.2.opk` using the reviewer
+   account authorized by Overwolf.
+2. Launch **Warframe Tracker** from Overwolf or its desktop shortcut.
+3. Confirm that the visible resizable window opens immediately. A loader is
+   acceptable while the remote Tracker connects.
+4. Confirm that the initial language is English and Spanish is selectable.
+5. Sign in or create a Tracker profile. These are not Warframe credentials.
 
-The MVP installer is intentionally unsigned until Overwolf supplies the
-production Console identifiers and package-signing access. Windows SmartScreen
-may therefore display an unknown-publisher warning on this review build.
+## 2. Visible Native shell
 
-## Core feature tour
+- The status at the top reports INITIALIZING, WARFRAME NOT DETECTED, CONNECTING
+  TO GEP, GEP READY, INVENTORY CAPTURED or a visible error.
+- Press **GEP** to expand/collapse Automatic Inventory. Capture must continue
+  while collapsed.
+- Test minimize, maximize/restore, header drag, header double-click and close.
+- Press `Ctrl+Shift+T` twice to hide and restore the window.
+- Closing the root window must end the app; no invisible app window should
+  remain at `http://localhost:54284`.
 
-1. **Command Center:** collection progress, current goals, almost-complete sets,
-   and useful owned relics.
-2. **Warframes / Weapons / Mods:** searchable catalog and detail pages with
-   owned quantities and acquisition references.
-3. **Relics:** one card per relic family; quantities remain independent for
-   Intact, Exceptional, Flawless, and Radiant refinements. The detail page shows
-   reward probabilities for the selected refinement.
-4. **Resources:** searchable acquisition locations, enemy drops, and numeric
-   probability sorting.
-5. **Goals and Planner:** select a target and review missing components,
-   related relics, owned refinements, and recommended farming routes.
-6. **Buildable / Builds / Compare:** inspect constructible sets, save lightweight
-   configurations, and type directly into comparison selectors.
-7. **Worldstate:** current public game activity used as farming context.
-8. **Settings:** switch between English and Spanish, configure audio, and test
-   the global show/hide shortcut.
-9. **Privacy / Support:** available from inside the visible desktop window.
+## 3. Catalog and planning tour
 
-## Safe inventory capture
+1. **Command Center:** collection progress, goals and nearly completed sets.
+2. **Warframes / Weapons / Mods:** type searches, apply filters and open details.
+3. **Relics:** one card per family; verify independent I/E/F/R quantities and
+   reward probabilities for every refinement.
+4. **Resources:** search by resource, location, enemy or category; verify numeric
+   drop ordering.
+5. **Goals / Planner:** inspect missing components and useful owned relics.
+6. **Buildable / Builds / Compare:** save a build, search mods and type both
+   equipment names in Compare.
+7. **Worldstate:** review current public activity.
+8. **Settings / Privacy / Support:** test language persistence, sound controls,
+   hotkey reminder and public legal/support links.
 
-The real flow was validated on August 4, 2026 with Warframe game ID `8954` and
-Overwolf GEP 400.22.0. It received an authoritative snapshot containing 2,406
-distinct item types. The submitted evidence deliberately excludes the raw
-payload, player identifier, and temporary developer key.
+## 4. Real GEP inventory flow
 
-To reproduce it in an authorized development environment:
+1. Start Tracker before Warframe.
+2. Start Warframe and sign in. Wait for **GEP READY**.
+3. If no snapshot arrives, enter and leave a Relay, Dojo or mission.
+4. Confirm **INVENTORY CAPTURED** and a non-zero detected-entry count.
+5. Press **Send to Tracker for review**. The raw capture leaves the local shell
+   only at this explicit action.
+6. In the authenticated `/native-sync` page select **Find capture**, then
+   **Analyze inventory**.
+7. Review the summary. No collection value may change before confirmation.
+8. Apply confirmed changes and verify Credits, Endo, Aya, Ducats, resources,
+   relic refinements and mastered equipment when present in GEP.
+9. Repeat Send: an identical capture must not create duplicate changes.
 
-1. Set a reviewer-owned temporary `OW_DEV_KEY` in the process environment.
-2. Start Tracker in OW-Electron development mode **before** starting Warframe.
-3. Start Warframe and sign in.
-4. Trigger a loading screen by entering or leaving a Relay, Dojo, or mission.
-5. Open **Account Sync**, then select **Find capture**.
-6. Inspect the preview. No collection values change at this stage.
-7. Select **Apply confirmed changes** only after reviewing the summary.
+## 5. Failure and privacy tests
 
-Tracker listens for GEP updates and also checks current game information every
-2.5 seconds while Warframe is active. Polling stops when the game exits.
+- Disconnect Internet before Send: display an offline/error state and retain the
+  local snapshot for retry.
+- Sign out of the embedded Tracker: delivery/preview must require authentication.
+- Use a second Tracker user: neither user may see the other's capture.
+- Press Discard: the temporary local snapshot disappears.
+- Close Warframe: polling stops and the Native shell remains stable.
+- Inspect CEF developer tools and OW logs: raw inventory JSON, developer keys,
+  passwords and database credentials must be absent.
+- Wait 30 minutes with a test snapshot: it must expire locally.
 
-## Privacy and deletion test
+## 6. Display and performance matrix
 
-1. Open **Privacy** and verify that local processing and optional Overwolf
-   telemetry are explained.
-2. Open **Support** and follow the local-data deletion instructions.
-3. Confirm that no password, raw GEP payload, or developer key is displayed.
-4. Public pages:
-   - Privacy: `https://infacundo2.github.io/Warframe-Tracker-v2/privacy.html`
-   - Terms: `https://infacundo2.github.io/Warframe-Tracker-v2/terms.html`
-   - Support: `https://infacundo2.github.io/Warframe-Tracker-v2/support.html`
+Repeat the visible-shell and catalog smoke test at 1180×720, 1366×768,
+1920×1080 and 2560×1440, including 100%, 125% and 150% Windows scaling where
+available. Verify no horizontal overlap and that the GEP panel remains usable.
+On a second monitor, move, maximize and restore the app.
 
-## Display and language checks
+Open Overwolf and Windows Task Managers. Navigate for ten minutes and record
+idle/peak CPU, memory and network observations. The app must not freeze; memory
+must settle after navigation. Record cold-start and warm-navigation times in
+`NATIVE_QA_RESULTS.md`.
 
-Automated screenshots and layout reports cover 1366×720, 1366×768, 1920×1080,
-2560×1440, and 3840×2160. Reports must show `horizontalOverflow: false`.
-English screenshots cover the primary review flow; the Spanish screenshot proves
-that the optional language pack remains available and persists after restart.
+## 7. Evidence and expected external dependency
 
-## Expected limitations of this review build
+- `screenshots-native/` contains numbered Native screenshots.
+- `NATIVE_QA_RESULTS.md` contains the signed manual result sheet.
+- `reports/NATIVE_SECURITY_REPORT.md` contains hashes and local security checks.
+- `RELEASE_NOTES_NATIVE_0.1.2.md` lists functionality and known limitations.
 
-- GEP works in local developer mode with an authorized temporary key.
-- The distributable build must receive Overwolf package signing and a trusted
-  code-signing certificate before public store distribution.
-- The app never automates gameplay and never writes to Warframe.
-- Game data and Worldstate availability depend on their upstream sources.
-
-## Evidence map
-
-- `screenshots/`: feature and onboarding screenshots.
-- `reports/GEP_LIVE_VALIDATION.md`: anonymized real-capture evidence.
-- `reports/windows11-qa.txt`: Windows and display verification.
-- `reports/`: language and resolution layout results.
-- `RELEASE_NOTES_0.1.0.md`: build changes and known limitations.
-- `SECURITY_BUILD_NOTES.md`: privacy, scanning, and signing status.
+The authenticated interface is served over HTTPS. If the service is waking
+from a free hosting instance, the Native shell must stay responsive and show a
+loader or retry state rather than appearing frozen.

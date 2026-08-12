@@ -11,11 +11,13 @@
     "validate": "npm run build && node scripts/validate.mjs",
     "validate:official": "npm run build && node scripts/validate-official.mjs",
     "test": "node --test tests/core.test.mjs",
-    "package:opk": "npm run validate && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
+    "package:opk": "npm run validate && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1",
+    "assets:submission": "node scripts/build-submission-assets.mjs"
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",
     "ajv": "8.20.0",
-    "typescript": "5.7.2"
+    "typescript": "5.7.2",
+    "ws": "^8.21.0"
   }
 }
