@@ -24,7 +24,12 @@ a { text-underline-offset: .2em; }
     z-index: 1200;
     border-bottom: 1px solid var(--line);
     backdrop-filter: blur(18px);
+    gap: .25rem;
+    min-height: 64px;
+    padding-inline: .75rem !important;
 }
+.orokin-appbar > * { flex-shrink: 0; }
+.orokin-appbar .mud-spacer { flex-shrink: 1; }
 .global-back-button { color: var(--cyan) !important; }
 .orokin-appbar .mud-icon-button:focus-visible {
     outline: none !important;
@@ -134,15 +139,33 @@ a { text-underline-offset: .2em; }
 .goal-toolbar { display:grid; grid-template-columns:minmax(14rem,2fr) minmax(10rem,1fr); gap:.75rem; }
 @media(max-width:600px){.goal-toolbar{grid-template-columns:1fr}}
 .planner-hero {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+    align-items: center;
     gap: 2rem;
     padding: clamp(1.5rem, 4vw, 3rem);
     border: 1px solid var(--line);
     background: linear-gradient(115deg, rgba(8, 29, 41, .96), rgba(4, 13, 21, .96));
 }
-.planner-strategy { width: min(100%, 20rem); flex: 0 0 auto; }
+.planner-strategy { width: 100%; min-width: 0; }
+.planner-owned-routes { margin-top: 1.25rem; }
+.planner-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .75rem;
+}
+.planner-section-heading span { color: var(--gold); font-size: .64rem; letter-spacing: .14em; }
+.planner-section-heading small { color: #8ca8b3; }
+.planner-owned-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: .75rem; }
+.planner-owned-card { display: grid; gap: .75rem; padding: 1rem !important; border-left: 2px solid #5de0aa; }
+.planner-owned-card > div:first-child { display: flex; justify-content: space-between; gap: .75rem; }
+.planner-owned-card > div:first-child span { color: #9cb5c0; font-size: .8rem; }
+.planner-owned-card__quantities { display: flex; flex-wrap: wrap; gap: .35rem; }
+.planner-owned-card__quantities > * { padding: .22rem .42rem; border: 1px solid rgba(119,231,255,.2); }
+.planner-owned-card__quantities b, .planner-owned-card strong { color: var(--gold); }
+.planner-owned-card small { color: #9cb5c0; }
 .planner-component { margin-top: 2rem; }
 .planner-component__title { display: flex; align-items: center; gap: .8rem; margin-bottom: .8rem; }
 .planner-component__title span { color: var(--gold); font-size: .62rem; letter-spacing: .14em; }
@@ -346,7 +369,8 @@ img { color: transparent; }
     .stark-login__heading { margin: 2.75rem 0 2rem; }
     .stark-login__heading h3 { font-size: 2rem; }
     .stark-login__options > span { display: none; }
-    .goal-hero, .planner-hero { align-items: stretch; flex-direction: column; }
+    .goal-hero { align-items: stretch; flex-direction: column; }
+    .planner-hero { grid-template-columns: 1fr; align-items: stretch; }
     .planner-strategy { width: 100%; }
     .planner-confidence { grid-template-columns: 1fr; }
     .operator-summary { grid-template-columns: repeat(2, 1fr); }
@@ -951,6 +975,12 @@ img { color: transparent; }
     letter-spacing: .12em;
     text-transform: uppercase;
 }
+.language-control {
+    height: 40px;
+    padding-left: .55rem;
+    border: 1px solid rgba(119, 231, 255, .24);
+    background: rgba(119, 231, 255, .035);
+}
 
 .language-control select,
 .settings-language-control select,
@@ -965,6 +995,22 @@ img { color: transparent; }
     letter-spacing: .08em;
     cursor: pointer;
 }
+.language-control select {
+    min-width: 3.75rem;
+    height: 38px;
+    padding: 0 .65rem;
+    border: 0;
+    border-left: 1px solid rgba(119, 231, 255, .24);
+    background-color: rgba(7, 16, 24, .9);
+}
+
+.mud-input-control .mud-input-label { color: #a8c2cc !important; }
+.mud-input-control input::placeholder,
+.mud-input-control textarea::placeholder { color: #7896a0 !important; opacity: .9 !important; }
+.mud-input-control .mud-input,
+.mud-input-control .mud-select-input { color: #eaf9ff !important; }
+.mud-input-control .mud-input-outlined-border { border-color: rgba(119, 231, 255, .3) !important; }
+.mud-input-control:focus-within .mud-input-outlined-border { border-color: var(--cyan) !important; }
 
 .settings-language-control,
 .ftue-language-control {
@@ -2040,7 +2086,7 @@ img { color: transparent; }
     margin-top: .8rem;
 }
 .build-filter-grid { grid-template-columns: minmax(14rem, 2fr) minmax(11rem, 1fr); }
-.build-mod-filters { grid-template-columns: minmax(14rem, 2fr) repeat(4, minmax(9rem, 1fr)); }
+.build-mod-filters { grid-template-columns: repeat(4, minmax(10rem, 1fr)); }
 .selected-build-target {
     display: flex;
     justify-content: space-between;
@@ -2053,7 +2099,7 @@ img { color: transparent; }
 .selected-build-target span { color: #8ca8b3; }
 .build-editor {
     display: grid;
-    grid-template-columns: 1.2fr 1.5fr 1fr .6fr .6fr;
+    grid-template-columns: minmax(14rem, 1.2fr) minmax(16rem, 1.5fr) minmax(8rem, .65fr) minmax(8rem, .65fr);
     gap: .8rem;
     padding: 1rem;
 }
@@ -2068,7 +2114,7 @@ img { color: transparent; }
 .build-summary b.is-over { color: #ff5d66; }
 .build-slots {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, minmax(20rem, 1fr));
     gap: .75rem;
     margin-bottom: 1rem;
 }
@@ -2093,6 +2139,15 @@ img { color: transparent; }
 .build-actions,
 .saved-build-heading { display: flex; flex-wrap: wrap; gap: .65rem; margin: 1rem 0; }
 .saved-build-heading { margin-top: 2rem; }
+.saved-build-heading > span { color: #8ca8b3; font-size: .8rem; }
+.saved-build-toolbar {
+    display: grid;
+    grid-template-columns: minmax(16rem, 2fr) minmax(10rem, 1fr);
+    gap: .75rem;
+    margin-bottom: .85rem;
+    padding: .85rem !important;
+}
+.saved-build-pagination { display: flex; justify-content: center; margin-top: 1rem; }
 .saved-build {
     display: flex;
     flex-direction: column;
@@ -2115,7 +2170,7 @@ img { color: transparent; }
     .build-mod-filters { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 550px) {
-    .build-editor, .build-slots, .build-filter-grid, .build-mod-filters { grid-template-columns: 1fr; }
+    .build-editor, .build-slots, .build-filter-grid, .build-mod-filters, .saved-build-toolbar { grid-template-columns: 1fr; }
     .build-hero { align-items: flex-start; flex-direction: column; }
 }
 

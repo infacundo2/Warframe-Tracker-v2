@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WarframeInventory.Data;
@@ -47,14 +49,31 @@ public sealed class FarmPlannerService
                         || (!stored.Owned && stored.Quantity < Math.Max(1, x.ItemCount)))
             .ToList();
 
+        var targetRewardRows = missing.Count == 0 ? [] : await db.RelicRewards.AsNoTracking()
+            .Where(x => EF.Functions.Like(x.ItemName, $"%{goal.DisplayName}%"))
+            .ToListAsync(ct);
+        var rewardsByComponent = missing.ToDictionary(
+            component => component,
+            component => targetRewardRows
+                .Where(reward => IsRewardForComponent(goal.DisplayName, component, reward))
+                .ToList());
+        var relatedRelicUniqueNames = rewardsByComponent.Values
+            .SelectMany(x => x)
+            .Select(x => x.RelicUnique)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
         var relatedRelicNames = missing.SelectMany(x => x.Drops)
             .Select(x => CleanRelicName(x.Location))
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var exactRelicNames = relatedRelicNames.SelectMany(x => new[]
             { $"Reliquia {x}", $"{x} Relic", x }).Distinct().ToList();
-        var relics = exactRelicNames.Count == 0 ? [] : await db.Relics.AsNoTracking()
-            .Where(x => exactRelicNames.Contains(x.Name)).ToListAsync(ct);
+        var relics = relatedRelicUniqueNames.Count == 0 && exactRelicNames.Count == 0
+            ? []
+            : await db.Relics.AsNoTracking()
+                .Where(x => relatedRelicUniqueNames.Contains(x.UniqueName)
+                            || exactRelicNames.Contains(x.Name))
+                .ToListAsync(ct);
         var userRelics = await db.UserRelics.AsNoTracking()
             .Where(x => x.UserId == userId && x.Quantity > 0)
             .ToDictionaryAsync(x => x.RelicUnique, x => x.Quantity, ct);
@@ -62,12 +81,13 @@ public sealed class FarmPlannerService
             .Where(x => x.UserId == userId && !x.IsCompleted)
             .Select(x => new { x.TargetUnique, x.DisplayName }).ToListAsync(ct);
         var rewardLinks = await db.RelicRewards.AsNoTracking()
-            .Select(x => new { x.ItemUnique, x.RelicUnique }).ToListAsync(ct);
+            .Select(x => new { x.ItemUnique, x.ItemName, x.RelicUnique }).ToListAsync(ct);
         var goalNamesByRelic = new Dictionary<string, HashSet<string>>();
         foreach (var target in activeGoalTargets)
         {
             var linkedKeys = rewardLinks
-                .Where(x => x.ItemUnique.StartsWith(target.TargetUnique, StringComparison.OrdinalIgnoreCase))
+                .Where(x => x.ItemUnique.StartsWith(target.TargetUnique, StringComparison.OrdinalIgnoreCase)
+                            || x.ItemName.Contains(target.DisplayName, StringComparison.OrdinalIgnoreCase))
                 .Select(x => x.RelicUnique).Distinct(StringComparer.OrdinalIgnoreCase);
             foreach (var key in linkedKeys)
             {
@@ -78,9 +98,13 @@ public sealed class FarmPlannerService
         }
         var routes = new List<FarmRoute>();
 
+        var variantsByFamily = relics
+            .GroupBy(x => NormalizeRelicFamily(x.Name), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.ToList(), StringComparer.OrdinalIgnoreCase);
+
         foreach (var component in missing)
         {
-            var groupedDrops = component.Drops
+            var fallbackDrops = component.Drops
                 .Select(drop => new
                 {
                     Drop = drop,
@@ -88,25 +112,43 @@ public sealed class FarmPlannerService
                     Refinement = RefinementFromLocation(drop.Location)
                 })
                 .Where(x => !string.IsNullOrWhiteSpace(x.RelicName))
-                .GroupBy(x => x.RelicName, StringComparer.OrdinalIgnoreCase);
+                .GroupBy(x => x.RelicName, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(x => x.Key, x => x.ToList(), StringComparer.OrdinalIgnoreCase);
+            var rewardRows = rewardsByComponent.GetValueOrDefault(component) ?? [];
+            var families = rewardRows
+                .Select(x => relics.FirstOrDefault(r => r.UniqueName == x.RelicUnique))
+                .Where(x => x is not null)
+                .Select(x => NormalizeRelicFamily(x!.Name))
+                .Concat(fallbackDrops.Keys)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var group in groupedDrops)
+            foreach (var family in families)
             {
-                var variants = relics.Where(x =>
-                        string.Equals(x.Name, $"Reliquia {group.Key}", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(x.Name, $"{group.Key} Relic", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(x.Name, group.Key, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                var variants = variantsByFamily.GetValueOrDefault(family) ?? relics.Where(x =>
+                    string.Equals(x.Name, $"Reliquia {family}", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(x.Name, $"{family} Relic", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(x.Name, family, StringComparison.OrdinalIgnoreCase)).ToList();
                 if (variants.Count == 0)
                     continue;
 
-                var chances = group
-                    .Where(x => !string.IsNullOrWhiteSpace(x.Refinement))
-                    .GroupBy(x => x.Refinement)
+                var variantKeys = variants.Select(x => x.UniqueName)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var chances = rewardRows
+                    .Where(x => variantKeys.Contains(x.RelicUnique))
+                    .GroupBy(x => RefinementFromUnique(x.RelicUnique))
                     .ToDictionary(
                         x => x.Key,
-                        x => NormalizeChance(x.First().Drop.Chance),
+                        x => NormalizeChance(x.OrderByDescending(y => y.Chance).First().Chance),
                         StringComparer.OrdinalIgnoreCase);
+                if (chances.Count == 0 && fallbackDrops.TryGetValue(family, out var familyDrops))
+                {
+                    chances = familyDrops
+                        .Where(x => !string.IsNullOrWhiteSpace(x.Refinement))
+                        .GroupBy(x => x.Refinement)
+                        .ToDictionary(x => x.Key, x => NormalizeChance(x.First().Drop.Chance),
+                            StringComparer.OrdinalIgnoreCase);
+                }
                 FillCanonicalChances(chances);
 
                 var owned = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -128,7 +170,7 @@ public sealed class FarmPlannerService
 
                 routes.Add(new FarmRoute(
                     component.Name,
-                    variants[0].Name,
+                    $"Reliquia {family}",
                     variants.FirstOrDefault(x => RefinementFromUnique(x.UniqueName) == "Intacta")?.UniqueName
                         ?? variants[0].UniqueName,
                     variants.All(x => x.Vaulted),
@@ -280,6 +322,94 @@ public sealed class FarmPlannerService
             .Replace("Reliquia", "", StringComparison.OrdinalIgnoreCase)
             .Replace("Relic", "", StringComparison.OrdinalIgnoreCase)
             .Trim();
+    }
+
+    private static string NormalizeRelicFamily(string value)
+    {
+        var normalized = value.Trim();
+        foreach (var refinement in new[]
+                 {
+                     "Intact", "Exceptional", "Flawless", "Radiant",
+                     "Intacta", "Excepcional", "Perfecta", "Radiante"
+                 })
+        {
+            normalized = normalized.Replace($" ({refinement})", "",
+                StringComparison.OrdinalIgnoreCase);
+            if (normalized.EndsWith($" {refinement}", StringComparison.OrdinalIgnoreCase))
+                normalized = normalized[..^(refinement.Length + 1)];
+        }
+        if (normalized.EndsWith(" Relic", StringComparison.OrdinalIgnoreCase))
+            normalized = normalized[..^6];
+        if (normalized.StartsWith("Reliquia ", StringComparison.OrdinalIgnoreCase))
+            normalized = normalized[9..];
+        return string.Join(' ', normalized.Split(' ',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    }
+
+    private static bool IsRewardForComponent(
+        string targetName, WarframeComponent component, RelicReward reward)
+    {
+        if (!string.IsNullOrWhiteSpace(component.UniqueName)
+            && string.Equals(component.UniqueName, reward.ItemUnique,
+                StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var rewardText = NormalizeComparison(reward.ItemName);
+        var targetText = NormalizeComparison(targetName);
+        if (rewardText.Length == 0 || targetText.Length == 0 || !rewardText.Contains(targetText))
+            return false;
+
+        var remainder = rewardText.Replace(targetText, "", StringComparison.Ordinal).Trim();
+        var componentText = NormalizeComparison(component.Name);
+        if (componentText.Contains(targetText, StringComparison.Ordinal))
+            componentText = componentText.Replace(targetText, "", StringComparison.Ordinal).Trim();
+
+        var componentKey = CanonicalComponentKey(componentText);
+        var rewardKey = CanonicalComponentKey(remainder);
+        return componentKey == "blueprint"
+            ? rewardKey == "blueprint"
+            : componentKey.Length > 0 && rewardKey.Contains(componentKey, StringComparison.Ordinal);
+    }
+
+    private static string CanonicalComponentKey(string value)
+    {
+        var text = $" {value} ";
+        var replacements = new (string From, string To)[]
+        {
+            (" neuroptics ", " neuroptics "), (" neuropticas ", " neuroptics "),
+            (" chassis ", " chassis "), (" chasis ", " chassis "),
+            (" systems ", " systems "), (" sistemas ", " systems "),
+            (" blueprint ", " blueprint "), (" plano ", " blueprint "),
+            (" receiver ", " receiver "), (" receptor ", " receiver "),
+            (" barrel ", " barrel "), (" canon ", " barrel "),
+            (" stock ", " stock "), (" culata ", " stock "),
+            (" blade ", " blade "), (" hoja ", " blade "),
+            (" handle ", " handle "), (" grip ", " handle "),
+            (" empunadura ", " handle "), (" link ", " link "),
+            (" enlace ", " link "), (" ornament ", " ornament "),
+            (" ornamento ", " ornament "), (" pouch ", " pouch "),
+            (" bolsa ", " pouch "), (" string ", " string "),
+            (" cuerda ", " string ")
+        };
+        foreach (var (from, to) in replacements)
+            text = text.Replace(from, to, StringComparison.Ordinal);
+        return string.Join(' ', text.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private static string NormalizeComparison(string value)
+    {
+        var decomposed = value.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+        foreach (var character in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
+                continue;
+            builder.Append(char.IsLetterOrDigit(character)
+                ? char.ToLowerInvariant(character)
+                : ' ');
+        }
+        return string.Join(' ', builder.ToString().Split(' ',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     }
 
     private static double NormalizeChance(double chance) => chance is > 0 and <= 1 ? chance * 100 : chance;

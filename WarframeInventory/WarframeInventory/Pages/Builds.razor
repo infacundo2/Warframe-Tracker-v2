@@ -64,11 +64,8 @@
         </MudPaper>
 
         <MudPaper Class="build-picker mt-4">
-            <div class="build-picker__title"><b>2. Buscar mods</b><span>Los filtros se ejecutan en el servidor</span></div>
+            <div class="build-picker__title"><b>2. Configurar filtros de mods</b><span>Escribe el nombre directamente en cada ranura</span></div>
             <div class="build-mod-filters">
-                <MudTextField @bind-Value="modSearch" Label="Buscar mod" Placeholder="Adaptación..."
-                              Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="RefreshModsAsync"
-                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
                 <MudSelect T="string" Value="@compatibility" ValueChanged="@(v => ChangeModFilterAsync("compat", v))" Label="Compatibilidad">
                     <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
                     @foreach (var item in workspace.Filters.Compatibilities) { <MudSelectItem T="string" Value="@item">@item</MudSelectItem> }
@@ -101,14 +98,13 @@
             {
                 var slotIndex = index;
                 <MudPaper Class="@($"build-slot {(slots[slotIndex].Owned ? "" : "is-missing")}")">
-                    <MudSelect T="string" Label="@SlotLabel(slotIndex)" Value="@slots[slotIndex].ModUnique"
-                               ValueChanged="@((string value) => SelectMod(slotIndex, value))"
-                               Variant="Variant.Outlined" Clearable="true">
-                        @foreach (var mod in AvailableMods(slots[slotIndex]))
-                        {
-                            <MudSelectItem T="string" Value="@mod.UniqueName">@mod.Name · @mod.Drain @(mod.Owned ? "" : "· FALTA")</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="BuildMod" Label="@SlotLabel(slotIndex)"
+                                     Value="@SelectedMod(slots[slotIndex])"
+                                     ValueChanged="@((BuildMod value) => SelectMod(slotIndex, value))"
+                                     SearchFunc="SearchSlotModsAsync" ToStringFunc="ModLabel"
+                                     Variant="Variant.Outlined" Clearable="true" CoerceText="false"
+                                     DebounceInterval="180" MaxItems="60"
+                                     HelperText="Escribe para buscar en todo el catálogo" />
                     @if (!string.IsNullOrWhiteSpace(slots[slotIndex].ModUnique))
                     {
                         <MudCheckBox T="bool" Checked="@slots[slotIndex].Owned"
@@ -140,10 +136,23 @@
 
         <div class="saved-build-heading">
             <MudText Typo="Typo.h5">Builds guardadas</MudText>
-            <MudCheckBox T="bool" @bind-Checked="showArchived" Label="Mostrar archivadas" />
+            <span>@FilteredBuilds.Count() resultados</span>
         </div>
+        <MudPaper Class="saved-build-toolbar">
+            <MudTextField T="string" Value="@savedBuildSearch" ValueChanged="ChangeSavedBuildSearch"
+                          Label="Buscar build" Placeholder="Nombre, equipamiento o etiqueta..."
+                          Immediate="true" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" />
+            <MudSelect T="string" Value="@savedBuildStatus" ValueChanged="ChangeSavedBuildStatus"
+                       Label="Estado" Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("active")">Activas</MudSelectItem>
+                <MudSelectItem T="string" Value="@("completed")">Completadas</MudSelectItem>
+                <MudSelectItem T="string" Value="@("archived")">Archivadas</MudSelectItem>
+                <MudSelectItem T="string" Value="@("all")">Todas</MudSelectItem>
+            </MudSelect>
+        </MudPaper>
         <div class="saved-builds">
-            @foreach (var build in workspace.Builds.Where(x => showArchived || !x.IsArchived))
+            @foreach (var build in PagedBuilds)
             {
                 var progress = workspace.Progress.GetValueOrDefault(build.Id) ?? new BuildProgress(0, 0);
                 <MudPaper Class="@($"saved-build {(build.IsCompleted ? "is-complete" : "")} {(build.IsArchived ? "is-archived" : "")}")">
@@ -159,6 +168,11 @@
                 </MudPaper>
             }
         </div>
+        @if (SavedBuildPageCount > 1)
+        {
+            <MudPagination Count="@SavedBuildPageCount" Selected="@savedBuildPage"
+                           SelectedChanged="ChangeSavedBuildPage" Class="saved-build-pagination" />
+        }
     }
 </MudContainer>
 
@@ -167,16 +181,28 @@
     private BuildWorkspace? workspace;
     private BuildTarget? selectedTarget;
     private string userId = "", name = "", tags = "", targetUnique = "", message = "";
-    private string targetSearch = "", targetCategory = "all", modSearch = "";
+    private string targetSearch = "", targetCategory = "all";
     private string compatibility = "all", polarity = "all", rarity = "all", ownership = "all";
+    private string savedBuildSearch = "", savedBuildStatus = "active";
     private int capacity = 30, forma, currentBuildId;
-    private bool showArchived;
+    private int savedBuildPage = 1;
+    private const int SavedBuildPageSize = 6;
     private Severity messageSeverity = Severity.Success;
     private List<BuildSlot> slots = EmptySlots();
     private int RawDrain => slots.Sum(x => x.RankedDrain);
     private int EffectiveDrain => slots.Sum(x => x.EffectiveDrain);
     private int SuggestedForma => slots.Count(x => !string.IsNullOrWhiteSpace(x.ModUnique) && !string.IsNullOrWhiteSpace(x.SlotPolarity));
     private bool CanSave => !string.IsNullOrWhiteSpace(name) && selectedTarget is not null;
+    private IEnumerable<SavedBuild> FilteredBuilds => (workspace?.Builds ?? [])
+        .Where(BuildMatchesStatus)
+        .Where(x => string.IsNullOrWhiteSpace(savedBuildSearch)
+                    || x.Name.Contains(savedBuildSearch, StringComparison.CurrentCultureIgnoreCase)
+                    || x.TargetName.Contains(savedBuildSearch, StringComparison.CurrentCultureIgnoreCase)
+                    || x.Tags.Contains(savedBuildSearch, StringComparison.CurrentCultureIgnoreCase));
+    private IEnumerable<SavedBuild> PagedBuilds => FilteredBuilds
+        .Skip((savedBuildPage - 1) * SavedBuildPageSize).Take(SavedBuildPageSize);
+    private int SavedBuildPageCount => Math.Max(1,
+        (int)Math.Ceiling(FilteredBuilds.Count() / (double)SavedBuildPageSize));
 
     protected override async Task OnInitializedAsync()
     {
@@ -203,7 +229,7 @@
     private async Task RefreshModsAsync()
     {
         if (workspace is null) return;
-        var rows = await BuildManager.SearchModsAsync(userId, modSearch, compatibility, polarity, rarity, ownership);
+        var rows = await BuildManager.SearchModsAsync(userId, "", compatibility, polarity, rarity, ownership);
         workspace = workspace with { Mods = rows };
     }
     private async Task ChangeModFilterAsync(string filter, string value)
@@ -211,19 +237,30 @@
         switch (filter) { case "compat": compatibility = value; break; case "polarity": polarity = value; break; case "rarity": rarity = value; break; case "owned": ownership = value; break; }
         await RefreshModsAsync();
     }
-    private IEnumerable<BuildMod> AvailableMods(BuildSlot slot)
+    private async Task<IEnumerable<BuildMod>> SearchSlotModsAsync(string search)
     {
-        var rows = workspace?.Mods ?? [];
-        if (string.IsNullOrWhiteSpace(slot.ModUnique) || rows.Any(x => x.UniqueName == slot.ModUnique)) return rows;
-        return rows.Prepend(new BuildMod(slot.ModUnique, slot.Name, slot.Drain, slot.MaxRank, slot.Polarity, "", "", slot.Owned));
+        return await BuildManager.SearchModsAsync(userId, search, compatibility, polarity, rarity, ownership);
     }
-    private void SelectMod(int index, string value)
+    private static BuildMod? SelectedMod(BuildSlot slot) => string.IsNullOrWhiteSpace(slot.ModUnique)
+        ? null
+        : new BuildMod(slot.ModUnique, slot.Name, slot.Drain, slot.MaxRank, slot.Polarity, "", "", slot.Owned);
+    private static string ModLabel(BuildMod? mod) => mod is null ? ""
+        : $"{mod.Name} · {mod.Drain} capacidad{(mod.Owned ? "" : " · FALTA")}";
+    private void SelectMod(int index, BuildMod? mod)
     {
-        if (string.IsNullOrWhiteSpace(value)) { slots[index] = EmptySlot(); return; }
-        var mod = workspace?.Mods.FirstOrDefault(x => x.UniqueName == value);
-        if (mod is null) return;
+        if (mod is null) { slots[index] = EmptySlot(); return; }
         slots[index] = new(mod.UniqueName, mod.Name, mod.Drain, mod.Polarity, mod.Owned) { MaxRank = mod.MaxRank, Rank = mod.MaxRank };
     }
+    private bool BuildMatchesStatus(SavedBuild build) => savedBuildStatus switch
+    {
+        "completed" => build.IsCompleted && !build.IsArchived,
+        "archived" => build.IsArchived,
+        "all" => true,
+        _ => !build.IsArchived && !build.IsCompleted
+    };
+    private void ChangeSavedBuildSearch(string value) { savedBuildSearch = value ?? ""; savedBuildPage = 1; }
+    private void ChangeSavedBuildStatus(string value) { savedBuildStatus = value; savedBuildPage = 1; }
+    private void ChangeSavedBuildPage(int value) => savedBuildPage = value;
     private async Task SetSlotOwnedAsync(int index, bool value)
     {
         var slot = slots[index];

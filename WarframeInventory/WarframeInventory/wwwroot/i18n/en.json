@@ -803,7 +803,10 @@
                          "Archwing / Archgun":  "Archwing / Archgun",
                          "Resultado":  "Result",
                          "2. Buscar mods":  "2. Search mods",
+                         "2. Configurar filtros de mods":  "2. Configure mod filters",
                          "Los filtros se ejecutan en el servidor":  "Filters run on the server",
+                         "Escribe el nombre directamente en cada ranura":  "Type the name directly into each slot",
+                         "Escribe para buscar en todo el catálogo":  "Type to search the full catalog",
                          "Buscar mod":  "Search mod",
                          "Los tengo":  "Owned",
                          "Me faltan":  "Missing",
@@ -819,6 +822,15 @@
                          "Copiar enlace":  "Copy link",
                          "Builds guardadas":  "Saved builds",
                          "Mostrar archivadas":  "Show archived",
+                         "Buscar build":  "Search builds",
+                         "Nombre, equipamiento o etiqueta...":  "Name, equipment or tag...",
+                         "Estado":  "Status",
+                         "Activas":  "Active",
+                         "Completadas":  "Completed",
+                         "Archivadas":  "Archived",
+                         "LISTAS PARA ABRIR":  "READY TO OPEN",
+                         "Reliquias que ya posees para este objetivo":  "Relics you already own for this goal",
+                         "Ordenadas por cantidad y recomendación":  "Sorted by quantity and recommendation",
                          "Editar":  "Edit",
                          "Reabrir":  "Reopen",
                          "Completar":  "Complete",
@@ -869,10 +881,22 @@
                          "pattern":  "^Tengo (\\d+) · Necesito (\\d+) · Faltan (\\d+)$",
                          "replacement":  "Owned `$1 · Required `$2 · Missing `$3"
                      },
-                     {
-                         "pattern":  "^(\\d+) componentes pendientes · (\\d+) rutas detectadas$",
-                         "replacement":  "`$1 missing components · `$2 routes found"
-                     },
+                      {
+                          "pattern":  "^(\\d+) componentes pendientes · (\\d+) rutas detectadas$",
+                          "replacement":  "`$1 missing components · `$2 routes found"
+                      },
+                      {
+                          "pattern":  "^(\\d+) componentes pendientes · (\\d+) rutas detectadas · (\\d+) disponibles en tu inventario$",
+                          "replacement":  "`$1 missing components · `$2 routes found · `$3 available in your inventory"
+                      },
+                      {
+                          "pattern":  "^(\\d+) resultados$",
+                          "replacement":  "`$1 results"
+                      },
+                      {
+                          "pattern":  "^Conviene: (.+) · ([\\d.,]+)%$",
+                          "replacement":  "Recommended: `$1 · `$2%"
+                      },
                      {
                          "pattern":  "^Paso (\\d+) de (\\d+)$",
                          "replacement":  "Step `$1 of `$2"

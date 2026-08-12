@@ -75,6 +75,12 @@ Render entrega el puerto HTTP mediante `PORT`; la aplicación lo consume
 automáticamente y escucha en `0.0.0.0`. No se debe definir manualmente
 `ASPNETCORE_URLS` ni `ASPNETCORE_HTTP_PORTS` en el panel.
 
+La imagen desactiva `hostBuilder:reloadConfigOnChange` porque la configuración
+de producción es inmutable durante cada despliegue. Esto evita consumir
+observadores `inotify` innecesarios en la instancia de Render. El Blueprint
+declara además `DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false` como protección
+equivalente para otros comandos de inicio.
+
 Las claves utilizadas por Identity y sus cookies se conservan en MySQL y se
 cifran con un certificado PKCS#12. En Windows puede generarse una vez con:
 

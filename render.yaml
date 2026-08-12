@@ -11,6 +11,8 @@ services:
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
+      - key: DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE
+        value: "false"
       - key: WARFRAME_TRACKER_DATABASE_PROVIDER
         value: MySql
       - key: WARFRAME_TRACKER_DB_HOST

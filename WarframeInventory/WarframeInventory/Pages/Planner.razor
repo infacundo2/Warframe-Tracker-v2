@@ -25,7 +25,7 @@
                 <div class="eyebrow">NAVEGACIÓN DE ADQUISICIÓN // RUTA DINÁMICA</div>
                 <MudText Typo="Typo.h3" Class="page-title">@plan.TargetName</MudText>
                 <MudText Typo="Typo.body1" Class="hero-copy">
-                    @plan.MissingComponents.Count componentes pendientes · @plan.Routes.Count rutas detectadas
+                    @plan.MissingComponents.Count componentes pendientes · @plan.Routes.Count rutas detectadas · @OwnedRoutes.Count disponibles en tu inventario
                 </MudText>
             </div>
             <MudSelect T="string"
@@ -43,6 +43,38 @@
                 <MudSelectItem T="string" Value="@("multi")">Servir a varios objetivos</MudSelectItem>
             </MudSelect>
         </section>
+
+        @if (OwnedRoutes.Count > 0)
+        {
+            <section class="planner-owned-routes">
+                <div class="planner-section-heading">
+                    <div>
+                        <span>LISTAS PARA ABRIR</span>
+                        <MudText Typo="Typo.h5">Reliquias que ya posees para este objetivo</MudText>
+                    </div>
+                    <small>Ordenadas por cantidad y recomendación</small>
+                </div>
+                <div class="planner-owned-grid">
+                    @foreach (var route in OwnedRoutes)
+                    {
+                        <MudPaper Class="planner-owned-card">
+                            <div>
+                                <MudLink Href="@($"/relics/{Uri.EscapeDataString(route.RelicUnique)}")">@route.RelicName</MudLink>
+                                <span>@WarframeSpanishText.Reward(route.ComponentName)</span>
+                            </div>
+                            <div class="planner-owned-card__quantities">
+                                <b>Total @route.TotalOwned</b>
+                                <span>I @route.Owned.GetValueOrDefault("Intacta")</span>
+                                <span>E @route.Owned.GetValueOrDefault("Excepcional")</span>
+                                <span>P @route.Owned.GetValueOrDefault("Perfecta")</span>
+                                <span>R @route.Owned.GetValueOrDefault("Radiante")</span>
+                            </div>
+                            <small>Conviene: <strong>@route.RecommendedRefinement</strong> · @route.RecommendedChance.ToString("0.00")%</small>
+                        </MudPaper>
+                    }
+                </div>
+            </section>
+        }
 
         <section class="planner-overview">
             <MudPaper Class="planner-budget">
@@ -188,6 +220,11 @@
     private bool loading = true;
     private int ComponentProgress => plan is null || plan.Components.Count == 0 ? 0
         : (int)Math.Round(plan.Components.Count(x => x.IsComplete) * 100d / plan.Components.Count);
+    private IReadOnlyList<FarmRoute> OwnedRoutes => plan?.Routes
+        .Where(x => x.TotalOwned > 0)
+        .OrderByDescending(x => x.TotalOwned)
+        .ThenByDescending(x => x.RecommendedChance)
+        .ToList() ?? [];
 
     protected override async Task OnParametersSetAsync()
     {
