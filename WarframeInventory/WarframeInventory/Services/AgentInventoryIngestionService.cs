@@ -52,7 +52,7 @@ public sealed class AgentInventoryIngestionService
             {
                 Id = snapshot.BatchId, DeviceId = deviceId, UserId = userId,
                 Sequence = snapshot.Sequence, Source = "tracker-agent",
-                ContentHash = snapshot.ContentHash.ToUpperInvariant(),
+                ContentHash = snapshot.ContentHash,
                 IsAuthoritative = preview.IsAuthoritative,
                 CapturedUtc = snapshot.CapturedUtc.ToUniversalTime(),
                 ReceivedUtc = DateTime.UtcNow, Status = "previewed"
@@ -124,14 +124,14 @@ public sealed class AgentInventoryIngestionService
             Items = snapshot.Items.OrderBy(x => x.Section, StringComparer.Ordinal)
                 .ThenBy(x => x.UniqueName, StringComparer.Ordinal).ToArray(), snapshot.Account
         });
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+        return Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
     private static bool FixedHashEquals(string supplied, string computed)
     {
         try
         {
-            return CryptographicOperations.FixedTimeEquals(Convert.FromHexString(supplied),
-                Convert.FromHexString(computed));
+            return CryptographicOperations.FixedTimeEquals(Convert.FromBase64String(supplied),
+                Convert.FromBase64String(computed));
         }
         catch (FormatException) { return false; }
     }

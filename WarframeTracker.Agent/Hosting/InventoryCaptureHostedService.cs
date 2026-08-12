@@ -39,7 +39,9 @@ public sealed class InventoryCaptureHostedService : BackgroundService
             BatchId = Guid.NewGuid(), Sequence = (previous?.Sequence ?? 0) + 1,
             CapturedUtc = DateTime.UtcNow
         });
-        if (previous?.ContentHash == candidate.ContentHash) return;
+        // ContentHash incluye secuencia y hora para proteger el envelope enviado.
+        // La deduplicación debe comparar solamente el contenido del inventario.
+        if (InventorySnapshotTools.HasSameContent(previous, candidate)) return;
         var differences = InventorySnapshotTools.Compare(previous, candidate);
         await _store.SaveLatestAsync(candidate, ct);
         await _store.EnqueueAsync(candidate, ct);

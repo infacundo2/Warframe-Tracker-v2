@@ -16,6 +16,16 @@ public sealed record InventoryDifference(string Kind, string Section, string Uni
 
 public static class InventorySnapshotTools
 {
+    public static bool HasSameContent(InventorySnapshot? left, InventorySnapshot right)
+    {
+        if (left is null) return false;
+        var normalizedLeft = Normalize(left);
+        var normalizedRight = Normalize(right);
+        return normalizedLeft.IsAuthoritative == normalizedRight.IsAuthoritative
+               && Equals(normalizedLeft.Account, normalizedRight.Account)
+               && normalizedLeft.Items.SequenceEqual(normalizedRight.Items);
+    }
+
     public static InventorySnapshot Normalize(InventorySnapshot snapshot)
     {
         var items = snapshot.Items
@@ -32,7 +42,7 @@ public static class InventorySnapshotTools
             snapshot.Sequence, CapturedUtc = snapshot.CapturedUtc.ToUniversalTime(),
             snapshot.IsAuthoritative, Items = items, snapshot.Account
         });
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
         return snapshot with { Items = items, ContentHash = hash };
     }
 

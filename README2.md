@@ -664,3 +664,14 @@ posteriores.
   salida, sin mostrar ni persistir líneas originales de `EE.log`.
 - Las builds temporales se consolidaron en una sola salida estable:
   `out/tracker-agent`.
+- La Fase 4 generó correctamente un snapshot parcial sin datos de cuenta y lo
+  mantuvo solo en la cola local con autosync apagado.
+- La Fase 5 detectó y corrigió una deduplicación incorrecta: el hash de
+  integridad incluye el envelope, por lo que ahora los duplicados se comparan
+  mediante el contenido normalizado del inventario.
+- La cola estable permaneció en una sola secuencia durante varios ciclos sin
+  cambios.
+- Durante el preview de Fase 6, Render/Cloudflare rechazó silenciosamente un
+  valor SHA-256 hexadecimal concreto antes de MVC. El transporte del mismo
+  SHA-256 se cambió a Base64, manteniendo comparación de tiempo constante y
+  los mismos 256 bits de integridad.
