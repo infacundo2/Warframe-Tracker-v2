@@ -13,6 +13,7 @@ namespace WarframeInventory.Services;
 public sealed class AgentInventoryIngestionService
 {
     private static readonly TimeSpan StageLifetime = TimeSpan.FromMinutes(30);
+    private const string ServerComputedHashMarker = "server-computed";
     private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
     private readonly IMemoryCache _cache;
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _locks = new();
@@ -48,6 +49,8 @@ public sealed class AgentInventoryIngestionService
                 || snapshot.CapturedUtc > DateTime.UtcNow.AddMinutes(5))
                 throw new AgentInventoryException("stale_snapshot");
             if (!string.IsNullOrWhiteSpace(snapshot.ContentHash)
+                && !string.Equals(snapshot.ContentHash, ServerComputedHashMarker,
+                    StringComparison.Ordinal)
                 && !FixedHashEquals(snapshot.ContentHash, receivedHash))
                 throw new AgentInventoryException("invalid_hash");
 

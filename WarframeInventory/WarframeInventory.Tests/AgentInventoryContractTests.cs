@@ -24,4 +24,22 @@ public sealed class AgentInventoryContractTests
         Assert.Null(snapshot.ContentHash);
         Assert.Single(snapshot.Items);
     }
+
+    [Fact]
+    public void Snapshot_accepts_server_computed_marker()
+    {
+        var snapshot = JsonSerializer.Deserialize<AgentInventorySnapshot>("""
+            {
+              "batchId":"00000000-0000-0000-0000-000000000001",
+              "sequence":1,
+              "capturedUtc":"2026-08-12T12:00:00Z",
+              "isAuthoritative":false,
+              "contentHash":"server-computed",
+              "items":[{"section":"QAOnly","uniqueName":"/QA/Probe","quantity":1}],
+              "account":null
+            }
+            """, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        Assert.Equal("server-computed", snapshot!.ContentHash);
+    }
 }

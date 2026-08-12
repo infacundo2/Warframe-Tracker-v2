@@ -681,3 +681,7 @@ posteriores.
   JSON: Render lo calcula sobre el payload recibido y exige que todo reintento
   de un `BatchId` coincida con el hash almacenado. El Agent conserva el hash
   local para snapshots y deduplicación.
+- Render también rechazó el contrato cuando la propiedad se omitió o envió
+  como `null`. Se validó un marcador reservado de baja entropía,
+  `server-computed`, que atraviesa el proxy. Este marcador no participa del
+  hash: el servidor siempre calcula y almacena el SHA-256 real.

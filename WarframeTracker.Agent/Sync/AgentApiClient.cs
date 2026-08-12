@@ -52,13 +52,15 @@ public sealed class AgentApiClient
     {
         using var request = Authorized(HttpMethod.Post, "api/agent/v1/inventory/preview", token);
         // El hash local no se transporta: algunos proxies bloquean cadenas de alta
-        // entropía. El backend calcula su propio SHA-256 sobre este payload.
+        // entropía. Un marcador de baja entropía conserva una forma de contrato
+        // aceptada por el proxy y el backend calcula su propio SHA-256.
         request.Content = JsonContent.Create(new
         {
             snapshot.BatchId,
             snapshot.Sequence,
             snapshot.CapturedUtc,
             snapshot.IsAuthoritative,
+            ContentHash = "server-computed",
             snapshot.Items,
             snapshot.Account
         });

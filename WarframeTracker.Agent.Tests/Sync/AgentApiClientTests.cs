@@ -12,7 +12,7 @@ namespace WarframeTracker.Agent.Tests.Sync;
 public sealed class AgentApiClientTests
 {
     [Fact]
-    public async Task Preview_omits_local_content_hash_from_transport()
+    public async Task Preview_replaces_local_hash_with_server_computed_marker()
     {
         string? sentJson = null;
         using var http = new HttpClient(new StubHandler(async request =>
@@ -35,8 +35,9 @@ public sealed class AgentApiClientTests
         var result = await client.PreviewAsync("token", snapshot, CancellationToken.None);
 
         using var json = JsonDocument.Parse(sentJson!);
-        Assert.False(json.RootElement.TryGetProperty("contentHash", out _));
-        Assert.False(json.RootElement.TryGetProperty("ContentHash", out _));
+        Assert.Equal("server-computed",
+            json.RootElement.GetProperty("contentHash").GetString());
+        Assert.DoesNotContain(snapshot.ContentHash, sentJson!, StringComparison.Ordinal);
         Assert.Equal(snapshot.BatchId, json.RootElement.GetProperty("batchId").GetGuid());
         Assert.Equal("previewed", result.Status);
     }
