@@ -92,6 +92,14 @@ public sealed class EELogTailService : BackgroundService
 
     internal static EELogEventKind Classify(string line)
     {
+        var isHub = line.Contains("Hub", StringComparison.OrdinalIgnoreCase)
+                    || line.Contains("Relay", StringComparison.OrdinalIgnoreCase);
+        if (isHub && (line.Contains("Left", StringComparison.OrdinalIgnoreCase)
+                      || line.Contains("Exit", StringComparison.OrdinalIgnoreCase)
+                      || line.Contains("Shutdown", StringComparison.OrdinalIgnoreCase)))
+            return EELogEventKind.HubExited;
+        if (isHub && line.Contains("Join", StringComparison.OrdinalIgnoreCase))
+            return EELogEventKind.HubEntered;
         if (line.Contains("GameRules", StringComparison.OrdinalIgnoreCase)
             && line.Contains("mission", StringComparison.OrdinalIgnoreCase))
             return line.Contains("destroy", StringComparison.OrdinalIgnoreCase)

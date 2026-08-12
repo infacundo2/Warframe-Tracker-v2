@@ -47,6 +47,8 @@ public sealed class EELogActivityMonitor : BackgroundService
             EELogEventKind.SessionStarted => "Inicio de sesión detectado",
             EELogEventKind.MissionStarted => "Inicio o transición de actividad detectada",
             EELogEventKind.MissionEnded => "Fin o salida de actividad detectada",
+            EELogEventKind.HubEntered => "Entrada a Repetidor o hub detectada",
+            EELogEventKind.HubExited => "Salida de Repetidor o hub detectada",
             EELogEventKind.InventoryHint => "Carga o cambio de inventario detectado",
             _ => null
         };

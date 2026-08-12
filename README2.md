@@ -656,5 +656,7 @@ posteriores.
 - Detección del proceso de Warframe confirmada.
 - La primera transición de Repetidor no fue concluyente porque el ejecutable
   activo conservaba `EELogProviderEnabled=false`.
-- Se preparó una segunda build de QA con el lector habilitado y salida segura
-  de eventos para repetir solamente la prueba de transición.
+- La segunda transición confirmó la lectura incremental y reveló firmas
+  diferenciadas `Hub + Join` y `Hub + Left/Exit/Shutdown`.
+- Se agregaron eventos seguros específicos de entrada y salida de Repetidor
+  para la validación final.

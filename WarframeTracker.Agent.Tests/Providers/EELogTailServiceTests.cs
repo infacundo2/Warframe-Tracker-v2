@@ -9,6 +9,9 @@ public sealed class EELogTailServiceTests
     [InlineData("Logged in successfully", EELogEventKind.SessionStarted)]
     [InlineData("GameRules mission started", EELogEventKind.MissionStarted)]
     [InlineData("GameRules mission shutdown", EELogEventKind.MissionEnded)]
+    [InlineData("Relay Hub Join", EELogEventKind.HubEntered)]
+    [InlineData("Relay Hub Left Exit", EELogEventKind.HubExited)]
+    [InlineData("Hub Shutdown", EELogEventKind.HubExited)]
     [InlineData("Loadout changed", EELogEventKind.InventoryHint)]
     [InlineData("private unrelated line", EELogEventKind.Unknown)]
     public void Classifies_without_exposing_line_content(string line, EELogEventKind expected)

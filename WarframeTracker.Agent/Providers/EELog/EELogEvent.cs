@@ -1,6 +1,15 @@
 namespace WarframeTracker.Agent.Providers.EELog;
 
-public enum EELogEventKind { SessionStarted, MissionStarted, MissionEnded, InventoryHint, Unknown }
+public enum EELogEventKind
+{
+    SessionStarted,
+    MissionStarted,
+    MissionEnded,
+    HubEntered,
+    HubExited,
+    InventoryHint,
+    Unknown
+}
 public sealed record EELogEvent(EELogEventKind Kind, DateTimeOffset OccurredUtc);
 
 public sealed class EELogEventStream
