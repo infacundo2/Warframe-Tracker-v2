@@ -8,6 +8,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarframeInventory", "Warfra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarframeInventory.Tests", "WarframeInventory\WarframeInventory.Tests\WarframeInventory.Tests.csproj", "{B287B84D-F008-4D2F-B967-8CFD0714B854}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-00C04F79EFBC}") = "TrackerAgent", "TrackerAgent", "{1DE4C068-D52C-4DBE-9527-611951317982}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarframeTracker.Agent", "WarframeTracker.Agent\WarframeTracker.Agent.csproj", "{4E0A1BE6-BE1C-43C4-96E5-891D5FA41B18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarframeTracker.Agent.Tests", "WarframeTracker.Agent.Tests\WarframeTracker.Agent.Tests.csproj", "{B0A25CB0-13F3-41A9-860A-9B766367E35E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +28,14 @@ Global
 		{B287B84D-F008-4D2F-B967-8CFD0714B854}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B287B84D-F008-4D2F-B967-8CFD0714B854}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B287B84D-F008-4D2F-B967-8CFD0714B854}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E0A1BE6-BE1C-43C4-96E5-891D5FA41B18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E0A1BE6-BE1C-43C4-96E5-891D5FA41B18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E0A1BE6-BE1C-43C4-96E5-891D5FA41B18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E0A1BE6-BE1C-43C4-96E5-891D5FA41B18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0A25CB0-13F3-41A9-860A-9B766367E35E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0A25CB0-13F3-41A9-860A-9B766367E35E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0A25CB0-13F3-41A9-860A-9B766367E35E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0A25CB0-13F3-41A9-860A-9B766367E35E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -29,6 +43,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{5F742DFF-55C0-52EB-9268-8A6F2FE9033E} = {F0E07B04-D644-ACE0-4CA7-2A8C44E26945}
 		{B287B84D-F008-4D2F-B967-8CFD0714B854} = {F0E07B04-D644-ACE0-4CA7-2A8C44E26945}
+		{4E0A1BE6-BE1C-43C4-96E5-891D5FA41B18} = {1DE4C068-D52C-4DBE-9527-611951317982}
+		{B0A25CB0-13F3-41A9-860A-9B766367E35E} = {1DE4C068-D52C-4DBE-9527-611951317982}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {ECB66C9B-27DC-489C-916B-97E63D55CD2F}

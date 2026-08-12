@@ -1,0 +1,17 @@
+{
+  "TrackerAgent": {
+    "Enabled": true,
+    "ProcessName": "Warframe.x64.exe",
+    "ProcessDetectionIntervalSeconds": 5,
+    "InventoryProviderEnabled": false,
+    "EELogProviderEnabled": false,
+    "ExperimentalProviderEnabled": false,
+    "AutomaticSyncEnabled": false
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  }
+}
