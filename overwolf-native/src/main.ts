@@ -25,6 +25,7 @@ let currentCapture: StoredCapture | null = null;
 let trackerOrigin = "";
 let bridgeNonce = "";
 let bridgeReady = false;
+let trackerHealthTimer: number | undefined;
 
 const byId = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
@@ -216,10 +217,35 @@ function configureTracker(rawUrl: string): void {
   trackerOrigin = url.origin;
   bridgeReady = false;
   bridgeNonce = "";
+  hideTrackerUnavailable();
   frame.src = url.toString();
   frame.hidden = false;
   setup.hidden = true;
   setCaptureUi(currentCapture);
+  beginTrackerHealthCheck();
+}
+
+function hideTrackerUnavailable(): void {
+  if (trackerHealthTimer !== undefined) window.clearTimeout(trackerHealthTimer);
+  trackerHealthTimer = undefined;
+  byId("tracker-offline").hidden = true;
+}
+
+function showTrackerUnavailable(detail?: string): void {
+  if (trackerHealthTimer !== undefined) window.clearTimeout(trackerHealthTimer);
+  trackerHealthTimer = undefined;
+  byId("tracker-offline-detail").textContent = detail ||
+    "The hosted interface could not be reached. Your local inventory capture remains on this PC.";
+  byId("tracker-offline").hidden = false;
+}
+
+function beginTrackerHealthCheck(): void {
+  if (trackerHealthTimer !== undefined) window.clearTimeout(trackerHealthTimer);
+  trackerHealthTimer = window.setTimeout(() => {
+    if (!bridgeReady) showTrackerUnavailable();
+  }, 12000);
+  if (!navigator.onLine) showTrackerUnavailable(
+    "This PC is offline. Reconnect to the Internet, then retry. Your local inventory capture is safe.");
 }
 
 function postCapture(): void {
@@ -243,6 +269,7 @@ function onBridgeMessage(event: MessageEvent): void {
   if (data.type === "warframe-tracker-native-ready" && typeof data.nonce === "string") {
     bridgeNonce = data.nonce;
     bridgeReady = true;
+    hideTrackerUnavailable();
     setCaptureUi(currentCapture);
   } else if (data.type === "warframe-tracker-native-result" && data.nonce === bridgeNonce) {
     const ok = data.success === true;
@@ -281,13 +308,20 @@ async function initialize(): Promise<void> {
   overwolf.games.onGameInfoUpdated.addListener(update => updateGame(update.gameInfo));
   overwolf.settings.hotkeys.onPressed.addListener(event => { if (event.name === "show_tracker") toggleWindow(); });
   window.addEventListener("message", onBridgeMessage);
+  window.addEventListener("offline", () => showTrackerUnavailable(
+    "This PC is offline. Reconnect to the Internet, then retry. Your local inventory capture is safe."));
+  window.addEventListener("online", () => configureTracker(byId<HTMLIFrameElement>("tracker-frame").src));
 
   byId("send-capture").addEventListener("click", postCapture);
   byId("discard-capture").addEventListener("click", () => void clearCapture());
   byId("save-url").addEventListener("click", () => configureTracker(byId<HTMLInputElement>("tracker-url").value));
   byId("reload-frame").addEventListener("click", () => {
     const frame = byId<HTMLIFrameElement>("tracker-frame");
-    if (frame.src) frame.src = frame.src;
+    if (frame.src) configureTracker(frame.src);
+  });
+  byId("retry-tracker").addEventListener("click", () => {
+    const frame = byId<HTMLIFrameElement>("tracker-frame");
+    configureTracker(frame.src || byId<HTMLInputElement>("tracker-url").value);
   });
   byId("toggle-capture-panel").addEventListener("click", () =>
     setCapturePanel(document.body.classList.contains("capture-panel-collapsed")));

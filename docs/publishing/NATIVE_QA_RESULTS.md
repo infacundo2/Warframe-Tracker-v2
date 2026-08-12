@@ -44,7 +44,7 @@ performed.
 | UI | Saved-build filtering and pagination | PARTIAL | Status/search controls loaded, but this account currently has only one saved build |
 | UI | Compare fields accept typed searches | PASS | Typed `Revenant`; `Revenant Prime` appeared as a selectable result |
 | UI | English localization is complete | FAIL | Planner/build cards still contain Spanish strings such as `rutas`, `Relíquia`, `Ranura` and `capacidad` |
-| Network | Offline state and retry are understandable | NOT TESTED | Manual network interruption required |
+| Network | Offline state and retry are understandable | PASS | Native offline event displays a dedicated safe-capture message and Retry connection action; screenshot 10 |
 | Performance | No freeze during 10-minute navigation test | PARTIAL | Responsive during 30-second process sample; 10-minute navigation pending |
 | Performance | Memory settles after repeated navigation | PARTIAL | Overwolf total remained 680.4–681.9 MB for 30 seconds |
 | Display | 1180×720 / 100% | NOT TESTED | Manual resize required |
@@ -52,7 +52,7 @@ performed.
 | Display | 1920×1080 / 125% | NOT TESTED | Manual DPI test required |
 | Display | 2560×1440 / 150% | NOT TESTED | Manual DPI test required |
 | Display | Secondary-monitor move/maximize/restore | NOT TESTED | Requires secondary-monitor interaction |
-| Security | OPK has zero VirusTotal detections | INVALID FOR CURRENT OPK | Supplied report is for `77710B224F8C4CF9FDE82641FEE3F5C85ABC0F2A6863133038DE7FAF845E4C16`; current OPK is `1CDB7D61DD0F32E01A0733EB6AE20029AD59EF7115119154E6A68B8AEB02B647` |
+| Security | OPK has zero VirusTotal detections | INVALID FOR CURRENT OPK | Supplied report is for `77710B224F8C4CF9FDE82641FEE3F5C85ABC0F2A6863133038DE7FAF845E4C16`; current OPK is `880E8ADDEAC5E4D30AE4D035071E806920B59B8F7474E981811D9AD44696E6F0` |
 | Automated | Native core test suite | PASS | 3/3 Node tests passed |
 | Automated | Agent test suite | PASS | 19/19 .NET tests passed |
 | Build | Web backend Release build | PASS | .NET 8 Release build completed with 0 warnings and 0 errors |
@@ -67,6 +67,6 @@ Overwolf total memory during 30-second sample: 680.4–681.9 MB
 
 Overwolf total CPU during 30-second sample: 2.93% average / 4.27% peak on 24 logical processors
 
-Final result: INCOMPLETE — four real screenshots, final manual checks, hosted localization redeploy and a matching VirusTotal report remain
+Final result: INCOMPLETE — three real GEP screenshots, final manual checks, hosted localization redeploy and a matching VirusTotal report remain
 
 Tester signature or name: Automated evidence recorded by Codex; manual reviewer pending

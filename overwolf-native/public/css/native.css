@@ -10,6 +10,7 @@
 .window-controls button:hover{background:rgba(103,231,255,.1);color:#fff}
 .window-controls #window-close:hover{background:#b93642;color:#fff}
 main{grid-template-columns:390px minmax(0,1fr)}
+.tracker-panel{position:relative}.tracker-offline{position:absolute;inset:42px 0 0;z-index:3;display:grid;place-items:center;padding:32px;background:radial-gradient(circle at 50% 35%,rgba(16,54,68,.42),rgba(3,10,16,.96) 55%)}.tracker-offline[hidden]{display:none}.tracker-offline>div{width:min(620px,92%);padding:40px;border:1px solid var(--line);background:rgba(7,20,29,.97);box-shadow:0 0 55px rgba(103,231,255,.08)}.tracker-offline h2{margin:12px 0;font-size:30px;font-weight:500}.tracker-offline p:not(.eyebrow){color:var(--muted);line-height:1.6}.tracker-offline .primary{margin-top:14px}
 @media(max-width:1300px){main{grid-template-columns:330px minmax(0,1fr)}.capture-panel{padding:22px 18px}.brand span:not(.brand-mark),.brand em{display:none}}
 
 /* The GEP controller keeps running when its visual panel is collapsed. */

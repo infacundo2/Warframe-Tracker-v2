@@ -71,6 +71,14 @@
         </div>
       </div>
       <iframe id="tracker-frame" title="Warframe Tracker web interface" hidden></iframe>
+      <section id="tracker-offline" class="tracker-offline" hidden role="alert" aria-live="polite">
+        <div>
+          <p class="eyebrow">TRACKER CONNECTION // OFFLINE</p>
+          <h2>Tracker unavailable</h2>
+          <p id="tracker-offline-detail">The hosted interface could not be reached. Your local inventory capture remains on this PC.</p>
+          <button id="retry-tracker" class="primary" type="button">Retry connection</button>
+        </div>
+      </section>
     </section>
   </main>
 
