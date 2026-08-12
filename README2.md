@@ -685,3 +685,6 @@ posteriores.
   como `null`. Se validó un marcador reservado de baja entropía,
   `server-computed`, que atraviesa el proxy. Este marcador no participa del
   hash: el servidor siempre calcula y almacena el SHA-256 real.
+- Se agregaron respuestas JSON seguras para fallos conocidos e inesperados del
+  preview/apply. Los detalles técnicos quedan solo en logs de Render y la API no
+  expone inventario, tokens, usuarios ni stack traces.
