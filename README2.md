@@ -660,3 +660,7 @@ posteriores.
   diferenciadas `Hub + Join` y `Hub + Left/Exit/Shutdown`.
 - Se agregaron eventos seguros específicos de entrada y salida de Repetidor
   para la validación final.
+- La tercera transición confirmó en vivo dos señales de entrada y dos de
+  salida, sin mostrar ni persistir líneas originales de `EE.log`.
+- Las builds temporales se consolidaron en una sola salida estable:
+  `out/tracker-agent`.
