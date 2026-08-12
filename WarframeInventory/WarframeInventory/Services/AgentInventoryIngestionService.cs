@@ -124,16 +124,29 @@ public sealed class AgentInventoryIngestionService
             Items = snapshot.Items.OrderBy(x => x.Section, StringComparer.Ordinal)
                 .ThenBy(x => x.UniqueName, StringComparer.Ordinal).ToArray(), snapshot.Account
         });
-        return Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+        return Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
     private static bool FixedHashEquals(string supplied, string computed)
     {
         try
         {
-            return CryptographicOperations.FixedTimeEquals(Convert.FromBase64String(supplied),
-                Convert.FromBase64String(computed));
+            return CryptographicOperations.FixedTimeEquals(DecodeBase64Url(supplied),
+                DecodeBase64Url(computed));
         }
         catch (FormatException) { return false; }
+    }
+    private static byte[] DecodeBase64Url(string value)
+    {
+        var normalized = value.Replace('-', '+').Replace('_', '/');
+        normalized += (normalized.Length % 4) switch
+        {
+            0 => "",
+            2 => "==",
+            3 => "=",
+            _ => throw new FormatException("Invalid Base64URL length.")
+        };
+        return Convert.FromBase64String(normalized);
     }
     private static string ToDesktopJson(AgentInventorySnapshot snapshot)
     {

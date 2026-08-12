@@ -42,7 +42,8 @@ public static class InventorySnapshotTools
             snapshot.Sequence, CapturedUtc = snapshot.CapturedUtc.ToUniversalTime(),
             snapshot.IsAuthoritative, Items = items, snapshot.Account
         });
-        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
         return snapshot with { Items = items, ContentHash = hash };
     }
 

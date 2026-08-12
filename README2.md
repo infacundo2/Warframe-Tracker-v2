@@ -671,7 +671,8 @@ posteriores.
   mediante el contenido normalizado del inventario.
 - La cola estable permaneció en una sola secuencia durante varios ciclos sin
   cambios.
-- Durante el preview de Fase 6, Render/Cloudflare rechazó silenciosamente un
-  valor SHA-256 hexadecimal concreto antes de MVC. El transporte del mismo
-  SHA-256 se cambió a Base64, manteniendo comparación de tiempo constante y
-  los mismos 256 bits de integridad.
+- Durante el preview de Fase 6, Render/Cloudflare rechazó silenciosamente
+  representaciones hex y Base64 concretas antes de MVC. Se comprobó que
+  Base64URL atraviesa el proxy, por lo que el transporte del mismo SHA-256 se
+  cambió a Base64URL, manteniendo comparación de tiempo constante y los mismos
+  256 bits de integridad.

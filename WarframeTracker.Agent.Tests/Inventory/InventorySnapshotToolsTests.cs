@@ -19,8 +19,9 @@ public sealed class InventorySnapshotToolsTests
         Assert.Equal(2, first.Items.Count);
         Assert.Equal(5, first.Items.Single(x => x.UniqueName == "/Lotus/A").Quantity);
         Assert.Equal(first.ContentHash, second.ContentHash);
-        Assert.Equal("gaCrItU7eDdHkPO/cCAT48xTuEwVKVnRBOJlFk+2UGs=", first.ContentHash);
-        Assert.Equal(32, Convert.FromBase64String(first.ContentHash).Length);
+        Assert.Equal("gaCrItU7eDdHkPO_cCAT48xTuEwVKVnRBOJlFk-2UGs", first.ContentHash);
+        var padded = first.ContentHash.Replace('-', '+').Replace('_', '/') + "=";
+        Assert.Equal(32, Convert.FromBase64String(padded).Length);
     }
 
     [Fact]
