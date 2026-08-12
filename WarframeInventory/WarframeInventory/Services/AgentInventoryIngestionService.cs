@@ -28,12 +28,17 @@ public sealed class AgentInventoryIngestionService
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
+            var receivedHash = ComputeHash(snapshot);
             var existing = await db.InventorySyncBatches.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == snapshot.BatchId && x.DeviceId == deviceId, ct);
             if (existing is not null)
+            {
+                if (!FixedHashEquals(existing.ContentHash, receivedHash))
+                    throw new AgentInventoryException("batch_content_mismatch");
                 return new(existing.Id, existing.Status, snapshot.Items.Count,
                     snapshot.Items.Sum(x => x.Quantity), 0, existing.ChangedRecords,
                     existing.IsAuthoritative);
+            }
             var device = await db.AgentDevices.FirstOrDefaultAsync(x => x.Id == deviceId
                 && x.UserId == userId && x.RevokedUtc == null, ct)
                 ?? throw new AgentInventoryException("device_revoked");
@@ -42,7 +47,8 @@ public sealed class AgentInventoryIngestionService
             if (snapshot.CapturedUtc < DateTime.UtcNow.AddHours(-24)
                 || snapshot.CapturedUtc > DateTime.UtcNow.AddMinutes(5))
                 throw new AgentInventoryException("stale_snapshot");
-            if (!FixedHashEquals(snapshot.ContentHash, ComputeHash(snapshot)))
+            if (!string.IsNullOrWhiteSpace(snapshot.ContentHash)
+                && !FixedHashEquals(snapshot.ContentHash, receivedHash))
                 throw new AgentInventoryException("invalid_hash");
 
             var pipeline = new DesktopInventorySyncService(_dbFactory);
@@ -52,7 +58,7 @@ public sealed class AgentInventoryIngestionService
             {
                 Id = snapshot.BatchId, DeviceId = deviceId, UserId = userId,
                 Sequence = snapshot.Sequence, Source = "tracker-agent",
-                ContentHash = snapshot.ContentHash,
+                ContentHash = receivedHash,
                 IsAuthoritative = preview.IsAuthoritative,
                 CapturedUtc = snapshot.CapturedUtc.ToUniversalTime(),
                 ReceivedUtc = DateTime.UtcNow, Status = "previewed"

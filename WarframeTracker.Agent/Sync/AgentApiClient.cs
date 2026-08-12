@@ -51,7 +51,17 @@ public sealed class AgentApiClient
         CancellationToken ct)
     {
         using var request = Authorized(HttpMethod.Post, "api/agent/v1/inventory/preview", token);
-        request.Content = JsonContent.Create(snapshot);
+        // El hash local no se transporta: algunos proxies bloquean cadenas de alta
+        // entropía. El backend calcula su propio SHA-256 sobre este payload.
+        request.Content = JsonContent.Create(new
+        {
+            snapshot.BatchId,
+            snapshot.Sequence,
+            snapshot.CapturedUtc,
+            snapshot.IsAuthoritative,
+            snapshot.Items,
+            snapshot.Account
+        });
         using var response = await _http.SendAsync(request, ct);
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             throw new AgentApiException("unauthorized", false);

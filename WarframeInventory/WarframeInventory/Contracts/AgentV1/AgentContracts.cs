@@ -14,7 +14,7 @@ public sealed record AgentInventoryItem(string Section, string UniqueName, int Q
 public sealed record AgentAccountValues(long? Credits, long? Endo, long? Platinum,
     long? Ducats, long? Aya, int? MasteryRank);
 public sealed record AgentInventorySnapshot(Guid BatchId, long Sequence, DateTime CapturedUtc,
-    bool IsAuthoritative, string ContentHash, IReadOnlyList<AgentInventoryItem> Items,
+    bool IsAuthoritative, string? ContentHash, IReadOnlyList<AgentInventoryItem> Items,
     AgentAccountValues? Account);
 public sealed record AgentInventoryPreviewResponse(Guid BatchId, string Status,
     int DistinctItems, int TotalQuantity, int UnknownItems, int Changes,

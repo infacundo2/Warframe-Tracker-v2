@@ -676,3 +676,8 @@ posteriores.
   Base64URL atraviesa el proxy, por lo que el transporte del mismo SHA-256 se
   cambió a Base64URL, manteniendo comparación de tiempo constante y los mismos
   256 bits de integridad.
+- Un segundo digest aleatorio también fue bloqueado, confirmando que el filtro
+  reacciona a determinados valores de alta entropía. El hash dejó de viajar en
+  JSON: Render lo calcula sobre el payload recibido y exige que todo reintento
+  de un `BatchId` coincida con el hash almacenado. El Agent conserva el hash
+  local para snapshots y deduplicación.
