@@ -8,6 +8,7 @@ namespace WarframeInventory.Services;
 public sealed class DesktopInventorySyncService
 {
     private const int MaximumPayloadBytes = 20 * 1024 * 1024;
+    private const int MaximumUnknownItemsInPreview = 1_000;
     private static readonly TimeSpan CaptureLifetime = TimeSpan.FromMinutes(30);
     private static readonly HashSet<string> WarframeSections = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -126,7 +127,7 @@ public sealed class DesktopInventorySyncService
         var resources = new Dictionary<string, DesktopMatchedItem>(StringComparer.Ordinal);
         var masteredWarframes = new Dictionary<string, DesktopMasteredItem>(StringComparer.Ordinal);
         var masteredWeapons = new Dictionary<string, DesktopMasteredItem>(StringComparer.Ordinal);
-        var unknown = new List<string>();
+        var unknown = new List<DesktopUnknownItem>();
 
         foreach (var item in capture.Inventory.Items)
         {
@@ -162,7 +163,10 @@ public sealed class DesktopInventorySyncService
             }
             else
             {
-                unknown.Add(item.UniqueName);
+                unknown.Add(new DesktopUnknownItem(
+                    item.Section,
+                    item.UniqueName,
+                    item.Quantity));
             }
         }
 
@@ -244,7 +248,12 @@ public sealed class DesktopInventorySyncService
             matchedRelics,
             matchedComponents,
             resources,
-            unknown.OrderBy(x => x).Take(250).ToArray(),
+            unknown.Count,
+            unknown
+                .OrderBy(x => x.Section)
+                .ThenBy(x => x.UniqueName)
+                .Take(MaximumUnknownItemsInPreview)
+                .ToArray(),
             changes.OrderBy(x => x.Category).ThenBy(x => x.Name).ToArray());
     }
 
@@ -867,6 +876,11 @@ public sealed record DesktopInventoryChange(
     int PreviousQuantity,
     int NewQuantity);
 
+public sealed record DesktopUnknownItem(
+    string Section,
+    string UniqueName,
+    int Quantity);
+
 public sealed record DesktopInventoryPreview(
     string UserId,
     Guid CaptureId,
@@ -883,7 +897,8 @@ public sealed record DesktopInventoryPreview(
     IReadOnlyDictionary<string, DesktopMatchedItem> Relics,
     IReadOnlyDictionary<string, DesktopMatchedComponent> Components,
     IReadOnlyDictionary<string, DesktopMatchedItem> Resources,
-    IReadOnlyList<string> UnknownItems,
+    int UnknownItemCount,
+    IReadOnlyList<DesktopUnknownItem> UnknownItems,
     IReadOnlyList<DesktopInventoryChange> Changes);
 
 public sealed record DesktopApplyResult(int ChangedRecords, DateTime AppliedUtc);

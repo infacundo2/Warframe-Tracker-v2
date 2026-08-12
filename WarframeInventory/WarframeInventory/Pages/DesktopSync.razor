@@ -149,12 +149,44 @@
                 </MudAlert>
             }
 
-            @if (preview.UnknownItems.Count > 0)
+            @if (preview.UnknownItemCount > 0)
             {
                 <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
-                    @preview.UnknownItems.Count objetos todavía no coinciden con el catálogo.
+                    @preview.UnknownItemCount objetos todavía no coinciden con el catálogo.
                     Se omitirán sin bloquear el resto.
                 </MudAlert>
+                <MudExpansionPanels Class="mb-4">
+                    <MudExpansionPanel Text="@($"Ver {preview.UnknownItems.Count:N0} identificadores omitidos")">
+                        @if (preview.UnknownItemCount > preview.UnknownItems.Count)
+                        {
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3">
+                                Mostrando los primeros @preview.UnknownItems.Count.ToString("N0") de
+                                @preview.UnknownItemCount.ToString("N0") identificadores.
+                            </MudAlert>
+                        }
+                        <div class="relic-sync-table-wrap">
+                            <table class="relic-sync-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sección GEP</th>
+                                        <th>Identificador interno</th>
+                                        <th>Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var unknown in preview.UnknownItems)
+                                    {
+                                        <tr>
+                                            <td><span class="refinement-chip">@unknown.Section</span></td>
+                                            <td><code>@unknown.UniqueName</code></td>
+                                            <td>@unknown.Quantity</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
             }
 
             <MudTextField T="string"

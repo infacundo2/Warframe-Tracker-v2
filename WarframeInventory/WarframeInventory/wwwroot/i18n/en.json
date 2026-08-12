@@ -843,9 +843,24 @@
                          "Analizando esta página de objetivos...":  "Analyzing this page of goals...",
                          "Reintentar":  "Retry",
                          "El análisis tardó demasiado. La página fue liberada para que puedas reintentar.":  "The analysis took too long. The page was released so you can retry.",
-                         "No fue posible analizar los objetivos. Reintenta o revisa el despliegue de la base de datos.":  "Goals could not be analyzed. Retry or verify the database deployment."
+                         "No fue posible analizar los objetivos. Reintenta o revisa el despliegue de la base de datos.":  "Goals could not be analyzed. Retry or verify the database deployment.",
+                         "Se omitirán sin bloquear el resto.":  "They will be skipped without blocking the remaining items.",
+                         "Sección GEP":  "GEP section",
+                         "Identificador interno":  "Internal identifier"
                      },
     "patterns":  [
+                     {
+                         "pattern":  "^(\\d+) objetos todavía no coinciden con el catálogo\\.$",
+                         "replacement":  "`$1 items still do not match the catalog."
+                     },
+                     {
+                         "pattern":  "^Ver ([\\d.,]+) identificadores omitidos$",
+                         "replacement":  "View `$1 skipped identifiers"
+                     },
+                     {
+                         "pattern":  "^Mostrando los primeros ([\\d.,]+) de ([\\d.,]+) identificadores\\.$",
+                         "replacement":  "Showing the first `$1 of `$2 identifiers."
+                     },
                      {
                          "pattern":  "^Presupuesto inicial recomendado: (\\d+) vestigios$",
                          "replacement":  "Recommended initial budget: `$1 traces"

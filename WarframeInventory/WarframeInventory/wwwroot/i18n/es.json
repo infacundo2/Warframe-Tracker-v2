@@ -763,7 +763,10 @@
                          "📊 Buscando UserWeapons para este usuario...":  "📊 Buscando UserWeapons para este usuario...",
                          "🔁 Componente existente actualizado.":  "🔁 Componente existente actualizado.",
                          "🔹 Consultando UserWarframes para este usuario...":  "🔹 Consultando UserWarframes para este usuario...",
-                         "🔹 Entrando a OnInitializedAsync":  "🔹 Entrando a OnInitializedAsync"
+                         "🔹 Entrando a OnInitializedAsync":  "🔹 Entrando a OnInitializedAsync",
+                         "Se omitirán sin bloquear el resto.":  "Se omitirán sin bloquear el resto.",
+                         "Sección GEP":  "Sección GEP",
+                         "Identificador interno":  "Identificador interno"
                      },
     "patterns":  [
 
