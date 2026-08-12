@@ -9,7 +9,7 @@
     "MaximumOfflineBatches": 25,
     "MaximumSnapshotAgeHours": 24,
     "InventoryProviderEnabled": false,
-    "EELogProviderEnabled": false,
+    "EELogProviderEnabled": true,
     "ExperimentalProviderEnabled": false,
     "AutomaticSyncEnabled": false
   },

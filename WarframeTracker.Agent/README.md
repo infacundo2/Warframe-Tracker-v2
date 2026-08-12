@@ -45,7 +45,10 @@ En `trackeragentsettings.json` cambia:
 ```
 
 La ruta predeterminada es `%LOCALAPPDATA%\Warframe\EE.log`; `EELogPath` permite
-un override. EE.log aporta eventos, no un inventario completo.
+un override. Al iniciar, el lector se posiciona al final del archivo existente
+y observa solamente actividad nueva. La consola muestra categorías resumidas
+con duplicados limitados, nunca las líneas originales. EE.log aporta eventos,
+no un inventario completo.
 
 ## Pipeline de inventario de QA
 

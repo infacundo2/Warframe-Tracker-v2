@@ -443,8 +443,10 @@ Se implementó un lector opcional que:
 - lea únicamente datos nuevos;
 - conserve offset y líneas incompletas;
 - soporte archivo inexistente, bloqueo temporal, truncamiento y rotación;
-- combine `FileSystemWatcher` con una comprobación periódica lenta;
+- compruebe periódicamente si existen datos nuevos sin mantener watchers;
 - genere eventos internos de misión;
+- muestre solo resúmenes de categoría con supresión de duplicados;
+- comience al final del archivo existente para no reprocesar actividad histórica;
 - no escriba líneas completas potencialmente sensibles en logs.
 
 `EE.log` servirá principalmente como fuente de eventos. No se asumirá que
@@ -646,3 +648,13 @@ El siguiente paso es desplegar las migraciones y probar en vivo:
 La captura automática del inventario real no debe habilitarse hasta confirmar
 una fuente permitida. Tray, instalador, firma y autoupdate siguen siendo fases
 posteriores.
+
+### Resultado de QA en Render
+
+- Emparejamiento HTTPS confirmado contra Render.
+- Dispositivo asociado a la cuenta correcta y token local protegido con DPAPI.
+- Detección del proceso de Warframe confirmada.
+- La primera transición de Repetidor no fue concluyente porque el ejecutable
+  activo conservaba `EELogProviderEnabled=false`.
+- Se preparó una segunda build de QA con el lector habilitado y salida segura
+  de eventos para repetir solamente la prueba de transición.

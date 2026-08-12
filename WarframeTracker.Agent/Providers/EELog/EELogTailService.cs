@@ -26,6 +26,7 @@ public sealed class EELogTailService : BackgroundService
             return;
         }
         var path = ResolvePath();
+        StartAtEndOfExistingLog(path);
         _logger.LogInformation("[EE.log] Lector incremental listo en {Directory}.",
             Path.GetDirectoryName(path));
         while (!stoppingToken.IsCancellationRequested)
@@ -34,6 +35,25 @@ public sealed class EELogTailService : BackgroundService
                 await ReadNewDataAsync(path, stoppingToken);
             await Task.Delay(TimeSpan.FromSeconds(Math.Clamp(_options.EELogPollSeconds, 2, 30)),
                 stoppingToken);
+        }
+    }
+
+    private void StartAtEndOfExistingLog(string path)
+    {
+        try
+        {
+            // Una nueva ejecución observa solo actividad nueva. Así no reinterpreta ni
+            // muestra cientos de eventos históricos del EE.log existente.
+            if (File.Exists(path))
+                _offset = new FileInfo(path).Length;
+        }
+        catch (IOException)
+        {
+            _offset = 0;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _offset = 0;
         }
     }
 

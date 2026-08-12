@@ -58,6 +58,7 @@ builder.Services.AddHttpClient<AgentApiClient>((services, client) =>
     client.DefaultRequestHeaders.UserAgent.ParseAdd("WarframeTracker.Agent/0.2");
 });
 builder.Services.AddHostedService<AgentPairingHostedService>();
+builder.Services.AddHostedService<EELogActivityMonitor>();
 builder.Services.AddHostedService<EELogTailService>();
 builder.Services.AddHostedService<InventoryCaptureHostedService>();
 builder.Services.AddHostedService<InventorySyncHostedService>();
