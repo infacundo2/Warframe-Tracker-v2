@@ -691,3 +691,9 @@ posteriores.
 - El diagnóstico en Render descubrió que el parser intentaba convertir `XP:null`
   a `Int64`. Las lecturas de cantidad, experiencia y valores de cuenta ahora
   comprueban `JsonValueKind.Number` y aceptan campos numéricos opcionales nulos.
+- La Fase 6 quedó validada contra Render: preview parcial de dos elementos QA
+  desconocidos y cero cambios, primer apply `applied`, segundo apply
+  `already_applied` y reintento automático que vació la cola.
+- Un segundo batch QA avanzó de secuencia local/remota 1 a 2 y fue retirado de
+  la cola automáticamente. Luego se desactivaron proveedor experimental y
+  autosync, y se eliminaron los snapshots ficticios conservando el token DPAPI.
