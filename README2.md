@@ -688,3 +688,6 @@ posteriores.
 - Se agregaron respuestas JSON seguras para fallos conocidos e inesperados del
   preview/apply. Los detalles técnicos quedan solo en logs de Render y la API no
   expone inventario, tokens, usuarios ni stack traces.
+- El diagnóstico en Render descubrió que el parser intentaba convertir `XP:null`
+  a `Int64`. Las lecturas de cantidad, experiencia y valores de cuenta ahora
+  comprueban `JsonValueKind.Number` y aceptan campos numéricos opcionales nulos.

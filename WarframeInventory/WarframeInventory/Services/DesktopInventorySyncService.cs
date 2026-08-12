@@ -413,7 +413,8 @@ public sealed class DesktopInventorySyncService
         {
             if (!property.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
                 continue;
-            if (property.Value.TryGetInt32(out value))
+            if (property.Value.ValueKind == JsonValueKind.Number
+                && property.Value.TryGetInt32(out value))
                 return true;
         }
         value = 0;
@@ -425,6 +426,7 @@ public sealed class DesktopInventorySyncService
         foreach (var property in element.EnumerateObject())
         {
             if (property.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+                && property.Value.ValueKind == JsonValueKind.Number
                 && property.Value.TryGetInt64(out value))
                 return true;
         }
@@ -452,7 +454,8 @@ public sealed class DesktopInventorySyncService
         {
             if (!names.Contains(property.Name, StringComparer.OrdinalIgnoreCase))
                 continue;
-            if (property.Value.TryGetInt64(out var value))
+            if (property.Value.ValueKind == JsonValueKind.Number
+                && property.Value.TryGetInt64(out var value))
                 return value;
         }
         return null;

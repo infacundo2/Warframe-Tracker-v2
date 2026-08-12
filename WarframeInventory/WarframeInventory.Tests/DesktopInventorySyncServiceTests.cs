@@ -12,6 +12,31 @@ namespace WarframeInventory.Tests;
 public sealed class DesktopInventorySyncServiceTests
 {
     [Fact]
+    public void Stage_accepts_null_optional_numeric_values_from_agent_payloads()
+    {
+        var options = new DbContextOptionsBuilder<DesktopApplicationDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options;
+        var service = new DesktopInventorySyncService(new TestFactory(options));
+
+        var receipt = service.Stage(
+            """
+            {
+              "RegularCredits": null,
+              "PlayerLevel": null,
+              "QAOnly": [
+                {"ItemType":"/QA/Probe","ItemCount":1,"XP":null}
+              ]
+            }
+            """,
+            "agent-null-regression");
+
+        Assert.Equal(1, receipt.DistinctItems);
+        Assert.Equal(1, receipt.TotalQuantity);
+        Assert.False(receipt.IsAuthoritative);
+    }
+
+    [Fact]
     public async Task Apply_rolls_back_and_keeps_capture_when_commit_does_not_complete()
     {
         var databasePath = Path.Combine(
