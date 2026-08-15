@@ -61,7 +61,8 @@ const samples = new Map([
   ["Defensa móvil · Júpiter", "Mobile Defense · Jupiter"],
   ["Plano de neurópticas de Revenant Prime", "Revenant Prime Neuroptics Blueprint"],
   ["Armadura: 135", "Armor: 135"],
-  ["Poco común · 11%", "Uncommon · 11%"]
+  ["Poco común · 11%", "Uncommon · 11%"],
+  ["Ver 22 fuentes con probabilidad", "View 22 sources with drop rates"]
 ]);
 const failedSamples = [...samples].filter(([source, expected]) => translate(source) !== expected);
 for (const [source, expected] of failedSamples)

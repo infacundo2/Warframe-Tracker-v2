@@ -909,6 +909,10 @@
                          "replacement":  "View $1 skipped identifiers"
                      },
                      {
+                         "pattern":  "^Ver ([\\d.,]+) fuentes con probabilidad$",
+                         "replacement":  "View $1 sources with drop rates"
+                     },
+                     {
                          "pattern":  "^Mostrando los primeros ([\\d.,]+) de ([\\d.,]+) identificadores\\.$",
                          "replacement":  "Showing the first $1 of $2 identifiers."
                      },
