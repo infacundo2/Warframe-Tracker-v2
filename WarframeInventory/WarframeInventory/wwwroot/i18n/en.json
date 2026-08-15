@@ -496,6 +496,7 @@
                          "Niveles de mejora":  "Improvement levels",
                          "No compartido":  "Not shared",
                          "No disponible":  "Not available",
+                         "No disponible en la web":  "Available only in the desktop app",
                          "No hay alertas activas.":  "There are no active alerts.",
                          "No hay datos de dónde se consigue esta reliquia.":  "There is no information on where this relic is obtained.",
                          "No hay fuentes que coincidan con estos filtros.":  "There are no sources that match these filters.",
@@ -873,64 +874,109 @@
                          "No fue posible analizar los objetivos. Reintenta o revisa el despliegue de la base de datos.":  "Goals could not be analyzed. Retry or verify the database deployment.",
                          "Se omitirán sin bloquear el resto.":  "They will be skipped without blocking the remaining items.",
                          "Sección GEP":  "GEP section",
-                         "Identificador interno":  "Internal identifier"
+                         "Identificador interno":  "Internal identifier",
+                         "Arma":  "Weapon",
+                         "ARMA":  "WEAPON",
+                         "DISPONIBLE":  "AVAILABLE",
+                         "EN BÓVEDA":  "VAULTED",
+                         "OBJETIVOS ACTIVOS":  "ACTIVE GOALS",
+                         "poco común":  "uncommon",
+                         "Poseídas":  "Owned",
+                         "RELIQUIA":  "RELIC",
+                         "nunca":  "never"
                      },
     "patterns":  [
                      {
                          "pattern":  "^(\\d+) objetos todavía no coinciden con el catálogo\\.$",
-                         "replacement":  "`$1 items still do not match the catalog."
+                         "replacement":  "$1 items still do not match the catalog."
                      },
                      {
                          "pattern":  "^Ver ([\\d.,]+) identificadores omitidos$",
-                         "replacement":  "View `$1 skipped identifiers"
+                         "replacement":  "View $1 skipped identifiers"
                      },
                      {
                          "pattern":  "^Mostrando los primeros ([\\d.,]+) de ([\\d.,]+) identificadores\\.$",
-                         "replacement":  "Showing the first `$1 of `$2 identifiers."
+                         "replacement":  "Showing the first $1 of $2 identifiers."
                      },
                      {
                          "pattern":  "^Presupuesto inicial recomendado: (\\d+) vestigios$",
-                         "replacement":  "Recommended initial budget: `$1 traces"
+                         "replacement":  "Recommended initial budget: $1 traces"
                      },
                      {
                          "pattern":  "^Tengo (\\d+) · Necesito (\\d+) · Faltan (\\d+)$",
-                         "replacement":  "Owned `$1 · Required `$2 · Missing `$3"
+                         "replacement":  "Owned $1 · Required $2 · Missing $3"
                      },
                       {
                           "pattern":  "^(\\d+) componentes pendientes · (\\d+) rutas detectadas$",
-                          "replacement":  "`$1 missing components · `$2 routes found"
+                           "replacement":  "$1 missing components · $2 routes found"
                       },
                       {
                           "pattern":  "^(\\d+) componentes pendientes · (\\d+) rutas detectadas · (\\d+) disponibles en tu inventario$",
-                          "replacement":  "`$1 missing components · `$2 routes found · `$3 available in your inventory"
+                           "replacement":  "$1 missing components · $2 routes found · $3 available in your inventory"
                       },
                       {
                           "pattern":  "^(\\d+) resultados$",
-                          "replacement":  "`$1 results"
+                           "replacement":  "$1 results"
                       },
                       {
                           "pattern":  "^Conviene: (.+) · ([\\d.,]+)%$",
-                          "replacement":  "Recommended: `$1 · `$2%"
+                           "replacement":  "Recommended: $1 · $2%"
                       },
                      {
                          "pattern":  "^Paso (\\d+) de (\\d+)$",
-                         "replacement":  "Step `$1 of `$2"
+                         "replacement":  "Step $1 of $2"
                      },
                      {
                          "pattern":  "^(\\d+) componentes pendientes$",
-                         "replacement":  "`$1 components remaining"
+                         "replacement":  "$1 components remaining"
                      },
                      {
                          "pattern":  "^(\\d+) copias$",
-                         "replacement":  "`$1 copies"
+                         "replacement":  "$1 copies"
                      },
                      {
                          "pattern":  "^Total (\\d+)$",
-                         "replacement":  "Total `$1"
+                         "replacement":  "Total $1"
                      },
                      {
                          "pattern":  "^Falta: (.+)$",
-                         "replacement":  "Missing: `$1"
+                         "replacement":  "Missing: $1"
+                     },
+                     {
+                         "pattern":  "^¿Prime\\?: Sí$",
+                         "replacement":  "Prime: Yes"
+                     },
+                     {
+                         "pattern":  "^¿Prime\\?: No$",
+                         "replacement":  "Prime: No"
+                     },
+                     {
+                         "pattern":  "^Escuadrón: (\\d+)$",
+                         "replacement":  "Squad: $1"
+                     },
+                     {
+                         "pattern":  "^Aplicar perfil y (\\d+) reliquias$",
+                         "replacement":  "Apply profile and $1 relics"
+                     },
+                     {
+                         "pattern":  "^Rango objetivo: (\\d+) / (\\d+)$",
+                         "replacement":  "Target rank: $1 / $2"
+                     },
+                     {
+                         "pattern":  "^Requisito de maestría: (\\d+)$",
+                         "replacement":  "Mastery requirement: $1"
+                     },
+                     {
+                         "pattern":  "^SIRVE A (\\d+) OBJETIVOS$",
+                         "replacement":  "SUPPORTS $1 GOALS"
+                     },
+                     {
+                         "pattern":  "^RELIQUIAS (.+) EN INVENTARIO$",
+                         "replacement":  "RELICS $1 IN INVENTORY"
+                     },
+                     {
+                         "pattern":  "^Creado (.+) · Última conexión (.+)$",
+                         "replacement":  "Created $1 · Last connection $2"
                      }
                  ],
     "segments":  [
@@ -1013,6 +1059,82 @@
                      {
                          "source":  "la tasa exacta no está publicada",
                          "target":  "the exact rate is not published"
+                     },
+                     {
+                         "source":  "ANÁLISIS DE EXTRACCIÓN //",
+                         "target":  "EXTRACTION ANALYSIS //"
+                     },
+                     {
+                         "source":  "· Rotación ",
+                         "target":  "· Rotation "
+                     },
+                     {
+                         "source":  "Presupuesto inicial recomendado:",
+                         "target":  "Recommended initial budget:"
+                     },
+                     {
+                         "source":  "AlecaFrame envió ",
+                         "target":  "AlecaFrame sent "
+                     },
+                     {
+                         "source":  "registro incompleto",
+                         "target":  "incomplete record"
+                     },
+                     {
+                         "source":  "registros incompletos",
+                         "target":  "incomplete records"
+                     },
+                     {
+                         "source":  "Recuperamos el resto del inventario y activamos el modo seguro:",
+                         "target":  "The rest of the inventory was recovered and safe mode was enabled:"
+                     },
+                     {
+                         "source":  "se actualizarán las reliquias reconocidas, pero ninguna reliquia local ausente quedará en cero.",
+                         "target":  "recognized relics will be updated, but no missing local relic will be set to zero."
+                     },
+                     {
+                         "source":  "¿Prime?:",
+                         "target":  "Prime:"
+                     },
+                     {
+                         "source":  "Aplicar perfil y ",
+                         "target":  "Apply profile and "
+                     },
+                     {
+                         "source":  " reliquias",
+                         "target":  " relics"
+                     },
+                     {
+                         "source":  "Escuadrón:",
+                         "target":  "Squad:"
+                     },
+                     {
+                         "source":  "Rango objetivo:",
+                         "target":  "Target rank:"
+                     },
+                     {
+                         "source":  "Requisito de maestría:",
+                         "target":  "Mastery requirement:"
+                     },
+                     {
+                         "source":  "SIRVE A ",
+                         "target":  "SUPPORTS "
+                     },
+                     {
+                         "source":  " OBJETIVOS",
+                         "target":  " GOALS"
+                     },
+                     {
+                         "source":  "Tengo ",
+                         "target":  "Owned "
+                     },
+                     {
+                         "source":  " · Necesito ",
+                         "target":  " · Required "
+                     },
+                     {
+                         "source":  " · Faltan ",
+                         "target":  " · Missing "
                      }
                  ]
 }

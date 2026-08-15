@@ -75,6 +75,16 @@ $manualEnglish = [ordered]@{
     "Faltantes" = "Missing"
     "Sin datos" = "No data"
     "Sin datos." = "No data."
+    "No disponible en la web" = "Available only in the desktop app"
+    "Arma" = "Weapon"
+    "ARMA" = "WEAPON"
+    "DISPONIBLE" = "AVAILABLE"
+    "EN BÓVEDA" = "VAULTED"
+    "OBJETIVOS ACTIVOS" = "ACTIVE GOALS"
+    "poco común" = "uncommon"
+    "Poseídas" = "Owned"
+    "RELIQUIA" = "RELIC"
+    "nunca" = "never"
     "A UNA PIEZA" = "ONE PIECE AWAY"
     "Ver detalle" = "View details"
     "Abrir detalle" = "Open details"
@@ -112,12 +122,20 @@ $spanishTranslations = [ordered]@{}
 foreach ($phrase in ($strings | Sort-Object)) { $spanishTranslations[$phrase] = $phrase }
 
 $englishTranslations = [ordered]@{}
+$existingPatterns = @()
+$existingSegments = @()
 $existingPath = Join-Path $output "en.json"
 if ($ReuseExistingEnglish -and (Test-Path $existingPath)) {
     $existing = Get-Content -LiteralPath $existingPath -Raw | ConvertFrom-Json
     foreach ($property in $existing.translations.PSObject.Properties) {
         $englishTranslations[$property.Name] = [string]$property.Value
     }
+    $existingPatterns = @($existing.patterns | ForEach-Object {
+        [ordered]@{ pattern = [string]$_.pattern; replacement = [string]$_.replacement }
+    })
+    $existingSegments = @($existing.segments | ForEach-Object {
+        [ordered]@{ source = [string]$_.source; target = [string]$_.target }
+    })
 }
 
 $pending = @($strings | Where-Object { -not $englishTranslations.Contains($_) } | Sort-Object)
@@ -143,11 +161,11 @@ foreach ($key in ($englishTranslations.Keys | Sort-Object)) { $orderedEnglish[$k
 
 $patternsEs = @()
 $patternsEn = @(
-    [ordered]@{ pattern = '^Paso (\d+) de (\d+)$'; replacement = 'Step `$1 of `$2' },
-    [ordered]@{ pattern = '^(\d+) componentes pendientes$'; replacement = '`$1 components remaining' },
-    [ordered]@{ pattern = '^(\d+) copias$'; replacement = '`$1 copies' },
-    [ordered]@{ pattern = '^Total (\d+)$'; replacement = 'Total `$1' },
-    [ordered]@{ pattern = '^Falta: (.+)$'; replacement = 'Missing: `$1' }
+    [ordered]@{ pattern = '^Paso (\d+) de (\d+)$'; replacement = 'Step $1 of $2' },
+    [ordered]@{ pattern = '^(\d+) componentes pendientes$'; replacement = '$1 components remaining' },
+    [ordered]@{ pattern = '^(\d+) copias$'; replacement = '$1 copies' },
+    [ordered]@{ pattern = '^Total (\d+)$'; replacement = 'Total $1' },
+    [ordered]@{ pattern = '^Falta: (.+)$'; replacement = 'Missing: $1' }
 )
 $segmentsEs = @()
 $segmentsEn = @(
@@ -165,6 +183,8 @@ $segmentsEn = @(
     [ordered]@{ source = 'Fuente regional de'; target = 'Regional source for' },
     [ordered]@{ source = 'la tasa exacta no está publicada'; target = 'the exact rate is not published' }
 )
+if ($existingPatterns.Count -gt 0) { $patternsEn = $existingPatterns }
+if ($existingSegments.Count -gt 0) { $segmentsEn = $existingSegments }
 
 $spanishPack = [ordered]@{
     code = "es"; name = "Spanish"; nativeName = "Español"; direction = "ltr"

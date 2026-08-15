@@ -42,6 +42,16 @@
         if (isIgnored(node)) return;
         const current = node.nodeValue ?? "";
         if (!current.trim()) return;
+        // Blazor can replace an already translated text node with fresh
+        // Spanish content. Translate that current value first so dynamic
+        // counters, goals and planner cards never remain partially Spanish.
+        const direct = preserveSpacing(current, translateNormalized(normalize(current)));
+        if (direct !== current) {
+            originalText.set(node, current);
+            node.nodeValue = direct;
+            lastText.set(node, direct);
+            return;
+        }
         if (!originalText.has(node)) originalText.set(node, current);
         else if (lastText.get(node) !== current) originalText.set(node, current);
         const source = originalText.get(node);
@@ -63,6 +73,13 @@
         for (const attribute of attributes) {
             if (!element.hasAttribute(attribute)) continue;
             const current = element.getAttribute(attribute) ?? "";
+            const direct = translateNormalized(normalize(current));
+            if (direct !== current) {
+                originals.set(attribute, current);
+                element.setAttribute(attribute, direct);
+                translated.set(attribute, direct);
+                continue;
+            }
             if (!originals.has(attribute) || translated.get(attribute) !== current)
                 originals.set(attribute, current);
             const next = translateNormalized(normalize(originals.get(attribute)));
