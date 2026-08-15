@@ -2,7 +2,9 @@
 @inject UniversalSearchService SearchService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthState
+@inject ILogger<Search> Logger
 @using System.Security.Claims
+@implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
     <section class="search-console orokin-panel">
@@ -37,6 +39,10 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-4" />
     }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">@errorMessage</MudAlert>
+    }
     else if (query.Length >= 2 && results.Count == 0)
     {
         <MudAlert Severity="Severity.Info" Class="mt-4">No se encontraron coincidencias.</MudAlert>
@@ -69,6 +75,7 @@
     private string query = "";
     private string category = "all";
     private bool loading;
+    private string? errorMessage;
     private IReadOnlyList<SearchHit> results = [];
     private CancellationTokenSource? searchCts;
     private string userId = "";
@@ -85,6 +92,11 @@
     private async Task OnInput(ChangeEventArgs args)
     {
         query = args.Value?.ToString() ?? "";
+        await SearchNowAsync(category, debounce: true);
+    }
+
+    private async Task SearchNowAsync(string requestedCategory, bool debounce)
+    {
         searchCts?.Cancel();
         searchCts?.Dispose();
         searchCts = new CancellationTokenSource();
@@ -92,15 +104,28 @@
         if (query.Trim().Length < 2)
         {
             results = [];
+            errorMessage = null;
+            loading = false;
             return;
         }
         loading = true;
+        errorMessage = null;
         try
         {
-            await Task.Delay(220, token);
-            results = await SearchService.SearchAsync(query, category, userId, token);
+            if (debounce)
+                await Task.Delay(220, token);
+            results = await SearchService.SearchAsync(query, requestedCategory, userId, token);
         }
         catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            if (!token.IsCancellationRequested)
+            {
+                results = [];
+                errorMessage = "La búsqueda no pudo completarse. Inténtalo nuevamente.";
+                Logger.LogError(ex, "Universal search failed for category {Category}", requestedCategory);
+            }
+        }
         finally
         {
             if (!token.IsCancellationRequested)
@@ -112,14 +137,19 @@
     {
         category = value;
         if (query.Trim().Length >= 2)
-            results = await SearchService.SearchAsync(query, category, userId);
+            await SearchNowAsync(category, debounce: false);
     }
     private async Task RunExampleAsync(string value)
     {
         query = value;
-        loading = true;
-        results = await SearchService.SearchAsync(query, "all", userId);
-        loading = false;
+        category = "all";
+        await SearchNowAsync(category, debounce: false);
+    }
+
+    public void Dispose()
+    {
+        searchCts?.Cancel();
+        searchCts?.Dispose();
     }
 
     private static string Label(string value) => Categories.GetValueOrDefault(value, value);

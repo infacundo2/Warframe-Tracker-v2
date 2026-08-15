@@ -551,6 +551,7 @@ img { color: transparent; }
     display: flex;
     align-items: center;
     gap: .45rem;
+    margin-left: .65rem;
     margin-right: 1rem;
     padding: .35rem .55rem;
     color: #9cb5c0;

@@ -99,15 +99,22 @@ public sealed class UniversalSearchService
                 .ToListAsync(ct));
 
         if (category is "all" or "relic")
-            hits.AddRange(await db.Relics.AsNoTracking()
+        {
+            // EF Core 8 fails while translating GroupBy(...).First() for both
+            // SQLite and some MySQL query shapes. Fetch the small bounded set
+            // first and collapse refinement duplicates in memory instead.
+            var relicRows = await db.Relics.AsNoTracking()
                 .Where(x => EF.Functions.Like(x.Name, pattern))
-                .GroupBy(x => x.Name)
-                .Select(x => x.First())
-                .OrderBy(x => x.Name).Take(20)
+                .OrderBy(x => x.Name).Take(80)
                 .Select(x => new SearchHit("relic", x.UniqueName, x.Name,
                     x.Vaulted ? "Vaulted" : "Disponible", x.ImageName,
                     $"/relics/{Uri.EscapeDataString(x.UniqueName)}"))
-                .ToListAsync(ct));
+                .ToListAsync(ct);
+            hits.AddRange(relicRows
+                .GroupBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(x => x.First())
+                .Take(20));
+        }
 
         if (category is "all" or "component")
             hits.AddRange(await db.RelicRewards.AsNoTracking()

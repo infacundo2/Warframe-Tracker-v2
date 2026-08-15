@@ -864,6 +864,7 @@
                          "No fue posible cargar las armas. Reintenta en unos segundos.":  "Weapons could not be loaded. Try again in a few seconds.",
                          "No fue posible cargar los mods. Reintenta en unos segundos.":  "Mods could not be loaded. Try again in a few seconds.",
                          "No fue posible cargar las reliquias. Reintenta en unos segundos.":  "Relics could not be loaded. Try again in a few seconds.",
+                         "La búsqueda no pudo completarse. Inténtalo nuevamente.":  "The search could not be completed. Please try again.",
                          "Buscar objetivo...":  "Search goal...",
                          "Estado":  "Status",
                          "Activos":  "Active",
