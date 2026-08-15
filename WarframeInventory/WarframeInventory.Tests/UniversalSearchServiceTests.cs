@@ -43,9 +43,20 @@ public sealed class UniversalSearchServiceTests
                     UniqueName = "/Lotus/Relics/RevenantTest",
                     Name = "Revenant Test Relic"
                 });
+                setup.Relics.Add(new Relic
+                {
+                    UniqueName = "/Lotus/Relics/RevenantTestTwo",
+                    Name = "Revenant Test Relic Two"
+                });
                 setup.RelicRewards.Add(new RelicReward
                 {
                     RelicUnique = "/Lotus/Relics/RevenantTest",
+                    ItemUnique = "/Lotus/Items/RevenantTest",
+                    ItemName = "Revenant Prime Blueprint"
+                });
+                setup.RelicRewards.Add(new RelicReward
+                {
+                    RelicUnique = "/Lotus/Relics/RevenantTestTwo",
                     ItemUnique = "/Lotus/Items/RevenantTest",
                     ItemName = "Revenant Prime Blueprint"
                 });
@@ -60,7 +71,8 @@ public sealed class UniversalSearchServiceTests
             Assert.Contains(results, x => x.Category == "weapon");
             Assert.Contains(results, x => x.Category == "mod");
             Assert.Contains(results, x => x.Category == "relic");
-            Assert.Contains(results, x => x.Category == "component");
+            var component = Assert.Single(results, x => x.Category == "component");
+            Assert.Equal("2 variantes de reliquia", component.Subtitle);
         }
         finally
         {

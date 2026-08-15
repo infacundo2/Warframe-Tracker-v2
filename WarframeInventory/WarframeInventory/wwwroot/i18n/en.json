@@ -914,6 +914,10 @@
                          "replacement":  "View $1 sources with drop rates"
                      },
                      {
+                         "pattern":  "^([\\d.,]+) variantes de reliquia$",
+                         "replacement":  "$1 relic variants"
+                     },
+                     {
                          "pattern":  "^Mostrando los primeros ([\\d.,]+) de ([\\d.,]+) identificadores\\.$",
                          "replacement":  "Showing the first $1 of $2 identifiers."
                      },

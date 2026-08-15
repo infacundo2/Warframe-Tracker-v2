@@ -117,14 +117,33 @@ public sealed class UniversalSearchService
         }
 
         if (category is "all" or "component")
-            hits.AddRange(await db.RelicRewards.AsNoTracking()
+        {
+            // Keep the SQL provider-neutral. EF's grouped projection can throw
+            // EmptyProjectionMember on MySQL even when the equivalent SQLite
+            // query succeeds.
+            var components = await db.RelicRewards.AsNoTracking()
                 .Where(x => EF.Functions.Like(x.ItemName, pattern))
-                .GroupBy(x => new { x.ItemUnique, x.ItemName })
-                .OrderBy(x => x.Key.ItemName).Take(20)
-                .Select(x => new SearchHit("component", x.Key.ItemUnique, x.Key.ItemName,
-                    $"{x.Select(y => y.RelicUnique).Distinct().Count()} variantes de reliquia",
-                    null, "/relics"))
-                .ToListAsync(ct));
+                .Select(x => new { x.ItemUnique, x.ItemName })
+                .Distinct()
+                .OrderBy(x => x.ItemName)
+                .Take(20)
+                .ToListAsync(ct);
+            var componentKeys = components.Select(x => x.ItemUnique).ToList();
+            var componentRelics = componentKeys.Count == 0
+                ? []
+                : await db.RelicRewards.AsNoTracking()
+                    .Where(x => componentKeys.Contains(x.ItemUnique))
+                    .Select(x => new { x.ItemUnique, x.RelicUnique })
+                    .Distinct()
+                    .ToListAsync(ct);
+            var relicCounts = componentRelics
+                .GroupBy(x => x.ItemUnique)
+                .ToDictionary(x => x.Key, x => x.Count());
+            hits.AddRange(components.Select(x => new SearchHit(
+                "component", x.ItemUnique, x.ItemName,
+                $"{relicCounts.GetValueOrDefault(x.ItemUnique)} variantes de reliquia",
+                null, "/relics")));
+        }
 
         return hits.OrderBy(x => x.Name).Take(60).ToList();
     }
