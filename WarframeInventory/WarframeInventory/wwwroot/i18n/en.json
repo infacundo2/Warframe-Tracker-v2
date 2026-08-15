@@ -883,7 +883,21 @@
                          "poco común":  "uncommon",
                          "Poseídas":  "Owned",
                          "RELIQUIA":  "RELIC",
-                         "nunca":  "never"
+                         "nunca":  "never",
+                         "Vida":  "Health",
+                         "Salud":  "Health",
+                         "Armadura":  "Armor",
+                         "Escudo":  "Shield",
+                         "Escudos":  "Shields",
+                         "Energía":  "Energy",
+                         "Velocidad":  "Speed",
+                         "Sistemas":  "Systems",
+                         "Neurópticas":  "Neuroptics",
+                         "Célula Orokin":  "Orokin Cell",
+                         "Célula orokin":  "Orokin Cell",
+                         "Recurso":  "Resource",
+                         "Enemigos":  "Enemies",
+                         "Enemigo":  "Enemy"
                      },
     "patterns":  [
                      {
@@ -977,6 +991,78 @@
                      {
                          "pattern":  "^Creado (.+) · Última conexión (.+)$",
                          "replacement":  "Created $1 · Last connection $2"
+                     },
+                     {
+                         "pattern":  "^Reliquia (.+)$",
+                         "replacement":  "$1 Relic"
+                     },
+                     {
+                         "pattern":  "^Plano de neurópticas de (.+)$",
+                         "replacement":  "$1 Neuroptics Blueprint"
+                     },
+                     {
+                         "pattern":  "^Plano del chasis de (.+)$",
+                         "replacement":  "$1 Chassis Blueprint"
+                     },
+                     {
+                         "pattern":  "^Plano de sistemas de (.+)$",
+                         "replacement":  "$1 Systems Blueprint"
+                     },
+                     {
+                         "pattern":  "^Plano del arnés de (.+)$",
+                         "replacement":  "$1 Harness Blueprint"
+                     },
+                     {
+                         "pattern":  "^Plano de (.+)$",
+                         "replacement":  "$1 Blueprint"
+                     },
+                     {
+                         "pattern":  "^Receptor de (.+)$",
+                         "replacement":  "$1 Receiver"
+                     },
+                     {
+                         "pattern":  "^Cañón de (.+)$",
+                         "replacement":  "$1 Barrel"
+                     },
+                     {
+                         "pattern":  "^Culata de (.+)$",
+                         "replacement":  "$1 Stock"
+                     },
+                     {
+                         "pattern":  "^Hoja de (.+)$",
+                         "replacement":  "$1 Blade"
+                     },
+                     {
+                         "pattern":  "^Empuñadura de (.+)$",
+                         "replacement":  "$1 Handle"
+                     },
+                     {
+                         "pattern":  "^Enlace de (.+)$",
+                         "replacement":  "$1 Link"
+                     },
+                     {
+                         "pattern":  "^Cuerda de (.+)$",
+                         "replacement":  "$1 String"
+                     },
+                     {
+                         "pattern":  "^Brazo superior de (.+)$",
+                         "replacement":  "$1 Upper Limb"
+                     },
+                     {
+                         "pattern":  "^Brazo inferior de (.+)$",
+                         "replacement":  "$1 Lower Limb"
+                     },
+                     {
+                         "pattern":  "^Ornamento de (.+)$",
+                         "replacement":  "$1 Ornament"
+                     },
+                     {
+                         "pattern":  "^Bolsa de (.+)$",
+                         "replacement":  "$1 Pouch"
+                     },
+                     {
+                         "pattern":  "^Disco de (.+)$",
+                         "replacement":  "$1 Disc"
                      }
                  ],
     "segments":  [
@@ -1135,6 +1221,386 @@
                      {
                          "source":  " · Faltan ",
                          "target":  " · Missing "
+                     },
+                     {
+                         "source":  "Masacre del Santuario de élite",
+                         "target":  "Elite Sanctuary Onslaught"
+                     },
+                     {
+                         "source":  "Masacre del Santuario",
+                         "target":  "Sanctuary Onslaught"
+                     },
+                     {
+                         "source":  "Recuperar el archivo Orokin",
+                         "target":  "Recover the Orokin Archive"
+                     },
+                     {
+                         "source":  "Llanuras de Eidolon",
+                         "target":  "Plains of Eidolon"
+                     },
+                     {
+                         "source":  "Experiencia de Duviri",
+                         "target":  "Duviri Experience"
+                     },
+                     {
+                         "source":  "Bóveda de aislamiento Arcana",
+                         "target":  "Arcana Isolation Vault"
+                     },
+                     {
+                         "source":  "Bóveda de aislamiento",
+                         "target":  "Isolation Vault"
+                     },
+                     {
+                         "source":  "Salvamento infestado",
+                         "target":  "Infested Salvage"
+                     },
+                     {
+                         "source":  "Defensa móvil",
+                         "target":  "Mobile Defense"
+                     },
+                     {
+                         "source":  "Armagedón del Vacío",
+                         "target":  "Void Armageddon"
+                     },
+                     {
+                         "source":  "Cascada del Vacío",
+                         "target":  "Void Cascade"
+                     },
+                     {
+                         "source":  "Inundación del Vacío",
+                         "target":  "Void Flood"
+                     },
+                     {
+                         "source":  "Cosecha de Legacyte",
+                         "target":  "Legacyte Harvest"
+                     },
+                     {
+                         "source":  "Estrella de la Plaga",
+                         "target":  "Plague Star"
+                     },
+                     {
+                         "source":  "Deriva Cambion",
+                         "target":  "Cambion Drift"
+                     },
+                     {
+                         "source":  "Valles del Orbe",
+                         "target":  "Orb Vallis"
+                     },
+                     {
+                         "source":  "Fortaleza Kuva",
+                         "target":  "Kuva Fortress"
+                     },
+                     {
+                         "source":  "Inundación Kuva",
+                         "target":  "Kuva Flood"
+                     },
+                     {
+                         "source":  "Sifón Kuva",
+                         "target":  "Kuva Siphon"
+                     },
+                     {
+                         "source":  "Próxima del Velo",
+                         "target":  "Veil Proxima"
+                     },
+                     {
+                         "source":  "Mercurio",
+                         "target":  "Mercury"
+                     },
+                     {
+                         "source":  "Tierra",
+                         "target":  "Earth"
+                     },
+                     {
+                         "source":  "Marte",
+                         "target":  "Mars"
+                     },
+                     {
+                         "source":  "Fobos",
+                         "target":  "Phobos"
+                     },
+                     {
+                         "source":  "Júpiter",
+                         "target":  "Jupiter"
+                     },
+                     {
+                         "source":  "Saturno",
+                         "target":  "Saturn"
+                     },
+                     {
+                         "source":  "Urano",
+                         "target":  "Uranus"
+                     },
+                     {
+                         "source":  "Neptuno",
+                         "target":  "Neptune"
+                     },
+                     {
+                         "source":  "Plutón",
+                         "target":  "Pluto"
+                     },
+                     {
+                         "source":  "Vacío",
+                         "target":  "Void"
+                     },
+                     {
+                         "source":  "Supervivencia",
+                         "target":  "Survival"
+                     },
+                     {
+                         "source":  "Defensa",
+                         "target":  "Defense"
+                     },
+                     {
+                         "source":  "Captura",
+                         "target":  "Capture"
+                     },
+                     {
+                         "source":  "Exterminio",
+                         "target":  "Exterminate"
+                     },
+                     {
+                         "source":  "Excavación",
+                         "target":  "Excavation"
+                     },
+                     {
+                         "source":  "Intercepción",
+                         "target":  "Interception"
+                     },
+                     {
+                         "source":  "Disrupción",
+                         "target":  "Disruption"
+                     },
+                     {
+                         "source":  "Deserción",
+                         "target":  "Defection"
+                     },
+                     {
+                         "source":  "Asesinato",
+                         "target":  "Assassination"
+                     },
+                     {
+                         "source":  "Sabotaje",
+                         "target":  "Sabotage"
+                     },
+                     {
+                         "source":  "Rescate",
+                         "target":  "Rescue"
+                     },
+                     {
+                         "source":  "Espionaje",
+                         "target":  "Spy"
+                     },
+                     {
+                         "source":  "Escaramuza",
+                         "target":  "Skirmish"
+                     },
+                     {
+                         "source":  "Alquimia",
+                         "target":  "Alchemy"
+                     },
+                     {
+                         "source":  "Persecución",
+                         "target":  "Pursuit"
+                     },
+                     {
+                         "source":  "Carrera",
+                         "target":  "Rush"
+                     },
+                     {
+                         "source":  "Alijos",
+                         "target":  "Caches"
+                     },
+                     {
+                         "source":  "Alijo",
+                         "target":  "Cache"
+                     },
+                     {
+                         "source":  "Recompensa de misión",
+                         "target":  "Mission Reward"
+                     },
+                     {
+                         "source":  "Camino de Acero",
+                         "target":  "Steel Path"
+                     },
+                     {
+                         "source":  "Escuadrón único",
+                         "target":  "Single Squad"
+                     },
+                     {
+                         "source":  "Escuadrón contra escuadrón",
+                         "target":  "Squad VS Squad"
+                     },
+                     {
+                         "source":  "Nivel",
+                         "target":  "Level"
+                     },
+                     {
+                         "source":  "Otro traidor",
+                         "target":  "Another Betrayer"
+                     },
+                     {
+                         "source":  "Reunión familiar",
+                         "target":  "Family Reunion"
+                     },
+                     {
+                         "source":  "Mesa para dos",
+                         "target":  "Table For Two"
+                     },
+                     {
+                         "source":  "Las secuelas",
+                         "target":  "The Aftermath"
+                     },
+                     {
+                         "source":  "Se acabó el tiempo",
+                         "target":  "Time's Up"
+                     },
+                     {
+                         "source":  "Caos total",
+                         "target":  "Hot Mess"
+                     },
+                     {
+                         "source":  "Historia solitaria",
+                         "target":  "Lone Story"
+                     },
+                     {
+                         "source":  "El Circuito",
+                         "target":  "The Circuit"
+                     },
+                     {
+                         "source":  "Enfrentamiento",
+                         "target":  "Faceoff"
+                     },
+                     {
+                         "source":  "Recompensa de enemigo",
+                         "target":  "Enemy Drop"
+                     },
+                     {
+                         "source":  "Misión de Archwing",
+                         "target":  "Archwing Mission"
+                     },
+                     {
+                         "source":  "Cuerpo a cuerpo",
+                         "target":  "Melee"
+                     },
+                     {
+                         "source":  "Escopeta",
+                         "target":  "Shotgun"
+                     },
+                     {
+                         "source":  "Pistola",
+                         "target":  "Pistol"
+                     },
+                     {
+                         "source":  "Principal",
+                         "target":  "Primary"
+                     },
+                     {
+                         "source":  "Secundaria",
+                         "target":  "Secondary"
+                     },
+                     {
+                         "source":  "Recursos",
+                         "target":  "Resources"
+                     },
+                     {
+                         "source":  "Recurso",
+                         "target":  "Resource"
+                     },
+                     {
+                         "source":  "Enemigos",
+                         "target":  "Enemies"
+                     },
+                     {
+                         "source":  "Enemigo",
+                         "target":  "Enemy"
+                     },
+                     {
+                         "source":  "Sistemas",
+                         "target":  "Systems"
+                     },
+                     {
+                         "source":  "Neurópticas",
+                         "target":  "Neuroptics"
+                     },
+                     {
+                         "source":  "Célula Orokin",
+                         "target":  "Orokin Cell"
+                     },
+                     {
+                         "source":  "Célula orokin",
+                         "target":  "Orokin Cell"
+                     },
+                     {
+                         "source":  "Poco común",
+                         "target":  "Uncommon"
+                     },
+                     {
+                         "source":  "Común",
+                         "target":  "Common"
+                     },
+                     {
+                         "source":  "Legendaria",
+                         "target":  "Legendary"
+                     },
+                     {
+                         "source":  "Rara",
+                         "target":  "Rare"
+                     },
+                     {
+                         "source":  "Radiante",
+                         "target":  "Radiant"
+                     },
+                     {
+                         "source":  "Excepcional",
+                         "target":  "Exceptional"
+                     },
+                     {
+                         "source":  "Perfecta",
+                         "target":  "Flawless"
+                     },
+                     {
+                         "source":  "Intacta",
+                         "target":  "Intact"
+                     },
+                     {
+                         "source":  "Armadura:",
+                         "target":  "Armor:"
+                     },
+                     {
+                         "source":  "Salud:",
+                         "target":  "Health:"
+                     },
+                     {
+                         "source":  "Vida:",
+                         "target":  "Health:"
+                     },
+                     {
+                         "source":  "Escudos:",
+                         "target":  "Shields:"
+                     },
+                     {
+                         "source":  "Escudo:",
+                         "target":  "Shield:"
+                     },
+                     {
+                         "source":  "Energía:",
+                         "target":  "Energy:"
+                     },
+                     {
+                         "source":  "Armas",
+                         "target":  "Weapons"
+                     },
+                     {
+                         "source":  "Arma",
+                         "target":  "Weapon"
+                     },
+                     {
+                         "source":  "Aumento",
+                         "target":  "Augment"
+                     },
+                     {
+                         "source":  "Recompensa",
+                         "target":  "Reward"
                      }
                  ]
 }

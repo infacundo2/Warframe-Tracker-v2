@@ -55,8 +55,13 @@ const samples = new Map([
   ["5 componentes pendientes · 27 rutas detectadas · 4 disponibles en tu inventario", "5 missing components · 27 routes found · 4 available in your inventory"],
   ["No disponible en la web", "Available only in the desktop app"],
   ["Objetivos del operador", "Operator Objectives"],
-  ["Reliquia Neo Z10", "Relic Neo Z10"],
-  ["Ranura 3", "Slot 3"]
+  ["Reliquia Neo Z10", "Neo Z10 Relic"],
+  ["Ranura 3", "Slot 3"],
+  ["Elara (Júpiter)", "Elara (Jupiter)"],
+  ["Defensa móvil · Júpiter", "Mobile Defense · Jupiter"],
+  ["Plano de neurópticas de Revenant Prime", "Revenant Prime Neuroptics Blueprint"],
+  ["Armadura: 135", "Armor: 135"],
+  ["Poco común · 11%", "Uncommon · 11%"]
 ]);
 const failedSamples = [...samples].filter(([source, expected]) => translate(source) !== expected);
 for (const [source, expected] of failedSamples)

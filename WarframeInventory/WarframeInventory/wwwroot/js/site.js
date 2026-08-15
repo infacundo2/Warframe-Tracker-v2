@@ -125,7 +125,10 @@ const tennoAudio = (() => {
 
 window.warframeTracker = {
     desktop: {
-        getHotkey: async () => window.warframeDesktop?.getToggleHotkey?.() ?? "No disponible en la web",
+        // Native Overwolf exposes the same documented default shortcut even
+        // when the legacy Electron bridge is not present. Returning a Spanish
+        // status string here also produced an invalid MudSelect value.
+        getHotkey: async () => window.warframeDesktop?.getToggleHotkey?.() ?? "CommandOrControl+Shift+T",
         setHotkey: async value => {
             const saved = await (window.warframeDesktop?.setToggleHotkey?.(value) ?? false);
             if (saved) await window.warframeTracker.desktop.refreshHotkey();
